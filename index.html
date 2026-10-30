@@ -204,17 +204,22 @@
                 </div>
                 
                 <!-- IMPORT / EXPORT BUTTONS (Full Backup) -->
-                <div class="flex gap-2 mb-2">
-                    <button onclick="exportDataJSON()" class="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg text-xs font-medium border flex items-center justify-center">Export Full Backup</button>
-                    <label class="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg text-xs font-medium border flex items-center justify-center cursor-pointer m-0">
-                        Import Full Backup
-                        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importDataJSON(event)">
-                    </label>
+                <!-- IMPORT / EXPORT STORE DATA -->
+                <div class="pt-4 mt-4 border-t border-gray-200">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Device Data Transfer</h3>
+                    <p class="text-[11px] text-gray-500 mb-3">Export your store backup to transfer your setup to a new device, or import a saved backup file.</p>
+                    <div class="flex flex-col gap-2">
+                        <button type="button" onclick="exportDataJSON()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            Export Store Backup (.json)
+                        </button>
+                        <label class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg text-xs font-semibold border border-blue-200 flex items-center justify-center gap-2 cursor-pointer transition m-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            Import Store Backup (.json)
+                            <input type="file" class="hidden" accept=".json" onchange="importDataJSON(event)">
+                        </label>
+                    </div>
                 </div>
-                
-            </div>
-        </div>
-    </div>
 
     <!-- Master Admin Password & Inventory Modal -->
     <div id="admin-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
