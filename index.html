@@ -920,7 +920,60 @@
                 renderAdminGames(); document.getElementById('admin-pass-input').value = '';
             } else { alert("Incorrect Admin Password!"); }
         }
+function lookupGameNumber() {
+            const queryId = document.getElementById('game-number-lookup').value.trim();
+            const statusElem = document.getElementById('game-number-status');
+            const editorForm = document.getElementById('game-number-editor');
+            
+            if(!queryId) {
+                statusElem.innerText = "Please enter a game number.";
+                editorForm.classList.add('hidden');
+                return;
+            }
 
+            const existing = masterGames.find(g => String(g.id) === String(queryId));
+            editorForm.classList.remove('hidden');
+            document.getElementById('game-editor-id').value = queryId;
+
+            if(existing) {
+                statusElem.innerText = `Game found: ${existing.name} ($${existing.price})`;
+                document.getElementById('game-editor-name').value = existing.name;
+                document.getElementById('game-editor-price').value = existing.price;
+                document.getElementById('game-editor-submit').innerText = "Update Game";
+            } else {
+                statusElem.innerText = `Game #${queryId} not found in catalog. Add it below:`;
+                document.getElementById('game-editor-name').value = '';
+                document.getElementById('game-editor-price').value = '';
+                document.getElementById('game-editor-submit').innerText = "Add Game";
+            }
+        }
+
+        function saveGameFromLookup(e) {
+            e.preventDefault();
+            const id = document.getElementById('game-editor-id').value.trim();
+            const name = document.getElementById('game-editor-name').value.trim();
+            const price = parseFloat(document.getElementById('game-editor-price').value);
+
+            if(!id || !name || isNaN(price)) {
+                alert("Please fill out all fields correctly.");
+                return;
+            }
+
+            const existingIndex = masterGames.findIndex(g => String(g.id) === String(id));
+            if(existingIndex >= 0) {
+                masterGames[existingIndex] = { id, name, price };
+                alert(`Game #${id} updated successfully!`);
+            } else {
+                masterGames.push({ id, name, price });
+                alert(`Game #${id} added to catalog successfully!`);
+            }
+
+            localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
+            renderAdminGames();
+            document.getElementById('game-number-editor').classList.add('hidden');
+            document.getElementById('game-number-lookup').value = '';
+            document.getElementById('game-number-status').innerText = '';
+        }
         function verifyAdminAction(callback) {
             const pass = prompt("Enter Manager Password to proceed:");
             if(pass === storeProfile.password || pass === 'admin') { callback(); return true; } 
