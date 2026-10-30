@@ -1,234 +1,414 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Project Lotto - Shift Auditor</title>
-<!-- SheetJS library for Excel/CSV import -->
-<script src="https://www.google.com/url?q=https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js&source=gmail&ust=1793484377965000&sa=E"></script>
-<style>
-body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.grid-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
-.box { background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ccc; }
-.box h4 { margin: 0 0 10px 0; text-align: center; cursor: pointer; color: #0056b3; }
-.box input { width: 90%; margin-bottom: 5px; padding: 5px; }
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); padding-top: 50px; }
-.modal-content { background: #fff; margin: auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 8px; }
-.action-buttons { margin-bottom: 20px; }
-button { padding: 10px 15px; cursor: pointer; background-color: #0056b3; color: white; border: none; border-radius: 4px; margin-right: 5px;}
-button:hover { background-color: #004494; }
-.flex-row { display: flex; gap: 10px; margin-bottom: 10px; }
-#masterInventoryList { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; }
-#masterInventoryList li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-@media print {
-body { padding: 0; background: #fff; }
-.action-buttons, .modal { display: none !important; }
-.grid-container { grid-template-columns: repeat(6, 1fr); gap: 2px; }
-.box { box-shadow: none; border: 1px solid #000; page-break-inside: avoid; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Lotto - Shift Auditor</title>
+    <!-- SheetJS Library for Excel/CSV Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --primary: #0056b3; --bg: #f4f7f6; }
+        body { font-family: Arial, sans-serif; background-color: var(--bg); padding: 20px; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        button { padding: 10px 15px; cursor: pointer; background-color: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
+        button:hover { background-color: #004494; }
+        button.danger { background-color: #dc3545; }
+        
+        /* 6-Column Grid */
+        .grid-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
+        .box { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ccc; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .box h4 { margin: 0 0 10px 0; color: var(--primary); cursor: pointer; font-size: 16px; }
+        .box label { font-size: 11px; color: #666; display: block; text-align: left; margin-left: 5%; }
+        .box input { width: 90%; margin-bottom: 8px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px; }
+        .box .ticket-row { display: flex; justify-content: center; gap: 5px; width: 90%; margin: 0 auto; }
+        .box .ticket-row input { width: 45%; margin: 0; }
+
+        /* Sections */
+        .section-card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px; }
+        .flex-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+        
+        /* Signature Canvas */
+        canvas { border: 1px solid #000; border-radius: 4px; cursor: crosshair; background: #fafafa; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto; }
+        .modal-content { background: #fff; margin: 5% auto; padding: 20px; width: 90%; max-width: 700px; border-radius: 8px; position: relative; }
+        .close-btn { position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 18px; font-weight: bold; color: #333; }
+        
+        #masterInventoryList { list-style: none; padding: 0; max-height: 400px; overflow-y: auto; border: 1px solid #eee; }
+        #masterInventoryList li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Print Styles */
+        @media print {
+            body { padding: 0; background: #fff; font-size: 12px; }
+            .action-buttons, .modal, .no-print { display: none !important; }
+            .grid-container { gap: 2px; }
+            .box { box-shadow: none; border: 1px solid #000; padding: 5px; }
+            .box input { border: none; border-bottom: 1px solid #999; }
+            .section-card { border: none; padding: 0; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="header">
-<h2>Project Lotto - Shift Auditor</h2>
-<div id="timestamp"></div>
-</div>
+    <div class="header">
+        <div>
+            <h2 style="margin:0;">Project Lotto - Shift Report</h2>
+            <p style="margin:5px 0 0 0; color:#555;" id="storeInfoDisplay">Store: Not Set | Retailer #: Not Set</p>
+        </div>
+        <div style="text-align: right;">
+            <strong id="dateDisplay"></strong><br>
+            <span>Clerk: <input type="text" id="clerkName" placeholder="Enter Name" style="width:100px;"></span>
+        </div>
+    </div>
 
-<div class="action-buttons">
-<button onclick="document.getElementById('inventoryModal').style.display='block'">Manage Master Inventory</button>
-<button onclick="window.print()">Print Report</button>
-</div>
+    <div class="action-buttons">
+        <button onclick="document.getElementById('storeSetupModal').style.display='block'">Store Setup</button>
+        <button onclick="openInventoryModal()">Master Inventory</button>
+        <button onclick="calculateTotals()">Calculate Shift Variance</button>
+        <button onclick="window.print()">Print Report</button>
+    </div>
 
-<div class="grid-container" id="lottoGrid">
-<!-- Grid injected via JS -->
-</div>
+    <!-- 6-Column Grid -->
+    <div class="grid-container" id="lottoGrid"></div>
 
-<!-- Master Inventory Modal -->
-<div id="inventoryModal" class="modal">
-<div class="modal-content">
-<span style="float:right; cursor:pointer;" onclick="document.getElementById('inventoryModal').style.display='none'">X</span>
-<h3>Master Game Database</h3>
+    <!-- POS Reconciliation Section -->
+    <div class="section-card">
+        <h3>POS Shift Reconciliation</h3>
+        <div class="flex-row">
+            <div>
+                <label>Total Scratch-Offs Sold ($):</label><br>
+                <input type="number" id="calcTotalSold" readonly style="background:#e9ecef; padding:5px;">
+            </div>
+            <div>
+                <label>POS System Report ($):</label><br>
+                <input type="number" id="posReport" placeholder="Enter POS Total" style="padding:5px;">
+            </div>
+            <div>
+                <label>Variance (Over/Short):</label><br>
+                <input type="text" id="varianceResult" readonly style="background:#e9ecef; padding:5px; font-weight:bold;">
+            </div>
+        </div>
+    </div>
 
-<!-- Excel Import Section -->
-<div style="background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-<strong>Import from Excel/CSV:</strong><br>
-<small>Columns needed: "Game Number", "Game Name", "Price"</small><br>
-<input type="file" id="excelUpload" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onchange="importExcel(event)" style="margin-top: 5px;">
-</div>
+    <!-- Signature Section -->
+    <div class="section-card">
+        <h3>Sign-Off</h3>
+        <p>I verify that the ticket counts and variance above are accurate for my shift.</p>
+        <canvas id="sigCanvas" width="400" height="150"></canvas>
+        <br>
+        <button class="no-print" onclick="clearSignature()" style="margin-top:10px;">Clear Signature</button>
+    </div>
 
-<!-- Search Bar -->
-<input type="text" id="searchInventory" placeholder="Search by Game Number or Name..." onkeyup="filterMasterInventory()" style="width: 100%; padding: 8px; margin-bottom: 15px;">
+    <!-- Master Inventory Modal -->
+    <div id="inventoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('inventoryModal').style.display='none'">X Close</span>
+            <h3>Master Game Database</h3>
+            
+            <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                <strong>Import Games via Excel/CSV</strong><br>
+                <small>Requires headers: "Game Number", "Game Name", "Price"</small><br>
+                <input type="file" id="excelUpload" accept=".csv, .xlsx" onchange="importExcel(event)" style="margin-top: 5px;">
+            </div>
 
-<!-- Add New Game Inputs -->
-<div class="flex-row">
-<input type="text" id="newGameNumber" placeholder="Game # (e.g., 1802)">
-<input type="text" id="newGameName" placeholder="Game Name">
-<input type="number" id="newGamePrice" placeholder="Price ($)" min="1">
-<button onclick="addGameToMaster()">Add</button>
-</div>
+            <input type="text" id="searchInventory" placeholder="Search by Game Number or Name..." onkeyup="filterMasterInventory()" style="width: 95%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius:4px;">
+            
+            <div class="flex-row" style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                <input type="text" id="newGameNumber" placeholder="Game #" style="width:80px; padding:5px;">
+                <input type="text" id="newGameName" placeholder="Game Name" style="flex-grow:1; padding:5px;">
+                <input type="number" id="newGamePrice" placeholder="$ Price" style="width:70px; padding:5px;">
+                <button onclick="addGameToMaster()">Add</button>
+            </div>
 
-<ul id="masterInventoryList"></ul>
-</div>
-</div>
+            <ul id="masterInventoryList"></ul>
+        </div>
+    </div>
+
+    <!-- Store Setup Modal -->
+    <div id="storeSetupModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('storeSetupModal').style.display='none'">X Close</span>
+            <h3>Store Configuration (Admin)</h3>
+            <div class="flex-row">
+                <input type="password" id="adminPassword" placeholder="Admin Password" style="padding:5px;">
+                <button onclick="unlockStoreSetup()">Unlock</button>
+            </div>
+            <div id="storeSetupForm" style="display:none; margin-top:15px;">
+                <label>Store Name:</label><br>
+                <input type="text" id="storeName" style="width:100%; padding:5px; margin-bottom:10px;"><br>
+                <label>Retailer Number:</label><br>
+                <input type="text" id="storeNumber" style="width:100%; padding:5px; margin-bottom:10px;"><br>
+                <label>Store Email:</label><br>
+                <input type="email" id="storeEmail" style="width:100%; padding:5px; margin-bottom:10px;"><br>
+                <button onclick="saveStoreInfo()">Save Store Info</button>
+            </div>
+        </div>
+    </div>
 
 <script>
-let masterInventory = [
-{ number: "1802", name: "300x Jumbo", price: 30 }
-];
-let dispenserBoxes = [];
+    // --- State & Initialization ---
+    let masterInventory = [
+        { number: "1802", name: "300x Jumbo", price: 30 },
+        { number: "1964", name: "Mill Jumbo", price: 20 },
+        { number: "1404", name: "Holiday Riches", price: 20 },
+        { number: "1405", name: "$50 Jumbo Collectable", price: 50 },
+        { number: "1909", name: "$25 Jumbo", price: 25 },
+        { number: "1369", name: "100x", price: 10 }
+    ];
+    let dispenserBoxes = [];
 
-// Initialize 40 boxes
-window.onload = () => {
-for(let i = 1; i <= 40; i++) {
-dispenserBoxes.push({ boxNumber: i.toString(), game: "", start: "", end: "" });
-}
-renderGrid();
-renderMasterInventory();
-document.getElementById('timestamp').innerText = new Date().toLocaleString();
-};
+    window.onload = () => {
+        // Init 40 boxes
+        for(let i = 1; i <= 40; i++) {
+            dispenserBoxes.push({ boxNumber: i.toString(), game: "", start: "", end: "" });
+        }
+        document.getElementById('dateDisplay').innerText = new Date().toLocaleDateString();
+        renderGrid();
+        renderMasterInventory();
+        initSignaturePad();
+    };
 
-function renderGrid() {
-const grid = document.getElementById('lottoGrid');
-grid.innerHTML = '';
-dispenserBoxes.forEach((box, index) => {
-grid.innerHTML += `
-<div class="box">
-<h4 onclick="promptRenameBox(${index})">Box ${box.boxNumber}</h4>
-<input type="text" placeholder="Game #" onchange="autofillGame(this, ${index})" value="${box.game}">
-<input type="text" placeholder="Start Tkt" value="${box.start}">
-<input type="text" placeholder="End Tkt" value="${box.end}">
-</div>
-`;
-});
-}
+    // --- Grid Logic & Resequencing ---
+    function renderGrid() {
+        const grid = document.getElementById('lottoGrid');
+        grid.innerHTML = '';
+        dispenserBoxes.forEach((box, index) => {
+            grid.innerHTML += `
+                <div class="box">
+                    <h4 title="Click to rename box" onclick="promptRenameBox(${index})">Box ${box.boxNumber}</h4>
+                    <label>Game # / Barcode</label>
+                    <input type="text" placeholder="Scan or Type" onchange="handleGameInput(this, ${index})" value="${box.game}">
+                    <div class="ticket-row">
+                        <input type="number" placeholder="Start" value="${box.start}" onchange="updateBoxData(${index}, 'start', this.value)">
+                        <input type="number" placeholder="End" value="${box.end}" onchange="updateBoxData(${index}, 'end', this.value)">
+                    </div>
+                </div>
+            `;
+        });
+    }
 
-function promptRenameBox(index) {
-let newVal = prompt("Enter new box number/letter (e.g., 5, A, or 1&2):", dispenserBoxes[index].boxNumber);
-if (newVal !== null && newVal.trim() !== "") {
-resequenceBoxes(index, newVal.trim());
-}
-}
+    function promptRenameBox(index) {
+        let newVal = prompt("Enter new box identifier (e.g., 5, A, or 1&2):", dispenserBoxes[index].boxNumber);
+        if (newVal !== null && newVal.trim() !== "") {
+            resequenceBoxes(index, newVal.trim());
+        }
+    }
 
-function resequenceBoxes(startIndex, newIdentifier) {
-dispenserBoxes[startIndex].boxNumber = newIdentifier;
-let currentVal = newIdentifier.toString().trim();
+    function resequenceBoxes(startIndex, newIdentifier) {
+        dispenserBoxes[startIndex].boxNumber = newIdentifier;
+        let currentVal = newIdentifier.toString().trim();
+        
+        for (let i = startIndex + 1; i < dispenserBoxes.length; i++) {
+            if (/^\d+$/.test(currentVal)) {
+                currentVal = (parseInt(currentVal, 10) + 1).toString();
+                dispenserBoxes[i].boxNumber = currentVal;
+            } else if (/^[A-Za-z]$/.test(currentVal)) {
+                currentVal = String.fromCharCode(currentVal.charCodeAt(0) + 1);
+                dispenserBoxes[i].boxNumber = currentVal;
+            } else if (/^\d+&\d+$/.test(currentVal)) {
+                let parts = currentVal.split('&');
+                currentVal = `${parseInt(parts[0], 10) + 2}&${parseInt(parts[1], 10) + 2}`;
+                dispenserBoxes[i].boxNumber = currentVal;
+            }
+        }
+        renderGrid();
+    }
 
-for (let i = startIndex + 1; i < dispenserBoxes.length; i++) {
-if (/^\d+$/.test(currentVal)) {
-currentVal = (parseInt(currentVal, 10) + 1).toString();
-dispenserBoxes[i].boxNumber = currentVal;
-} else if (/^[A-Za-z]$/.test(currentVal)) {
-currentVal = String.fromCharCode(currentVal.charCodeAt(0) + 1);
-dispenserBoxes[i].boxNumber = currentVal;
-} else if (/^\d+&\d+$/.test(currentVal)) {
-let parts = currentVal.split('&');
-currentVal = `${parseInt(parts[0], 10) + 2}&${parseInt(parts[1], 10) + 2}`;
-dispenserBoxes[i].boxNumber = currentVal;
-}
-}
-renderGrid();
-}
+    function handleGameInput(input, index) {
+        let val = input.value.trim();
+        let gameNum = val;
 
-function autofillGame(input, index) {
-const gameNum = input.value.trim();
-const found = masterInventory.find(g => g.number === gameNum);
-if(!found && gameNum) {
-alert("Game #" + gameNum + " not found in Master Inventory.");
-}
-dispenserBoxes[index].game = gameNum;
-}
+        // Basic Barcode parser (grabs characters before the first dash)
+        if (val.includes('-')) {
+            gameNum = val.split('-')[0];
+        }
 
-/* Master Inventory Functions */
-function renderMasterInventory(filteredList = masterInventory) {
-const listElement = document.getElementById('masterInventoryList');
-listElement.innerHTML = '';
-filteredList.forEach(game => {
-const li = document.createElement('li');
-li.innerHTML = `<span><strong>#${game.number}</strong> - ${https://www.google.com/url?q=http://game.name&source=gmail&ust=1793484377965000&sa=E} ($${game.price})</span>
-<button style="background:red;" onclick="deleteGameFromMaster('${game.number}')">Del</button>`;
-listElement.appendChild(li);
-});
-}
+        const found = masterInventory.find(g => g.number === gameNum);
+        if(!found && gameNum) {
+            alert(`Game #${gameNum} not found in Master Inventory.`);
+        }
+        
+        dispenserBoxes[index].game = gameNum;
+        input.value = gameNum; 
+    }
 
-function filterMasterInventory() {
-const searchTerm = document.getElementById('searchInventory').value.toLowerCase().trim();
-const filtered = masterInventory.filter(game =>
-game.number.toString().toLowerCase().includes(searchTerm) ||
-game.name.toLowerCase().includes(searchTerm)
-);
-renderMasterInventory(filtered);
-}
+    function updateBoxData(index, field, value) {
+        dispenserBoxes[index][field] = value;
+    }
 
-function addGameToMaster() {
-const numInput = document.getElementById('newGameNumber').value.trim();
-const nameInput = document.getElementById('newGameName').value.trim();
-const priceInput = parseFloat(document.getElementById('newGamePrice').value);
+    // --- Master Inventory Logic ---
+    function openInventoryModal() {
+        let pwd = prompt("Enter Admin Password to manage inventory:");
+        if(pwd === "admin123") { // Replace with your desired password
+            document.getElementById('inventoryModal').style.display='block';
+        } else {
+            alert("Incorrect password.");
+        }
+    }
 
-if (!numInput || !nameInput || isNaN(priceInput)) {
-alert("Please enter a valid Game Number, Name, and Price.");
-return;
-}
+    function renderMasterInventory(filteredList = masterInventory) {
+        const listElement = document.getElementById('masterInventoryList');
+        listElement.innerHTML = '';
+        filteredList.forEach(game => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span><strong>#${game.number}</strong> - ${game.name} ($${game.price})</span> 
+                            <button class="danger" onclick="deleteGame('${game.number}')">Del</button>`;
+            listElement.appendChild(li);
+        });
+    }
 
-const existingGame = masterInventory.find(game => game.number === numInput);
-if (existingGame) {
-alert(`Game #${numInput} already exists as "${existingGame.name}".`);
-return;
-}
+    function filterMasterInventory() {
+        const searchTerm = document.getElementById('searchInventory').value.toLowerCase().trim();
+        const filtered = masterInventory.filter(game => 
+            game.number.toString().toLowerCase().includes(searchTerm) || 
+            game.name.toLowerCase().includes(searchTerm)
+        );
+        renderMasterInventory(filtered);
+    }
 
-masterInventory.push({ number: numInput, name: nameInput, price: priceInput });
-document.getElementById('newGameNumber').value = '';
-document.getElementById('newGameName').value = '';
-document.getElementById('newGamePrice').value = '';
-document.getElementById('searchInventory').value = '';
-renderMasterInventory();
-}
+    function addGameToMaster() {
+        const numInput = document.getElementById('newGameNumber').value.trim();
+        const nameInput = document.getElementById('newGameName').value.trim();
+        const priceInput = parseFloat(document.getElementById('newGamePrice').value);
 
-function deleteGameFromMaster(gameNumber) {
-if(confirm(`Are you sure you want to delete Game #${gameNumber}?`)) {
-masterInventory = masterInventory.filter(game => game.number !== gameNumber.toString());
-renderMasterInventory();
-}
-}
+        if (!numInput || !nameInput || isNaN(priceInput)) {
+            alert("Valid Game Number, Name, and Price are required.");
+            return;
+        }
 
-/* Excel / CSV Import Function */
-function importExcel(event) {
-const file = event.target.files[0];
-if (!file) return;
+        if (masterInventory.find(game => game.number === numInput)) {
+            alert(`Game #${numInput} already exists!`);
+            return;
+        }
 
-const reader = new FileReader();
-reader.onload = function(e) {
-const data = new Uint8Array(e.target.result);
-const workbook = XLSX.read(data, {type: 'array'});
-const firstSheetName = workbook.SheetNames[0];
-const worksheet = workbook.Sheets[firstSheetName];
-const json = XLSX.utils.sheet_to_json(worksheet);
+        masterInventory.push({ number: numInput, name: nameInput, price: priceInput });
+        document.getElementById('newGameNumber').value = '';
+        document.getElementById('newGameName').value = '';
+        document.getElementById('newGamePrice').value = '';
+        renderMasterInventory();
+    }
 
-let addedCount = 0;
-json.forEach(row => {
-const num = row['Game Number'] || row['Game'] || row['Number'];
-const name = row['Game Name'] || row['Name'] || row['Description'];
-const price = row['Price'] || row['Value'] || row['Amount'];
+    function deleteGame(gameNumber) {
+        if(confirm(`Delete Game #${gameNumber}?`)) {
+            masterInventory = masterInventory.filter(game => game.number !== gameNumber.toString());
+            filterMasterInventory();
+        }
+    }
 
-if (num && name && price) {
-const numStr = num.toString().trim();
-if (!masterInventory.find(g => g.number === numStr)) {
-masterInventory.push({
-number: numStr,
-name: name.toString().trim(),
-price: parseFloat(price)
-});
-addedCount++;
-}
-}
-});
-renderMasterInventory();
-document.getElementById('excelUpload').value = ""; // Reset input
-alert(`Successfully imported ${addedCount} new games to the Master Inventory.`);
-};
-reader.readAsArrayBuffer(file);
-}
+    function importExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+
+            let addedCount = 0;
+            json.forEach(row => {
+                const num = row['Game Number'] || row['Game'] || row['Number'];
+                const name = row['Game Name'] || row['Name'] || row['Description'];
+                const price = row['Price'] || row['Value'] || row['Amount'];
+
+                if (num && name && price) {
+                    const numStr = num.toString().trim();
+                    if (!masterInventory.find(g => g.number === numStr)) {
+                        masterInventory.push({ number: numStr, name: name.toString().trim(), price: parseFloat(price) });
+                        addedCount++;
+                    }
+                }
+            });
+            renderMasterInventory();
+            document.getElementById('excelUpload').value = ""; 
+            alert(`Imported ${addedCount} new games.`);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- POS Math & Variance ---
+    function calculateTotals() {
+        let totalSoldValue = 0;
+        
+        dispenserBoxes.forEach(box => {
+            if(box.game && box.start && box.end) {
+                const gameObj = masterInventory.find(g => g.number === box.game);
+                if(gameObj) {
+                    let startTkt = parseInt(box.start);
+                    let endTkt = parseInt(box.end);
+                    // Standard logic: (End - Start) * Price. Adjust if your ticket logic is backward.
+                    let ticketsSold = endTkt - startTkt; 
+                    if (ticketsSold > 0) {
+                        totalSoldValue += (ticketsSold * gameObj.price);
+                    }
+                }
+            }
+        });
+
+        document.getElementById('calcTotalSold').value = totalSoldValue.toFixed(2);
+        
+        let posVal = parseFloat(document.getElementById('posReport').value) || 0;
+        let variance = posVal - totalSoldValue;
+        
+        let varBox = document.getElementById('varianceResult');
+        varBox.value = variance.toFixed(2);
+        varBox.style.color = variance === 0 ? "green" : "red";
+    }
+
+    // --- Store Setup ---
+    function unlockStoreSetup() {
+        if(document.getElementById('adminPassword').value === "admin123") {
+            document.getElementById('storeSetupForm').style.display = 'block';
+        } else {
+            alert("Incorrect password.");
+        }
+    }
+    
+    function saveStoreInfo() {
+        const sName = document.getElementById('storeName').value;
+        const sNum = document.getElementById('storeNumber').value;
+        document.getElementById('storeInfoDisplay').innerText = `Store: ${sName} | Retailer #: ${sNum}`;
+        document.getElementById('storeSetupModal').style.display = 'none';
+    }
+
+    // --- Signature Pad Logic ---
+    let canvas, ctx, isDrawing = false;
+    function initSignaturePad() {
+        canvas = document.getElementById('sigCanvas');
+        ctx = canvas.getContext('2d');
+        
+        canvas.addEventListener('mousedown', (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+        canvas.addEventListener('mousemove', (e) => { if(isDrawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseout', () => isDrawing = false);
+        
+        // Touch support for mobile/tablets
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            let touch = e.touches[0];
+            let rect = canvas.getBoundingClientRect();
+            isDrawing = true;
+            ctx.beginPath();
+            ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if(!isDrawing) return;
+            let touch = e.touches[0];
+            let rect = canvas.getBoundingClientRect();
+            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            ctx.stroke();
+        });
+        canvas.addEventListener('touchend', () => isDrawing = false);
+    }
+    
+    function clearSignature() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
 </script>
 </body>
 </html>
