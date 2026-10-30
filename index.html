@@ -3,412 +3,558 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Lotto - Shift Auditor</title>
-    <!-- SheetJS Library for Excel/CSV Import -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta name="theme-color" content="#007bff">
+    <title>Project Lotto</title>
+    <link rel="manifest" href="manifest.json">
     <style>
-        :root { --primary: #0056b3; --bg: #f4f7f6; }
-        body { font-family: Arial, sans-serif; background-color: var(--bg); padding: 20px; margin: 0; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; background-color: #f4f6f9; }
         
-        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        button { padding: 10px 15px; cursor: pointer; background-color: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
-        button:hover { background-color: #004494; }
-        button.danger { background-color: #dc3545; }
+        /* Top Header & Buttons */
+        header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .store-info h1 { margin: 0; font-size: 1.5rem; color: #333; }
+        .store-info p { margin: 5px 0 0 0; color: #666; font-size: 0.9rem; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        /* Dashboard & POS Reconciliation */
+        .dashboard { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #28a745; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;}
+        .totals-group { display: flex; gap: 20px; align-items: center; }
+        .totals-group h2 { margin: 0; font-size: 1.2rem; }
+        .pos-input { padding: 5px; font-size: 1.1rem; width: 100px; margin-left: 10px; border: 2px solid #ccc; border-radius: 4px; }
+        .variance { padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; }
+        .variance.match { background: #d4edda; color: #155724; }
+        .variance.short { background: #f8d7da; color: #721c24; }
+
+        /* Buttons */
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background-color: #007bff; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-success { background-color: #28a745; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .btn-swap { background-color: #6f42c1; width: 100%; margin-top: 10px; }
         
         /* 6-Column Grid */
-        .grid-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
-        .box { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ccc; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .box h4 { margin: 0 0 10px 0; color: var(--primary); cursor: pointer; font-size: 16px; }
-        .box label { font-size: 11px; color: #666; display: block; text-align: left; margin-left: 5%; }
-        .box input { width: 90%; margin-bottom: 8px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px; }
-        .box .ticket-row { display: flex; justify-content: center; gap: 5px; width: 90%; margin: 0 auto; }
-        .box .ticket-row input { width: 45%; margin: 0; }
-
-        /* Sections */
-        .section-card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px; }
-        .flex-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+        .grid-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+        @media (max-width: 1200px) { .grid-container { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 900px) { .grid-container { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 600px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
         
-        /* Signature Canvas */
-        canvas { border: 1px solid #000; border-radius: 4px; cursor: crosshair; background: #fafafa; }
+        .box { background: white; padding: 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; border-top: 4px solid #007bff; position: relative; }
+        .box:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        .box h3 { margin: 0 0 8px 0; font-size: 1rem; color: #444; }
+        .box .sales-total { color: #28a745; font-weight: bold; margin-top: 8px; font-size: 1rem; }
+        .box .old-game { font-size: 0.8em; color: #666; background: #f1f3f5; padding: 6px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid #6f42c1; }
+        .box.missing-data { border-top: 4px solid #dc3545; background-color: #fff8f8; }
 
         /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto; }
-        .modal-content { background: #fff; margin: 5% auto; padding: 20px; width: 90%; max-width: 700px; border-radius: 8px; position: relative; }
-        .close-btn { position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 18px; font-weight: bold; color: #333; }
-        
-        #masterInventoryList { list-style: none; padding: 0; max-height: 400px; overflow-y: auto; border: 1px solid #eee; }
-        #masterInventoryList li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 15px; }
+        .modal-actions .btn { flex: 1; }
+
+        /* Signature Canvas */
+        canvas { border: 2px solid #ccc; border-radius: 4px; width: 100%; height: 150px; background: #f9f9f9; touch-action: none; margin-bottom: 10px; }
+
         /* Print Styles */
         @media print {
-            body { padding: 0; background: #fff; font-size: 12px; }
-            .action-buttons, .modal, .no-print { display: none !important; }
-            .grid-container { gap: 2px; }
-            .box { box-shadow: none; border: 1px solid #000; padding: 5px; }
-            .box input { border: none; border-bottom: 1px solid #999; }
-            .section-card { border: none; padding: 0; }
+            body { background: white; padding: 0; }
+            header .header-actions, .btn, .modal { display: none !important; }
+            .box { border: 1px solid #ccc; break-inside: avoid; }
+            .grid-container { grid-template-columns: repeat(4, 1fr); gap: 5px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div>
-            <h2 style="margin:0;">Project Lotto - Shift Report</h2>
-            <p style="margin:5px 0 0 0; color:#555;" id="storeInfoDisplay">Store: Not Set | Retailer #: Not Set</p>
+    <header>
+        <div class="store-info">
+            <h1 id="display-store-name">🎲 Project Lotto</h1>
+            <p id="display-store-details">Shell #402 - Main St (SH402) • 100 Broadway, Sparta, TN</p>
         </div>
-        <div style="text-align: right;">
-            <strong id="dateDisplay"></strong><br>
-            <span>Clerk: <input type="text" id="clerkName" placeholder="Enter Name" style="width:100px;"></span>
+        <div class="header-actions">
+            <button class="btn btn-warning" onclick="openScanner()">📷 Scan</button>
+            <button class="btn btn-primary" onclick="openStoreSetup()">⚙️ Store Setup</button>
+            <button class="btn btn-primary" onclick="openMasterAdmin()">👑 Admin DB</button>
         </div>
-    </div>
-
-    <div class="action-buttons">
-        <button onclick="document.getElementById('storeSetupModal').style.display='block'">Store Setup</button>
-        <button onclick="openInventoryModal()">Master Inventory</button>
-        <button onclick="calculateTotals()">Calculate Shift Variance</button>
-        <button onclick="window.print()">Print Report</button>
-    </div>
-
-    <!-- 6-Column Grid -->
-    <div class="grid-container" id="lottoGrid"></div>
-
-    <!-- POS Reconciliation Section -->
-    <div class="section-card">
-        <h3>POS Shift Reconciliation</h3>
-        <div class="flex-row">
-            <div>
-                <label>Total Scratch-Offs Sold ($):</label><br>
-                <input type="number" id="calcTotalSold" readonly style="background:#e9ecef; padding:5px;">
-            </div>
-            <div>
-                <label>POS System Report ($):</label><br>
-                <input type="number" id="posReport" placeholder="Enter POS Total" style="padding:5px;">
-            </div>
-            <div>
-                <label>Variance (Over/Short):</label><br>
-                <input type="text" id="varianceResult" readonly style="background:#e9ecef; padding:5px; font-weight:bold;">
-            </div>
+    </header>
+    
+    <div class="dashboard">
+        <div class="totals-group">
+            <h2>Scanned Total: $<span id="total-sales">0.00</span></h2>
+            <h2>POS Report: $ <input type="number" id="pos-input" class="pos-input" oninput="calculateVariance()" placeholder="0.00"></h2>
+        </div>
+        <div class="totals-group">
+            <h2>Variance: <span id="variance-display" class="variance match">$0.00</span></h2>
+            <button class="btn btn-success" onclick="openSignature()">Sign & Print</button>
         </div>
     </div>
 
-    <!-- Signature Section -->
-    <div class="section-card">
-        <h3>Sign-Off</h3>
-        <p>I verify that the ticket counts and variance above are accurate for my shift.</p>
-        <canvas id="sigCanvas" width="400" height="150"></canvas>
-        <br>
-        <button class="no-print" onclick="clearSignature()" style="margin-top:10px;">Clear Signature</button>
+    <!-- Red Warning for missing tickets -->
+    <div id="missing-data-warning" style="display:none; background: #f8d7da; color: #721c24; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-weight: bold; text-align: center;">
+        ⚠️ Action Required: Some boxes are missing End Tickets. Please update them before printing.
     </div>
 
-    <!-- Master Inventory Modal -->
-    <div id="inventoryModal" class="modal">
+    <div class="grid-container" id="lotto-grid">
+        <!-- 40 Boxes render dynamically here -->
+    </div>
+
+    <!-- 1. Edit Box Modal -->
+    <div id="box-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="document.getElementById('inventoryModal').style.display='none'">X Close</span>
-            <h3>Master Game Database</h3>
+            <h2 id="modal-title" style="margin-top: 0;">Edit Dispenser</h2>
+            <input type="hidden" id="current-box-index">
             
-            <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                <strong>Import Games via Excel/CSV</strong><br>
-                <small>Requires headers: "Game Number", "Game Name", "Price"</small><br>
-                <input type="file" id="excelUpload" accept=".csv, .xlsx" onchange="importExcel(event)" style="margin-top: 5px;">
-            </div>
-
-            <input type="text" id="searchInventory" placeholder="Search by Game Number or Name..." onkeyup="filterMasterInventory()" style="width: 95%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius:4px;">
-            
-            <div class="flex-row" style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
-                <input type="text" id="newGameNumber" placeholder="Game #" style="width:80px; padding:5px;">
-                <input type="text" id="newGameName" placeholder="Game Name" style="flex-grow:1; padding:5px;">
-                <input type="number" id="newGamePrice" placeholder="$ Price" style="width:70px; padding:5px;">
-                <button onclick="addGameToMaster()">Add</button>
-            </div>
-
-            <ul id="masterInventoryList"></ul>
-        </div>
-    </div>
-
-    <!-- Store Setup Modal -->
-    <div id="storeSetupModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="document.getElementById('storeSetupModal').style.display='none'">X Close</span>
-            <h3>Store Configuration (Admin)</h3>
-            <div class="flex-row">
-                <input type="password" id="adminPassword" placeholder="Admin Password" style="padding:5px;">
-                <button onclick="unlockStoreSetup()">Unlock</button>
-            </div>
-            <div id="storeSetupForm" style="display:none; margin-top:15px;">
-                <label>Store Name:</label><br>
-                <input type="text" id="storeName" style="width:100%; padding:5px; margin-bottom:10px;"><br>
-                <label>Retailer Number:</label><br>
-                <input type="text" id="storeNumber" style="width:100%; padding:5px; margin-bottom:10px;"><br>
-                <label>Store Email:</label><br>
-                <input type="email" id="storeEmail" style="width:100%; padding:5px; margin-bottom:10px;"><br>
-                <button onclick="saveStoreInfo()">Save Store Info</button>
-            </div>
-        </div>
-    </div>
-
-<script>
-    // --- State & Initialization ---
-    let masterInventory = [
-        { number: "1802", name: "300x Jumbo", price: 30 },
-        { number: "1964", name: "Mill Jumbo", price: 20 },
-        { number: "1404", name: "Holiday Riches", price: 20 },
-        { number: "1405", name: "$50 Jumbo Collectable", price: 50 },
-        { number: "1909", name: "$25 Jumbo", price: 25 },
-        { number: "1369", name: "100x", price: 10 }
-    ];
-    let dispenserBoxes = [];
-
-    window.onload = () => {
-        // Init 40 boxes
-        for(let i = 1; i <= 40; i++) {
-            dispenserBoxes.push({ boxNumber: i.toString(), game: "", start: "", end: "" });
-        }
-        document.getElementById('dateDisplay').innerText = new Date().toLocaleDateString();
-        renderGrid();
-        renderMasterInventory();
-        initSignaturePad();
-    };
-
-    // --- Grid Logic & Resequencing ---
-    function renderGrid() {
-        const grid = document.getElementById('lottoGrid');
-        grid.innerHTML = '';
-        dispenserBoxes.forEach((box, index) => {
-            grid.innerHTML += `
-                <div class="box">
-                    <h4 title="Click to rename box" onclick="promptRenameBox(${index})">Box ${box.boxNumber}</h4>
-                    <label>Game # / Barcode</label>
-                    <input type="text" placeholder="Scan or Type" onchange="handleGameInput(this, ${index})" value="${box.game}">
-                    <div class="ticket-row">
-                        <input type="number" placeholder="Start" value="${box.start}" onchange="updateBoxData(${index}, 'start', this.value)">
-                        <input type="number" placeholder="End" value="${box.end}" onchange="updateBoxData(${index}, 'end', this.value)">
-                    </div>
+            <div class="form-group">
+                <label>Game ID (Auto-fills from DB)</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="game-id" oninput="autofillGame()" placeholder="Type ID...">
+                    <button class="btn btn-warning" onclick="openScanner()">📷</button>
                 </div>
-            `;
-        });
-    }
+            </div>
+            <div class="form-group">
+                <label>Game Name</label>
+                <input type="text" id="game-name" readonly style="background: #e9ecef;">
+            </div>
+            <div class="form-group">
+                <label>Price ($)</label>
+                <input type="number" id="game-price" readonly style="background: #e9ecef;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Start Ticket</label>
+                    <input type="number" id="start-ticket">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>End Ticket</label>
+                    <input type="number" id="end-ticket">
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="saveBox()">Save</button>
+                <button class="btn btn-danger" onclick="closeModal('box-modal')">Cancel</button>
+            </div>
+            <button class="btn btn-swap" onclick="swapRoll()">🔁 Swap: Lock [OLD] & Load New</button>
+        </div>
+    </div>
 
-    function promptRenameBox(index) {
-        let newVal = prompt("Enter new box identifier (e.g., 5, A, or 1&2):", dispenserBoxes[index].boxNumber);
-        if (newVal !== null && newVal.trim() !== "") {
-            resequenceBoxes(index, newVal.trim());
+    <!-- 2. Store Setup Modal -->
+    <div id="setup-modal" class="modal">
+        <div class="modal-content">
+            <h2>Store Setup</h2>
+            <div class="form-group"><label>Store Name</label><input type="text" id="setup-store-name"></div>
+            <div class="form-group"><label>Address / Details</label><input type="text" id="setup-store-details"></div>
+            <div class="form-group"><label>Manager Email (For Reports)</label><input type="email" id="setup-email"></div>
+            <hr>
+            <h3>Security</h3>
+            <div class="form-group"><label>Set Admin Password</label><input type="password" id="setup-pass-1"></div>
+            <div class="form-group"><label>Confirm Admin Password</label><input type="password" id="setup-pass-2"></div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="saveSetup()">Save Store</button>
+                <button class="btn btn-danger" onclick="closeModal('setup-modal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Master Admin Modal -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <h2>👑 Master Inventory DB</h2>
+            <div style="background: #f1f3f5; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                <strong>Add / Update Game</strong>
+                <div style="display:flex; gap: 5px; margin-top: 5px;">
+                    <input type="text" id="admin-game-id" placeholder="ID" style="width: 25%;">
+                    <input type="text" id="admin-game-name" placeholder="Name" style="width: 50%;">
+                    <input type="number" id="admin-game-price" placeholder="$" style="width: 25%;">
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="saveToMasterDB()">Save to Global DB</button>
+            </div>
+            <div id="db-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; font-size: 0.9rem;">
+                <!-- DB Items -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="closeModal('admin-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Signature Modal -->
+    <div id="signature-modal" class="modal">
+        <div class="modal-content">
+            <h2>Review & Sign</h2>
+            <p>I verify that the variance of <strong><span id="sig-variance"></span></strong> is accurate for this shift.</p>
+            <div class="form-group">
+                <label>Clerk Name</label>
+                <input type="text" id="clerk-name" placeholder="Print Name">
+            </div>
+            <canvas id="sig-canvas"></canvas>
+            <div class="modal-actions">
+                <button class="btn btn-warning" onclick="clearSignature()">Clear</button>
+                <button class="btn btn-success" onclick="submitReport()">Lock & Print</button>
+                <button class="btn btn-danger" onclick="closeModal('signature-modal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Scanner Modal (Placeholder) -->
+    <div id="scanner-modal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h2>Barcode Scanner</h2>
+            <div style="width:100%; height: 200px; background: black; color: white; display:flex; align-items:center; justify-content:center; margin-bottom: 15px; border-radius: 5px;">
+                [Camera Feed Active]
+            </div>
+            <input type="text" id="simulated-scan" placeholder="Simulate barcode scan..." style="width:100%; padding:10px; margin-bottom: 10px;">
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="processScan()">Process Scan</button>
+                <button class="btn btn-danger" onclick="closeModal('scanner-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. HARDCODED OCTOBER 28 DATABASE & INIT
+        // ==========================================
+        const oct28Database = [
+            { id: "1802", name: "300x Jumbo", price: 30 }, { id: "1964", name: "Mill Jumbo", price: 20 },
+            { id: "1405", name: "$50 jumbo collectable", price: 50 }, { id: "1909", name: "$25 Jumbo", price: 25 },
+            { id: "1404", name: "Holiday Riches", price: 20 }, { id: "1403", name: "$50 $100 $500", price: 10 },
+            { id: "1949", name: "$10 Jumbo", price: 10 }, { id: "1369", name: "100x", price: 10 },
+            { id: "1397", name: "$20 collectable Jumbo", price: 20 }, { id: "1204", name: "$50 Jumbo", price: 50 },
+            { id: "1996", name: "Giant Jumbo", price: 5 }, { id: "1382", name: "Instant Cash", price: 10 },
+            { id: "1402", name: "Merry Money", price: 5 }, { id: "1394", name: "Lady Crossword", price: 3 },
+            { id: "1400", name: "holiday Cash", price: 3 }, { id: "1396", name: "$10 collectable Jumbo", price: 10 },
+            { id: "1368", name: "50x", price: 5 }, { id: "859", name: "$10 crossword", price: 10 },
+            { id: "1858", name: "$5 crossword", price: 5 }, { id: "1825", name: "$2 Jumbo", price: 2 },
+            { id: "1395", name: "$5 collectable Jumbo", price: 5 }, { id: "1399", name: "Nutcracker cash", price: 2 },
+            { id: "854", name: "Bingo Jumbo", price: 3 }, { id: "1856", name: "$3 crossword Jumbo", price: 3 },
+            { id: "1392", name: "$1 collectable Jumbo", price: 1 }, { id: "1951", name: "$1 Jumbo", price: 1 },
+            { id: "1398", name: "Gift Tag Cash", price: 1 }, { id: "1385", name: "$5 Game Show", price: 5 },
+            { id: "1378", name: "Max Millions", price: 20 }, { id: "1387", name: "All the money", price: 20 },
+            { id: "1266", name: "$3k Loaded", price: 30 }, { id: "1364", name: "$50 Jumbo Extravaganza", price: 50 },
+            { id: "1370", name: "200x", price: 20 }, { id: "1386", name: "24k Gold", price: 10 },
+            { id: "1377", name: "$500k Bonus", price: 10 }, { id: "1391", name: "$500 Fever", price: 10 },
+            { id: "1381", name: "High Voltage cash", price: 5 }, { id: "1762", name: "Lucky 7's", price: 1 },
+            { id: "1601", name: "$3 Season Jumbo", price: 3 }, { id: "1372", name: "$5 collectable Jumbo", price: 5 },
+            { id: "1374", name: "$10 cash games", price: 10 }
+        ];
+
+        // System Default Checks
+        if (!localStorage.getItem('adminPassword')) {
+            localStorage.setItem('adminPassword', 'admin'); 
         }
-    }
-
-    function resequenceBoxes(startIndex, newIdentifier) {
-        dispenserBoxes[startIndex].boxNumber = newIdentifier;
-        let currentVal = newIdentifier.toString().trim();
         
-        for (let i = startIndex + 1; i < dispenserBoxes.length; i++) {
-            if (/^\d+$/.test(currentVal)) {
-                currentVal = (parseInt(currentVal, 10) + 1).toString();
-                dispenserBoxes[i].boxNumber = currentVal;
-            } else if (/^[A-Za-z]$/.test(currentVal)) {
-                currentVal = String.fromCharCode(currentVal.charCodeAt(0) + 1);
-                dispenserBoxes[i].boxNumber = currentVal;
-            } else if (/^\d+&\d+$/.test(currentVal)) {
-                let parts = currentVal.split('&');
-                currentVal = `${parseInt(parts[0], 10) + 2}&${parseInt(parts[1], 10) + 2}`;
-                dispenserBoxes[i].boxNumber = currentVal;
-            }
-        }
-        renderGrid();
-    }
-
-    function handleGameInput(input, index) {
-        let val = input.value.trim();
-        let gameNum = val;
-
-        // Basic Barcode parser (grabs characters before the first dash)
-        if (val.includes('-')) {
-            gameNum = val.split('-')[0];
+        let masterDB = JSON.parse(localStorage.getItem('lottoMasterDB'));
+        if (!masterDB || masterDB.length === 0) {
+            masterDB = oct28Database;
+            localStorage.setItem('lottoMasterDB', JSON.stringify(masterDB));
         }
 
-        const found = masterInventory.find(g => g.number === gameNum);
-        if(!found && gameNum) {
-            alert(`Game #${gameNum} not found in Master Inventory.`);
-        }
-        
-        dispenserBoxes[index].game = gameNum;
-        input.value = gameNum; 
-    }
+        let storeProfile = JSON.parse(localStorage.getItem('lottoStoreProfile')) || {
+            name: "Project Lotto",
+            details: "Shell #402 - Main St (SH402) • 100 Broadway, Sparta, TN",
+            email: "dimitriosregas@gmail.com"
+        };
 
-    function updateBoxData(index, field, value) {
-        dispenserBoxes[index][field] = value;
-    }
-
-    // --- Master Inventory Logic ---
-    function openInventoryModal() {
-        let pwd = prompt("Enter Admin Password to manage inventory:");
-        if(pwd === "admin123") { // Replace with your desired password
-            document.getElementById('inventoryModal').style.display='block';
-        } else {
-            alert("Incorrect password.");
-        }
-    }
-
-    function renderMasterInventory(filteredList = masterInventory) {
-        const listElement = document.getElementById('masterInventoryList');
-        listElement.innerHTML = '';
-        filteredList.forEach(game => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span><strong>#${game.number}</strong> - ${game.name} ($${game.price})</span> 
-                            <button class="danger" onclick="deleteGame('${game.number}')">Del</button>`;
-            listElement.appendChild(li);
-        });
-    }
-
-    function filterMasterInventory() {
-        const searchTerm = document.getElementById('searchInventory').value.toLowerCase().trim();
-        const filtered = masterInventory.filter(game => 
-            game.number.toString().toLowerCase().includes(searchTerm) || 
-            game.name.toLowerCase().includes(searchTerm)
-        );
-        renderMasterInventory(filtered);
-    }
-
-    function addGameToMaster() {
-        const numInput = document.getElementById('newGameNumber').value.trim();
-        const nameInput = document.getElementById('newGameName').value.trim();
-        const priceInput = parseFloat(document.getElementById('newGamePrice').value);
-
-        if (!numInput || !nameInput || isNaN(priceInput)) {
-            alert("Valid Game Number, Name, and Price are required.");
-            return;
+        // 40 Default Boxes Grid Setup
+        let gridData = JSON.parse(localStorage.getItem('lottoGrid'));
+        if (!gridData || gridData.length !== 40) {
+            gridData = Array.from({length: 40}, (_, i) => ({
+                boxNum: i + 1, gameId: '', gameName: '', price: '', startTicket: '', endTicket: '', oldGame: null 
+            }));
         }
 
-        if (masterInventory.find(game => game.number === numInput)) {
-            alert(`Game #${numInput} already exists!`);
-            return;
+        let globalTotalSales = 0;
+
+        function initApp() {
+            document.getElementById('display-store-name').innerText = storeProfile.name;
+            document.getElementById('display-store-details').innerText = storeProfile.details;
+            renderGrid();
         }
 
-        masterInventory.push({ number: numInput, name: nameInput, price: priceInput });
-        document.getElementById('newGameNumber').value = '';
-        document.getElementById('newGameName').value = '';
-        document.getElementById('newGamePrice').value = '';
-        renderMasterInventory();
-    }
+        // ==========================================
+        // 2. GRID RENDERING & MATH LOGIC
+        // ==========================================
+        function renderGrid() {
+            const grid = document.getElementById('lotto-grid');
+            grid.innerHTML = '';
+            globalTotalSales = 0;
+            let missingDataCount = 0;
 
-    function deleteGame(gameNumber) {
-        if(confirm(`Delete Game #${gameNumber}?`)) {
-            masterInventory = masterInventory.filter(game => game.number !== gameNumber.toString());
-            filterMasterInventory();
-        }
-    }
-
-    function importExcel(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(worksheet);
-
-            let addedCount = 0;
-            json.forEach(row => {
-                const num = row['Game Number'] || row['Game'] || row['Number'];
-                const name = row['Game Name'] || row['Name'] || row['Description'];
-                const price = row['Price'] || row['Value'] || row['Amount'];
-
-                if (num && name && price) {
-                    const numStr = num.toString().trim();
-                    if (!masterInventory.find(g => g.number === numStr)) {
-                        masterInventory.push({ number: numStr, name: name.toString().trim(), price: parseFloat(price) });
-                        addedCount++;
+            gridData.forEach((box, index) => {
+                let isMissing = false;
+                let boxHTML = `<div class="box" id="box-${index}" onclick="openBoxModal(${index})">
+                    <h3>Box ${box.boxNum}</h3>`;
+                
+                let sales = 0;
+                
+                // Old Game (Mid-Shift Swap)
+                if (box.oldGame) {
+                    let oldSales = (box.oldGame.endTicket - box.oldGame.startTicket) * box.oldGame.price;
+                    if (oldSales > 0) sales += oldSales;
+                    boxHTML += `<div class="old-game">[OLD] ${box.oldGame.gameName} ($${box.oldGame.price})<br>Sold: ${box.oldGame.startTicket} to ${box.oldGame.endTicket} | $${oldSales}</div>`;
+                }
+                
+                // Current Game
+                if (box.gameId) {
+                    if (box.startTicket !== '' && box.endTicket === '') {
+                        isMissing = true; // Flag for validation
+                        missingDataCount++;
                     }
+                    
+                    let currentSales = 0;
+                    if (box.endTicket !== '' && box.startTicket !== '') {
+                        currentSales = (box.endTicket - box.startTicket) * box.price;
+                    }
+                    if (currentSales > 0) sales += currentSales;
+                    
+                    boxHTML += `<div><strong>${box.gameId}</strong> - ${box.gameName}</div>
+                                <div style="margin-top: 5px; color: #555;">Start: ${box.startTicket !== '' ? box.startTicket : '-'} | End: ${box.endTicket !== '' ? box.endTicket : '-'}</div>
+                                <div class="sales-total">Total: $${sales}</div>`;
+                } else {
+                    boxHTML += `<div style="color: #999; margin-top: 15px;">Empty Dispenser</div>`;
+                }
+
+                boxHTML += `</div>`;
+                grid.innerHTML += boxHTML;
+                globalTotalSales += sales;
+
+                // Apply missing data red border
+                if (isMissing) {
+                    document.getElementById(`box-${index}`).classList.add('missing-data');
                 }
             });
-            renderMasterInventory();
-            document.getElementById('excelUpload').value = ""; 
-            alert(`Imported ${addedCount} new games.`);
-        };
-        reader.readAsArrayBuffer(file);
-    }
 
-    // --- POS Math & Variance ---
-    function calculateTotals() {
-        let totalSoldValue = 0;
-        
-        dispenserBoxes.forEach(box => {
-            if(box.game && box.start && box.end) {
-                const gameObj = masterInventory.find(g => g.number === box.game);
-                if(gameObj) {
-                    let startTkt = parseInt(box.start);
-                    let endTkt = parseInt(box.end);
-                    // Standard logic: (End - Start) * Price. Adjust if your ticket logic is backward.
-                    let ticketsSold = endTkt - startTkt; 
-                    if (ticketsSold > 0) {
-                        totalSoldValue += (ticketsSold * gameObj.price);
-                    }
-                }
-            }
-        });
-
-        document.getElementById('calcTotalSold').value = totalSoldValue.toFixed(2);
-        
-        let posVal = parseFloat(document.getElementById('posReport').value) || 0;
-        let variance = posVal - totalSoldValue;
-        
-        let varBox = document.getElementById('varianceResult');
-        varBox.value = variance.toFixed(2);
-        varBox.style.color = variance === 0 ? "green" : "red";
-    }
-
-    // --- Store Setup ---
-    function unlockStoreSetup() {
-        if(document.getElementById('adminPassword').value === "admin123") {
-            document.getElementById('storeSetupForm').style.display = 'block';
-        } else {
-            alert("Incorrect password.");
+            document.getElementById('total-sales').innerText = globalTotalSales.toFixed(2);
+            document.getElementById('missing-data-warning').style.display = missingDataCount > 0 ? 'block' : 'none';
+            
+            localStorage.setItem('lottoGrid', JSON.stringify(gridData));
+            calculateVariance();
         }
-    }
-    
-    function saveStoreInfo() {
-        const sName = document.getElementById('storeName').value;
-        const sNum = document.getElementById('storeNumber').value;
-        document.getElementById('storeInfoDisplay').innerText = `Store: ${sName} | Retailer #: ${sNum}`;
-        document.getElementById('storeSetupModal').style.display = 'none';
-    }
 
-    // --- Signature Pad Logic ---
-    let canvas, ctx, isDrawing = false;
-    function initSignaturePad() {
-        canvas = document.getElementById('sigCanvas');
-        ctx = canvas.getContext('2d');
-        
-        canvas.addEventListener('mousedown', (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
-        canvas.addEventListener('mousemove', (e) => { if(isDrawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
-        canvas.addEventListener('mouseup', () => isDrawing = false);
-        canvas.addEventListener('mouseout', () => isDrawing = false);
-        
-        // Touch support for mobile/tablets
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            let touch = e.touches[0];
-            let rect = canvas.getBoundingClientRect();
-            isDrawing = true;
-            ctx.beginPath();
-            ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
-        });
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if(!isDrawing) return;
-            let touch = e.touches[0];
-            let rect = canvas.getBoundingClientRect();
-            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
-            ctx.stroke();
-        });
-        canvas.addEventListener('touchend', () => isDrawing = false);
-    }
-    
-    function clearSignature() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+        function calculateVariance() {
+            let posInput = parseFloat(document.getElementById('pos-input').value) || 0;
+            let variance = posInput - globalTotalSales;
+            let varDisplay = document.getElementById('variance-display');
+            varDisplay.innerText = "$" + variance.toFixed(2);
+            
+            if (variance === 0) {
+                varDisplay.className = "variance match";
+            } else {
+                varDisplay.className = "variance short";
+            }
+        }
 
-</script>
+        // ==========================================
+        // 3. BOX MODAL & SWAP LOGIC
+        // ==========================================
+        function openBoxModal(index) {
+            document.getElementById('current-box-index').value = index;
+            document.getElementById('modal-title').innerText = `Edit Box ${gridData[index].boxNum}`;
+            document.getElementById('game-id').value = gridData[index].gameId || '';
+            document.getElementById('game-name').value = gridData[index].gameName || '';
+            document.getElementById('game-price').value = gridData[index].price || '';
+            document.getElementById('start-ticket').value = gridData[index].startTicket || '';
+            document.getElementById('end-ticket').value = gridData[index].endTicket || '';
+            document.getElementById('box-modal').style.display = 'flex';
+        }
+
+        function autofillGame() {
+            const id = document.getElementById('game-id').value;
+            const game = masterDB.find(g => g.id === id);
+            if (game) {
+                document.getElementById('game-name').value = game.name;
+                document.getElementById('game-price').value = game.price;
+            } else {
+                document.getElementById('game-name').value = '';
+                document.getElementById('game-price').value = '';
+            }
+        }
+
+        function saveBox() {
+            const index = document.getElementById('current-box-index').value;
+            gridData[index].gameId = document.getElementById('game-id').value;
+            gridData[index].gameName = document.getElementById('game-name').value;
+            gridData[index].price = parseFloat(document.getElementById('game-price').value) || 0;
+            gridData[index].startTicket = document.getElementById('start-ticket').value;
+            gridData[index].endTicket = document.getElementById('end-ticket').value;
+            renderGrid();
+            closeModal('box-modal');
+        }
+
+        function swapRoll() {
+            const index = document.getElementById('current-box-index').value;
+            const box = gridData[index];
+            
+            if (!box.gameId) {
+                alert("There is no active game in this box to swap."); return;
+            }
+            if (!document.getElementById('end-ticket').value) {
+                alert("Please enter an end ticket for the old roll before swapping."); return;
+            }
+
+            box.oldGame = {
+                gameId: box.gameId, gameName: box.gameName, price: box.price,
+                startTicket: box.startTicket, endTicket: document.getElementById('end-ticket').value
+            };
+
+            box.gameId = ''; box.gameName = ''; box.price = ''; box.startTicket = ''; box.endTicket = '';
+            saveBox();
+            setTimeout(() => openBoxModal(index), 150); // Reopen for new game
+        }
+
+        // ==========================================
+        // 4. ADMIN & STORE SETUP
+        // ==========================================
+        function checkAdminAuth() {
+            let pass = prompt("Enter Admin Password:");
+            if (pass === localStorage.getItem('adminPassword')) return true;
+            alert("❌ Incorrect Password"); return false;
+        }
+
+        function openStoreSetup() {
+            if (!checkAdminAuth()) return;
+            document.getElementById('setup-store-name').value = storeProfile.name;
+            document.getElementById('setup-store-details').value = storeProfile.details;
+            document.getElementById('setup-email').value = storeProfile.email;
+            document.getElementById('setup-modal').style.display = 'flex';
+        }
+
+        function saveSetup() {
+            let p1 = document.getElementById('setup-pass-1').value;
+            let p2 = document.getElementById('setup-pass-2').value;
+            
+            if (p1 !== '' || p2 !== '') {
+                if (p1 !== p2) { alert("Passwords do not match!"); return; }
+                localStorage.setItem('adminPassword', p1);
+            }
+
+            storeProfile.name = document.getElementById('setup-store-name').value;
+            storeProfile.details = document.getElementById('setup-store-details').value;
+            storeProfile.email = document.getElementById('setup-email').value;
+            localStorage.setItem('lottoStoreProfile', JSON.stringify(storeProfile));
+            initApp();
+            closeModal('setup-modal');
+            alert("Store settings saved!");
+        }
+
+        function openMasterAdmin() {
+            if (!checkAdminAuth()) return;
+            renderAdminDB();
+            document.getElementById('admin-modal').style.display = 'flex';
+        }
+
+        function renderAdminDB() {
+            const list = document.getElementById('db-list');
+            list.innerHTML = masterDB.map((g, i) => 
+                `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
+                    <span><strong>${g.id}</strong> - ${g.name} ($${g.price})</span>
+                    <button style="background:red; color:white; border:none; padding:2px 5px; cursor:pointer;" onclick="deleteGame(${i})">X</button>
+                </div>`
+            ).join('');
+        }
+
+        function saveToMasterDB() {
+            const id = document.getElementById('admin-game-id').value;
+            const name = document.getElementById('admin-game-name').value;
+            const price = document.getElementById('admin-game-price').value;
+            if (id && name && price) {
+                masterDB.push({id, name, price: parseFloat(price)});
+                localStorage.setItem('lottoMasterDB', JSON.stringify(masterDB));
+                document.getElementById('admin-game-id').value = '';
+                document.getElementById('admin-game-name').value = '';
+                document.getElementById('admin-game-price').value = '';
+                renderAdminDB();
+            }
+        }
+
+        function deleteGame(index) {
+            masterDB.splice(index, 1);
+            localStorage.setItem('lottoMasterDB', JSON.stringify(masterDB));
+            renderAdminDB();
+        }
+
+        // ==========================================
+        // 5. SIGNATURE & REPORTING
+        // ==========================================
+        const canvas = document.getElementById('sig-canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function openSignature() {
+            if (document.getElementById('missing-data-warning').style.display === 'block') {
+                alert("You cannot sign off until all End Tickets are entered."); return;
+            }
+            document.getElementById('sig-variance').innerText = document.getElementById('variance-display').innerText;
+            document.getElementById('signature-modal').style.display = 'flex';
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth - 40;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000';
+        }
+
+        canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+        canvas.addEventListener('mousemove', e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }});
+        canvas.addEventListener('mouseup', () => drawing = false);
+        canvas.addEventListener('touchstart', e => { drawing = true; let touch = e.touches[0]; let rect = canvas.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top); });
+        canvas.addEventListener('touchmove', e => { if (drawing) { e.preventDefault(); let touch = e.touches[0]; let rect = canvas.getBoundingClientRect(); ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top); ctx.stroke(); }});
+        canvas.addEventListener('touchend', () => drawing = false);
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function submitReport() {
+            const clerk = document.getElementById('clerk-name').value;
+            if (!clerk) { alert("Please enter the clerk's name."); return; }
+            
+            closeModal('signature-modal');
+            window.print();
+            
+            // Email Report Trigger
+            const subject = encodeURIComponent(`Shift Report: ${storeProfile.name} - Variance: ${document.getElementById('sig-variance').innerText}`);
+            const body = encodeURIComponent(`Clerk: ${clerk}\nTotal Sales: $${globalTotalSales.toFixed(2)}\nPOS Entry: $${document.getElementById('pos-input').value}\nVariance: ${document.getElementById('sig-variance').innerText}`);
+            window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
+
+            // Shift Rollover logic (Old End becomes New Start)
+            if(confirm("Shift Locked. Do you want to roll the current End Tickets over to Start Tickets for the next shift?")) {
+                gridData.forEach(box => {
+                    box.oldGame = null; // Clear old swapped games
+                    if (box.endTicket !== '') {
+                        box.startTicket = box.endTicket;
+                        box.endTicket = '';
+                    }
+                });
+                renderGrid();
+                document.getElementById('pos-input').value = '';
+                calculateVariance();
+            }
+        }
+
+        // ==========================================
+        // 6. SCANNER UTILS & MODALS
+        // ==========================================
+        function openScanner() { document.getElementById('scanner-modal').style.display = 'flex'; }
+        function processScan() {
+            let scanData = document.getElementById('simulated-scan').value;
+            if (scanData) {
+                document.getElementById('game-id').value = scanData;
+                autofillGame();
+            }
+            closeModal('scanner-modal');
+        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // Start App
+        window.onload = initApp;
+    </script>
 </body>
 </html>
