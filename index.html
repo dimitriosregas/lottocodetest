@@ -404,13 +404,32 @@
                         <button onclick="toggleMerge(${index})" title="Group boxes" ${groupedWithPrevious || index === boxesData.length - 1 ? 'disabled' : ''} class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-mono disabled:opacity-40 disabled:cursor-not-allowed">&</button>
                         <button onclick="if(typeof deleteBox === 'function') deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">&times;</button>
                     </div>
+                function createBoxCard(index) {
+            const box = boxesData[index];
+            const groupedWithPrevious = index > 0 && boxesData[index - 1].mergedWithNext;
+            
+            const card = document.createElement('div');
+            card.className = 'min-w-0 bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-2';
+            
+            const startInputClass = box.startLocked ? 
+                "w-full border rounded p-1 text-xs text-center font-mono border-red-300 bg-red-50 cursor-pointer" : 
+                "w-full border rounded p-1 text-xs text-center font-mono border-gray-300";
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <input type="text" value="${box.label}" onchange="if(typeof updateBoxLabel === 'function') updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
+                    <div class="flex items-center gap-1">
+                        <button onclick="if(typeof initScanner === 'function') initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
+                        <button onclick="toggleMerge(${index})" title="Group boxes" ${groupedWithPrevious || index === boxesData.length - 1 ? 'disabled' : ''} class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-mono disabled:opacity-40 disabled:cursor-not-allowed">&</button>
+                        <button onclick="if(typeof deleteBox === 'function') deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">&times;</button>
+                    </div>
                 </div>
                 <div>
                     <label class="text-[10px] text-gray-500 font-semibold block">Active Game Number</label>
                     <input type="text" inputmode="numeric" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="if(typeof updateBoxGame === 'function') updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
                     <span class="text-[10px] text-gray-500">${typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : ''}</span>
                 </div>
-                ${box.oldGame ? \`
+                ${box.oldGame ? `
                 <div class="bg-amber-50 p-1.5 rounded border border-amber-200 text-[10px] space-y-1">
                     <span class="font-bold text-amber-800">Mid-Shift Swapped Old Game:</span>
                     <input type="text" inputmode="numeric" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="if(typeof updateOldGame === 'function') updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
@@ -420,7 +439,7 @@
                         <input type="text" placeholder="Old End" value="${box.oldEnd}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
                     </div>
                 </div>
-                \` : ''}
+                ` : ''}
                 <div class="flex gap-1 pt-1">
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block" title="${box.startLocked ? 'Locked by previous shift.' : ''}">Start Ticket ${box.startLocked ? '🔒' : ''}</span>
