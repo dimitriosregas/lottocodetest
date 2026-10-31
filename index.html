@@ -334,8 +334,8 @@
         // Shift state supports dynamic custom shifts per day
         
         let shiftState = JSON.parse(localStorage.getItem('lotto_shift_state')) || {
-            date: getLocalDateKey(), name: 'A', status: 'open', startedAt: new Date().toISOString()
-        };
+           date: new Date().toISOString().split('T')[0], name: 'A', status: 'open', startedAt: new Date().toISOString()
+        }
         let shiftHistory = JSON.parse(localStorage.getItem('lotto_shift_history')) || [];
         let html5QrCode = null;
         let hasSignature = false;
