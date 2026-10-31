@@ -106,13 +106,19 @@
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-right">
-                    <div class="text-xs text-gray-500">Total Shift Sales</div>
-                    <div id="header-total-sales" class="text-lg font-bold text-emerald-600">$0.00</div>
+                    
+
+        <!-- Scanner Modal -->
+        <div id="scanner-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col items-center">
+                <div class="flex justify-between w-full items-center mb-4">
+                    <h3 class="text-lg font-bold">Barcode Scanner</h3>
+                    <button onclick="stopScanner()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
                 </div>
-                <button onclick="openReviewModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow transition">Review & Sign-Off</button>
+                <div id="reader" class="w-full rounded-lg overflow-hidden bg-black aspect-square"></div>
+                <p id="scanner-status" class="text-xs text-gray-600 mt-3 text-center" role="status" aria-live="polite">Allow camera access and place the ticket barcode inside the horizontal frame.</p>
             </div>
         </div>
-
         <!-- Rapid Entry Modal -->
         <div id="rapid-entry-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
@@ -130,18 +136,6 @@
                     <button onclick="closeRapidEntryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">Cancel</button>
                     <button onclick="saveRapidEntry()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold">Save All Entries</button>
                 </div>
-            </div>
-        </div>
-
-        <!-- Scanner Modal -->
-        <div id="scanner-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col items-center">
-                <div class="flex justify-between w-full items-center mb-4">
-                    <h3 class="text-lg font-bold">Barcode Scanner</h3>
-                    <button onclick="stopScanner()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
-                </div>
-                <div id="reader" class="w-full rounded-lg overflow-hidden bg-black aspect-square"></div>
-                <p id="scanner-status" class="text-xs text-gray-600 mt-3 text-center" role="status" aria-live="polite">Allow camera access and place the ticket barcode inside the horizontal frame.</p>
             </div>
         </div>
 
@@ -1205,8 +1199,22 @@ function lookupGameNumber() {
 
         // Signature Canvas
         let sigCanvas, sigCtx, isDrawing = false;
-        function openReviewModal() {
-            updateShiftStatus(); document.getElementById('review-modal').classList.remove('hidden'); setTimeout(initSignaturePad, 100);
+       function openReviewModal() {
+            try {
+                updateShiftStatus();
+                const modal = document.getElementById('review-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    setTimeout(() => {
+                        initSignaturePad();
+                    }, 150);
+                } else {
+                    alert("Error: 'review-modal' element not found in HTML.");
+                }
+            } catch (err) {
+                console.error("Review modal error:", err);
+                alert("Could not open review modal. Check browser console.");
+            }
         }
         function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
 
