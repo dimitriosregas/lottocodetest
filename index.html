@@ -96,6 +96,7 @@
         </div>
 
         <!-- Rapid Entry Modal -->
+       <!-- Rapid Entry Modal -->
         <div id="rapid-entry-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
                 <div class="flex justify-between w-full items-center mb-4 pb-2 border-b">
@@ -105,12 +106,20 @@
                     </div>
                     <button onclick="closeRapidEntryModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
                 </div>
+                
                 <div id="rapid-entry-list" class="flex-1 overflow-y-auto space-y-2 pr-2">
                     <!-- Populated dynamically -->
                 </div>
-                <div class="pt-4 mt-4 border-t flex justify-end gap-2">
-                    <button onclick="closeRapidEntryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">Cancel</button>
-                    <button onclick="saveRapidEntry()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold">Save All Entries</button>
+                
+                <div class="pt-4 mt-4 border-t flex justify-between gap-2">
+                    <button onclick="printRapidEntry()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        Print Audit Sheet
+                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="closeRapidEntryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">Cancel</button>
+                        <button onclick="saveRapidEntry()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold">Save All Entries</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -123,7 +132,7 @@
             </div>
             <div id="dispenser-grid" class="box-grid">
                 <!-- Dynamically injected boxes -->
-            </div>
+            </div>  
         </section>
 
         <!-- Validation Message Banner -->
