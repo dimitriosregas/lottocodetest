@@ -368,36 +368,7 @@
             updateLiveDateTime();
         });
 
-        function detectStoreAddress() {
-            if (!navigator.geolocation) {
-                alert("Geolocation is not supported by your browser.");
-                return;
-            }
-            const addressInput = document.getElementById('store-address-input');
-            if(addressInput) addressInput.placeholder = "Detecting GPS location...";
-            
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-                    const data = await response.json();
-                    if (data && data.display_name && addressInput) {
-                        addressInput.value = data.display_name;
-                        alert("Address successfully detected from GPS!");
-                    } else if(addressInput) {
-                        addressInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                        alert("GPS coordinates retrieved, but could not resolve exact street address.");
-                    }
-                } catch (err) {
-                    if(addressInput) addressInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                    alert("GPS located successfully! (Using coordinate fallback)");
-                }
-            }, (error) => {
-                alert("Unable to retrieve your location. Please check device GPS permissions.");
-                if(addressInput) addressInput.placeholder = "e.g. 100 Broadway, Sparta, TN";
-            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-        }
+      
       function switchActiveStore(storeId) {
             const found = storesList.find(s => s.id === storeId);
             if (found) {
