@@ -399,8 +399,7 @@
                 if(addressInput) addressInput.placeholder = "e.g. 100 Broadway, Sparta, TN";
             }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
         }
-
-        function switchActiveStore(storeId) {
+      function switchActiveStore(storeId) {
             const found = storesList.find(s => s.id === storeId);
             if (found) {
                 activeStoreId = storeId;
@@ -537,7 +536,90 @@
             `;
             return card;
         }
-function runValidation() {
+
+        function getGameDescription(gameId) {
+            if (!gameId) return 'Enter a game number.';
+            const game = masterGames.find(item => String(item.id) === String(gameId));
+            return game ? `${game.name} · $${game.price} per ticket` : 'Game not found. Add it now.';
+        }
+
+        function updateBoxLabel(index, val) {
+            const saveLabel = () => {
+                boxesData[index].label = val.trim() || `Box ${index + 1}`;
+                persist();
+                renderBoxes();
+            };
+            if (boxSetupComplete) verifyAdminAction(saveLabel);
+            else saveLabel();
+        }
+
+        function updateBoxGame(index, val) {
+            const gameId = val.trim();
+            if (gameId && !masterGames.some(game => String(game.id) === gameId)) {
+                if(confirm(`Game number ${gameId} is not in the system. Would you like to add it now?`)) {
+                    const name = prompt("Enter the Name of the new game:");
+                    if(!name) { renderBoxes(); return; }
+                    const priceStr = prompt("Enter the Ticket Price (e.g. 5, 10, 20):");
+                    const price = parseFloat(priceStr);
+                    if(isNaN(price) || price < 0) { alert("Invalid price."); renderBoxes(); return; }
+                    masterGames.push({ id: gameId, name: name.trim(), price });
+                    localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
+                    boxesData[index]['gameId'] = gameId;
+                    persist();
+                    renderBoxes();
+                    alert("Game added successfully.");
+                    return;
+                } else {
+                    renderBoxes();
+                    return;
+                }
+            }
+            boxesData[index]['gameId'] = gameId;
+            persist();
+            renderBoxes();
+        }
+
+        function updateOldGame(index, val) { updateGameNumber(index, 'oldGame', val); }
+        function updateGameNumber(index, field, value) { boxesData[index][field] = value.trim(); persist(); renderBoxes(); }
+
+        function updateStartTicket(index, val) {
+            const box = boxesData[index];
+            if (box.startLocked) {
+                const pass = prompt("This start ticket was carried over from the previous shift and is locked.\nEnter Manager Password to override:");
+                if(pass !== storeProfile.password && pass !== 'admin') { alert("Incorrect Password. Change reverted."); renderBoxes(); return; }
+                box.startLocked = false;
+            }
+            box.startTicket = val;
+            persist();
+            calculateTotals();
+            renderBoxes();
+        }
+
+        function updateBoxData(index, field, val) {
+            const box = boxesData[index];
+            if (field === 'endTicket' && val !== '') {
+                const s = parseInt(box.startTicket) || 0;
+                const e = parseInt(val) || 0;
+                if (e < s) {
+                    const confirmGame = prompt(`End ticket (${e}) is lower than Start (${s}). Did this roll over to a new pack?\nIf SAME game, enter game #${box.gameId} to confirm.\nIf DIFFERENT, press Cancel and use '+ New Game'.`);
+                    if (confirmGame !== String(box.gameId)) { alert("Game number did not match or was cancelled."); renderBoxes(); return; }
+                }
+            }
+            box[field] = val;
+            persist();
+            calculateTotals();
+        }
+
+        function deleteBox(index) {
+            if (boxesData.length <= 1) { alert('At least one box must remain.'); return; }
+            verifyAdminAction(() => {
+                boxesData.splice(index, 1);
+                if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
+                persist();
+                renderBoxes();
+            });
+        }
+        function runValidation() {
             let missing = [];
             boxesData.forEach((box) => {
                 if(box.gameId && (!box.startTicket || !box.endTicket)) {
@@ -741,7 +823,7 @@ function runValidation() {
                     closeStoreDrawer();
                     alert("Data imported successfully!");
                 } catch (err) {
-                    alert("Error importing file.");
+                    alert("Error importing backup file.");
                 }
             };
             reader.readAsText(file);
@@ -1045,3 +1127,5 @@ function runValidation() {
     </script>
 </body>
 </html>
+        </div>
+    </div>
