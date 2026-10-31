@@ -425,25 +425,6 @@ function detectStoreAddress() {
             if(typeof renderStoreSelector === 'function') renderStoreSelector();
         }
 
-        function addNewShiftPrompt() {
-            const nextShiftName = prompt("Enter new shift name for today (e.g., 'Shift 2', 'Evening Shift'):");
-            if (!nextShiftName) return;
-            
-            shiftState = {
-                date: getLocalDateKey(),
-                name: nextShiftName.trim(),
-                status: 'open',
-                startedAt: new Date().toISOString()
-            };
-            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
-            if(typeof updateShiftStatus === 'function') updateShiftStatus();
-            alert(`New shift '${shiftState.name}' started successfully!`);
-        }
-        window.addEventListener('DOMContentLoaded', () => {
-            updateStoreHeader(); updateBoxSetupStatus(); updateShiftStatus(); renderBoxes();
-            updateLiveDateTime(); setInterval(updateLiveDateTime, 1000); initSignaturePad();
-        });
-
         function updateStoreHeader() {
             document.getElementById('store-subtitle').innerText = `${storeProfile.name} (${storeProfile.number}) • ${storeProfile.address}`;
             document.getElementById('store-name-input').value = storeProfile.name;
