@@ -326,6 +326,7 @@
         // Store Profile State
         // Multi-Store & Multi-Shift Database Support
         // Store Profile State & Multi-Store Support
+        // Store Profile State & Multi-Store Support
         let storesList = JSON.parse(localStorage.getItem('lotto_stores_list')) || [
             { id: 'SH402', name: 'Shell #402 - Main St', number: 'SH402', address: '100 Broadway, Sparta, TN', email: 'manager@facilityops.net', password: 'admin' }
         ];
@@ -339,8 +340,6 @@
             status: 'open',
             startedAt: new Date().toISOString()
         };
-        let shiftHistory = JSON.parse(localStorage.getItem('lotto_shift_history')) || [];
-        }
         let shiftHistory = JSON.parse(localStorage.getItem('lotto_shift_history')) || [];
         let html5QrCode = null;
         let hasSignature = false;
