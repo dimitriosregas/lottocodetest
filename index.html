@@ -818,6 +818,7 @@ function saveRapidEntry() {
         }
 
         // Print Output
+        // Print Output
         function printWorksheet() {
             document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet'); const now = new Date().toLocaleString();
@@ -831,6 +832,7 @@ function saveRapidEntry() {
                     <div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">End:</span><b style="font-family: monospace;">${box.endTicket || '-'}</b></div>
                     <div style="display: flex; justify-content: space-between; color: #059669; font-weight: bold; margin-top: 2px; padding-top: 2px; border-top: 1px dashed #cbd5e1;"><span>Sales:</span><span>${boxSalesText}</span></div>
                 </div>`;
+            }); gridHtml += '</div>';
             
             printArea.innerHTML = `
             <div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box; font-size: 12px;">
@@ -843,9 +845,7 @@ function saveRapidEntry() {
                 <div style="margin-top: 8px; text-align: center; font-size: 9px; color: #64748b; font-style: italic;">Use the "Rapid Entry Mode" button in the app to quickly copy these numbers in when you are done!</div>
             </div>`;
             setTimeout(() => { window.print(); }, 150);
-        }
-
-        function generateAndPrintFinalReport() {
+        } {
             document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
             const printArea = document.getElementById('print-final-report'); const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
             const posMeter = document.getElementById('pos-meter-input').value || "0.00"; const variance = document.getElementById('rev-variance').innerText;
