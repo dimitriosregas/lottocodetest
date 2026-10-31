@@ -676,39 +676,6 @@ function triggerMidShiftSwap(index) {
             return 300 / price; // Default for $1, $2, $3, $5, $10, $20
         }
 
-        function calculateTotals() {
-            let totalSales = 0;
-            boxesData.forEach((box, i) => {
-                let boxSales = 0;
-                if(box.gameId && box.startTicket && box.endTicket) {
-                    const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                    if(game) { 
-                        const s = parseInt(box.startTicket) || 0;
-                        const e = parseInt(box.endTicket) || 0;
-                        let sold = e - s;
-                        if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                        if(sold > 0) boxSales += sold * game.price; 
-                    }
-                }
-                if(box.oldGame && box.oldStart && box.oldEnd) {
-                    const oldGame = masterGames.find(g => String(g.id) === String(box.oldGame));
-                    if(oldGame) { 
-                        const s = parseInt(box.oldStart) || 0;
-                        const e = parseInt(box.oldEnd) || 0;
-                        let sold = e - s;
-                        if (sold < 0) sold = (getPackSize(oldGame.price) - s) + e;
-                        if(sold > 0) boxSales += sold * oldGame.price; 
-                    }
-                }
-                const subElem = document.getElementById(`box-subtotal-${i}`);
-                if(subElem) subElem.innerText = `$${boxSales.toFixed(2)}`;
-                totalSales += boxSales;
-            });
-            document.getElementById('header-total-sales').innerText = `$${totalSales.toFixed(2)}`;
-            document.getElementById('rev-total-sales').innerText = `$${totalSales.toFixed(2)}`;
-            updateVariance(totalSales); 
-            return totalSales;
-        }
 
         function calculateTotals() {
             let totalSales = 0;
