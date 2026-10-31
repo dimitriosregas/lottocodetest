@@ -540,17 +540,35 @@
             persist(); renderBoxes();
         }
 
-        function addBox() {
-            verifyAdminAction(() => {
-                const nextId = Math.max(0, ...boxesData.map(box => Number(box.id) || 0)) + 1;
-                boxesData.push({ id: nextId, label: `Box ${nextId}`, gameId: '', startTicket: '', endTicket: '', oldGame: null, oldStart: '', oldEnd: '', mergedWithNext: false, startLocked: false });
-                persist(); renderBoxes();
-            });
+        
         }
 
         function persist() { localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
+function addBox() {
+            verifyAdminAction(() => {
+                const nextId = Math.max(0, ...boxesData.map(box => Number(box.id) || 0)) + 1;
+                boxesData.push({
+                    id: nextId,
+                    label: `Box ${nextId}`,
+                    gameId: '',
+                    startTicket: '',
+                    endTicket: '',
+                    oldGame: null,
+                    oldStart: '',
+                    oldEnd: '',
+                    mergedWithNext: false,
+                    startLocked: false
+                });
+                persist();
+                renderBoxes();
+            });
+        }
 
-function getPackSize(price) {
+        function persist() {
+            localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData));
+        }
+
+        function getPackSize(price) {
             if ([25, 30].includes(price)) return 600 / price;
             if (price === 50) return 900 / price;
             return 300 / price; // Default for $1, $2, $3, $5, $10, $20
@@ -586,13 +604,8 @@ function getPackSize(price) {
             });
             document.getElementById('header-total-sales').innerText = `$${totalSales.toFixed(2)}`;
             document.getElementById('rev-total-sales').innerText = `$${totalSales.toFixed(2)}`;
-            updateVariance(totalSales); return totalSales;
-        }
-            const posVal = parseFloat(document.getElementById('pos-meter-input').value) || 0;
-            const variance = posVal - totalSales;
-            const varElem = document.getElementById('rev-variance');
-            varElem.innerText = `$${variance.toFixed(2)}`;
-            varElem.className = `text-base font-bold ${variance === 0 ? 'text-emerald-600' : 'text-red-600'}`;
+            updateVariance(totalSales); 
+            return totalSales;
         }
 
         function runValidation() {
