@@ -325,6 +325,7 @@
 
         // Store Profile State
         // Multi-Store & Multi-Shift Database Support
+        // Store Profile State & Multi-Store Support
         let storesList = JSON.parse(localStorage.getItem('lotto_stores_list')) || [
             { id: 'SH402', name: 'Shell #402 - Main St', number: 'SH402', address: '100 Broadway, Sparta, TN', email: 'manager@facilityops.net', password: 'admin' }
         ];
@@ -332,9 +333,13 @@
         let storeProfile = storesList.find(s => s.id === activeStoreId) || storesList[0];
 
         // Shift state supports dynamic custom shifts per day
-        
         let shiftState = JSON.parse(localStorage.getItem('lotto_shift_state')) || {
-           date: new Date().toISOString().split('T')[0], name: 'A', status: 'open', startedAt: new Date().toISOString()
+            date: new Date().toISOString().split('T')[0],
+            name: 'A',
+            status: 'open',
+            startedAt: new Date().toISOString()
+        };
+        let shiftHistory = JSON.parse(localStorage.getItem('lotto_shift_history')) || [];
         }
         let shiftHistory = JSON.parse(localStorage.getItem('lotto_shift_history')) || [];
         let html5QrCode = null;
