@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +17,6 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
-        /* Responsive grid: 6 cols on desktop, 3 on tablets, minimum 2 cols on mobile */
         .box-grid {
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -31,10 +29,8 @@
         }
         @media print {
             @page { size: letter portrait; margin: 0.25in; }
-            /* Physically remove main UI to prevent blank pages */
             body > header, body > main, body > div.fixed { display: none !important; }
             body, html { height: auto !important; margin: 0; padding: 0; background: white !important; overflow: visible !important; }
-            /* Ensure only the active print area displays */
             #print-worksheet, #print-final-report { display: none !important; }
             body.print-mode-worksheet #print-worksheet { display: block !important; }
             body.print-mode-report #print-final-report { display: block !important; }
@@ -64,19 +60,10 @@
         <!-- Action Controls Bar -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="initScanner()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                    Scan Global
-                </button>
-                <button onclick="openRapidEntryModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    Rapid Entry Mode
-                </button>
+                <button onclick="initScanner()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">Scan Global</button>
+                <button onclick="openRapidEntryModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition">Rapid Entry Mode</button>
                 <button onclick="runValidation()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 transition">Run Validation</button>
-                <button onclick="printWorksheet()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                    Print Worksheet
-                </button>
+                <button onclick="printWorksheet()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition">Print Worksheet</button>
             </div>
             
             <div class="flex items-center gap-4">
@@ -96,7 +83,7 @@
                     <button onclick="stopScanner()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
                 </div>
                 <div id="reader" class="w-full rounded-lg overflow-hidden bg-black aspect-square"></div>
-                <p id="scanner-status" class="text-xs text-gray-600 mt-3 text-center" role="status" aria-live="polite">Allow camera access and place the ticket barcode inside the horizontal frame.</p>
+                <p id="scanner-status" class="text-xs text-gray-600 mt-3 text-center">Allow camera access and place barcode inside frame.</p>
             </div>
         </div>
 
@@ -132,7 +119,7 @@
 
     </main>
 
-    <!-- Store Profile Drawer / Modal -->
+    <!-- Store Profile Drawer -->
     <div id="store-drawer" class="fixed inset-0 bg-black/50 hidden z-50 flex justify-end">
         <div class="bg-white w-full max-w-md h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
             <div>
@@ -177,11 +164,10 @@
                     <p id="box-setup-status" class="mb-2 text-xs text-blue-900"></p>
                     <button id="complete-box-setup" type="button" onclick="completeBoxSetup()" class="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-xs font-semibold">Complete Store Setup</button>
                 </div>
-
                 <div class="pt-4 mt-4 border-t border-gray-200">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Device Data Transfer</h3>
                     <div class="flex flex-col gap-2">
-                        <button type="button" onclick="exportDataJSON()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2">Export Store Backup (.json)</button>
+                        <button type="button" onclick="exportDataJSON()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-xs font-semibold transition">Export Store Backup (.json)</button>
                         <label class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg text-xs font-semibold border border-blue-200 flex items-center justify-center gap-2 cursor-pointer transition m-0">
                             Import Store Backup (.json)
                             <input type="file" class="hidden" accept=".json" onchange="importDataJSON(event)">
@@ -192,7 +178,7 @@
         </div>
     </div>
 
-    <!-- Master Admin Password & Inventory Modal -->
+    <!-- Master Admin Modal -->
     <div id="admin-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center pb-4 border-b">
@@ -213,7 +199,7 @@
                         <input id="game-number-lookup" type="text" inputmode="numeric" class="min-w-0 flex-1 border rounded-lg p-2 text-sm border-gray-300" placeholder="Enter game number">
                         <button type="button" onclick="lookupGameNumber()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Find</button>
                     </div>
-                    <p id="game-number-status" class="text-xs text-gray-600" role="status" aria-live="polite"></p>
+                    <p id="game-number-status" class="text-xs text-gray-600"></p>
                     <form id="game-number-editor" class="hidden grid grid-cols-2 gap-2" onsubmit="saveGameFromLookup(event)">
                         <div>
                             <label class="block text-[10px] font-semibold text-gray-500">Game Number</label>
@@ -230,13 +216,10 @@
                         <button id="game-editor-submit" type="submit" class="col-span-2 bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-sm font-semibold">Add Game</button>
                     </form>
                 </div>
-
                 <h4 class="text-xs font-bold text-gray-500 uppercase">Configured Games Catalog</h4>
                 <div id="admin-games-list" class="space-y-2 overflow-y-auto flex-1 border rounded p-2 bg-gray-50 max-h-64"></div>
             </div>
-        </div>
-    </div>
-    <!-- Review & Sign-Off Modal -->
+<!-- Review & Sign-Off Modal -->
     <div id="review-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl max-h-[95vh] flex flex-col overflow-y-auto">
             <div class="flex justify-between items-center pb-4 border-b">
@@ -429,28 +412,6 @@
             }
         }
 
-        function addNewStorePrompt() {
-            const name = prompt("Enter Site/Store Name (e.g. Exxon #102):");
-            if (!name) return;
-            const number = prompt("Enter Store Number / Code (e.g. EX102):");
-            if (!number) return;
-            const address = prompt("Enter Street Address:");
-            const email = prompt("Enter Manager Email:");
-            const password = prompt("Enter Admin Password for this site:", storeProfile.password);
-            
-            const newStore = {
-                id: number.trim().toUpperCase(),
-                name: name.trim(),
-                number: number.trim(),
-                address: address ? address.trim() : '',
-                email: email ? email.trim() : storeProfile.email,
-                password: password ? password.trim() : 'admin'
-            };
-            storesList.push(newStore);
-            localStorage.setItem('lotto_stores_list', JSON.stringify(storesList));
-            switchActiveStore(newStore.id);
-        }
-
         function updateStoreHeader() {
             document.getElementById('store-subtitle').innerText = `${storeProfile.name} (${storeProfile.number}) • ${storeProfile.address}`;
             document.getElementById('store-name-input').value = storeProfile.name;
@@ -589,11 +550,8 @@
                 persist();
                 renderBoxes();
             };
-            if (boxSetupComplete) {
-                verifyAdminAction(saveLabel);
-            } else {
-                saveLabel();
-            }
+            if (boxSetupComplete) verifyAdminAction(saveLabel);
+            else saveLabel();
         }
 
         function updateBoxGame(index, val) {
@@ -604,11 +562,7 @@
                     if(!name) { renderBoxes(); return; }
                     const priceStr = prompt("Enter the Ticket Price (e.g. 5, 10, 20):");
                     const price = parseFloat(priceStr);
-                    if(isNaN(price) || price < 0) {
-                        alert("Invalid price.");
-                        renderBoxes();
-                        return;
-                    }
+                    if(isNaN(price) || price < 0) { alert("Invalid price."); renderBoxes(); return; }
                     masterGames.push({ id: gameId, name: name.trim(), price });
                     localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
                     boxesData[index]['gameId'] = gameId;
@@ -626,25 +580,14 @@
             renderBoxes();
         }
 
-        function updateOldGame(index, val) {
-            updateGameNumber(index, 'oldGame', val);
-        }
-
-        function updateGameNumber(index, field, value) {
-            boxesData[index][field] = value.trim();
-            persist();
-            renderBoxes();
-        }
+        function updateOldGame(index, val) { updateGameNumber(index, 'oldGame', val); }
+        function updateGameNumber(index, field, value) { boxesData[index][field] = value.trim(); persist(); renderBoxes(); }
 
         function updateStartTicket(index, val) {
             const box = boxesData[index];
             if (box.startLocked) {
                 const pass = prompt("This start ticket was carried over from the previous shift and is locked.\nEnter Manager Password to override:");
-                if(pass !== storeProfile.password && pass !== 'admin') {
-                    alert("Incorrect Password. Change reverted.");
-                    renderBoxes();
-                    return;
-                }
+                if(pass !== storeProfile.password && pass !== 'admin') { alert("Incorrect Password. Change reverted."); renderBoxes(); return; }
                 box.startLocked = false;
             }
             box.startTicket = val;
@@ -660,11 +603,7 @@
                 const e = parseInt(val) || 0;
                 if (e < s) {
                     const confirmGame = prompt(`End ticket (${e}) is lower than Start (${s}). Did this roll over to a new pack?\nIf SAME game, enter game #${box.gameId} to confirm.\nIf DIFFERENT, press Cancel and use '+ New Game'.`);
-                    if (confirmGame !== String(box.gameId)) {
-                        alert("Game number did not match or was cancelled. Use '+ New Game' for mid-shift swaps.");
-                        renderBoxes();
-                        return;
-                    }
+                    if (confirmGame !== String(box.gameId)) { alert("Game number did not match or was cancelled."); renderBoxes(); return; }
                 }
             }
             box[field] = val;
@@ -673,15 +612,10 @@
         }
 
         function deleteBox(index) {
-            if (boxesData.length <= 1) {
-                alert('At least one box must remain.');
-                return;
-            }
+            if (boxesData.length <= 1) { alert('At least one box must remain.'); return; }
             verifyAdminAction(() => {
                 boxesData.splice(index, 1);
-                if (index > 0 && boxesData[index - 1].mergedWithNext) {
-                    boxesData[index - 1].mergedWithNext = false;
-                }
+                if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
                 persist();
                 renderBoxes();
             });
@@ -689,25 +623,15 @@
 
         function toggleMerge(index) {
             const box = boxesData[index];
-            const saveGrouping = () => {
-                box.mergedWithNext = !box.mergedWithNext;
-                persist();
-                renderBoxes();
-            };
+            const saveGrouping = () => { box.mergedWithNext = !box.mergedWithNext; persist(); renderBoxes(); };
             if (boxSetupComplete) verifyAdminAction(saveGrouping);
             else saveGrouping();
         }
 
         function triggerMidShiftSwap(index) {
             const current = boxesData[index];
-            if(!current.gameId) {
-                alert("Please select current active game first.");
-                return;
-            }
-            if(current.oldGame) {
-                alert("Only two games per box can be included in one shift.");
-                return;
-            }
+            if(!current.gameId) { alert("Please select current active game first."); return; }
+            if(current.oldGame) { alert("Only two games per box can be included in one shift."); return; }
             current.oldGame = current.gameId;
             current.oldStart = current.startTicket;
             current.oldEnd = current.endTicket;
@@ -719,25 +643,12 @@
             renderBoxes();
         }
 
-        function persist() {
-            localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData));
-        }
+        function persist() { localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
 
         function addBox() {
             verifyAdminAction(() => {
                 const nextId = Math.max(0, ...boxesData.map(box => Number(box.id) || 0)) + 1;
-                boxesData.push({
-                    id: nextId,
-                    label: `Box ${nextId}`,
-                    gameId: '',
-                    startTicket: '',
-                    endTicket: '',
-                    oldGame: null,
-                    oldStart: '',
-                    oldEnd: '',
-                    mergedWithNext: false,
-                    startLocked: false
-                });
+                boxesData.push({ id: nextId, label: `Box ${nextId}`, gameId: '', startTicket: '', endTicket: '', oldGame: null, oldStart: '', oldEnd: '', mergedWithNext: false, startLocked: false });
                 persist();
                 renderBoxes();
             });
@@ -792,7 +703,7 @@
             varDisplay.innerText = `${diff >= 0 ? '+' : ''}$${diff.toFixed(2)}`;
             varDisplay.className = `text-base font-bold ${Math.abs(diff) < 0.01 ? 'text-emerald-600' : 'text-red-600'}`;
         }
-
+    </script>
         function runValidation() {
             let missing = [];
             boxesData.forEach((box) => {
@@ -834,9 +745,7 @@
             document.getElementById('rapid-entry-modal').classList.remove('hidden');
         }
 
-        function closeRapidEntryModal() {
-            document.getElementById('rapid-entry-modal').classList.add('hidden');
-        }
+        function closeRapidEntryModal() { document.getElementById('rapid-entry-modal').classList.add('hidden'); }
 
         function saveRapidEntry() {
             let abort = false;
@@ -1127,7 +1036,6 @@
                         <div style="grid-column: span 2; border-top: 1px solid #cbd5e1; padding-top: 4px; display: flex; align-items: flex-end;"><span style="margin-right: 8px; font-weight: bold;">Clerk Name:</span><div style="flex: 1; border-bottom: 1px solid #000; height: 12px;"></div></div>
                     </div>
                     ${gridHtml}
-                    <div style="margin-top: 8px; text-align: center; font-size: 9px; color: #64748b; font-style: italic;">Use the "Rapid Entry Mode" button in the app to quickly copy these numbers in when you are done!</div>
                 </div>`;
             setTimeout(() => { window.print(); }, 150);
         }
@@ -1199,7 +1107,6 @@
                     alert("Error: 'review-modal' element not found.");
                 }
             } catch (err) {
-                console.error("Review modal error:", err);
                 alert("Could not open review modal.");
             }
         }
@@ -1245,14 +1152,8 @@
         function confirmShiftEnd() {
             if (shiftState.status !== 'open') return;
             const clerk = document.getElementById('clerk-name-input').value.trim();
-            if (!clerk) {
-                alert('Enter the clerk or employee name before signing off.');
-                return;
-            }
-            if (!hasSignature) {
-                alert('Add a signature before signing off.');
-                return;
-            }
+            if (!clerk) { alert('Enter the clerk or employee name before signing off.'); return; }
+            if (!hasSignature) { alert('Add a signature before signing off.'); return; }
             const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)) || (box.oldGame && (!box.oldStart || !box.oldEnd)));
             if (incomplete.length) {
                 runValidation();
@@ -1286,12 +1187,7 @@
                     oldEnd: '',
                     startLocked: !!box.gameId
                 }));
-                shiftState = {
-                    date: shiftState.date,
-                    name: 'B',
-                    status: 'open',
-                    startedAt: signedAt
-                };
+                shiftState = { date: shiftState.date, name: 'B', status: 'open', startedAt: signedAt };
             } else {
                 shiftState = { ...shiftState, status: 'closed', closedAt: signedAt };
             }
@@ -1316,194 +1212,5 @@
     </script>
 </body>
 </html>
-function generateAndPrintFinalReport() {
-            document.body.classList.add('print-mode-report');
-            document.body.classList.remove('print-mode-worksheet');
-            const printArea = document.getElementById('print-final-report');
-            const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
-            const posMeter = document.getElementById('pos-meter-input').value || "0.00";
-            const variance = document.getElementById('rev-variance').innerText;
-            const total = document.getElementById('header-total-sales').innerText;
-            const now = new Date().toLocaleString();
-            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
-            boxesData.forEach((box) => {
-                let boxSales = 0;
-                if(box.gameId && box.startTicket && box.endTicket) {
-                    const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                    if(game) {
-                        const s = parseInt(box.startTicket) || 0;
-                        const e = parseInt(box.endTicket) || 0;
-                        let sold = e - s;
-                        if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                        if(sold > 0) boxSales += sold * game.price;
-                    }
-                }
-                gridHtml += `
-                    <div style="border: 1px solid #94a3b8; padding: 4px; border-radius: 4px; font-size: 9px; break-inside: avoid; background-color: #fff;">
-                        <div style="font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 2px;">${box.label} <span style="font-weight: normal; color: #64748b; float: right;">${box.gameId ? '#' + box.gameId : 'No Game'}</span></div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">Start:</span><b style="font-family: monospace;">${box.startTicket || '-'}</b></div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">End:</span><b style="font-family: monospace;">${box.endTicket || '-'}</b></div>
-                        <div style="display: flex; justify-content: space-between; color: #059669; font-weight: bold; margin-top: 2px; padding-top: 2px; border-top: 1px dashed #cbd5e1;"><span>Sales:</span><span>$${boxSales.toFixed(2)}</span></div>
-                    </div>`;
-            });
-            gridHtml += '</div>';
-            const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
-            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 35px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 35px; border-bottom: 1px solid #000;"></div>`;
-            
-            printArea.innerHTML = `
-                <div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;">
-                    <h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Final Shift Audit Report</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;">
-                        <div><b>Store Name:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div>
-                        <div><b>Date/Time Closed:</b> ${now}</div><div><b>Shift Logged:</b> ${shiftState.name}</div>
-                    </div>
-                    ${gridHtml}
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px;">
-                        <div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Total Ticket Sales</div><div style="font-size: 14px; font-weight: bold;">${total}</div></div>
-                        <div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">POS Meter Input</div><div style="font-size: 14px; font-weight: bold;">$${parseFloat(posMeter).toFixed(2)}</div></div>
-                        <div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Shift Variance</div><div style="font-size: 14px; font-weight: bold; color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'};">${variance}</div></div>
-                    </div>
-                    <div style="margin-top: 12px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div style="flex: 1; padding-right: 20px;"><span style="font-weight: bold;">Printed Clerk Name: </span><span style="border-bottom: 1px solid #000; display: inline-block; width: 200px; padding-bottom: 2px;">${clerkName}</span></div>
-                        <div style="width: 250px;"><span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>${sigHtml}</div>
-                    </div>
-                </div>`;
-            setTimeout(() => { window.print(); }, 150);
-        }
-
-        let sigCanvas, sigCtx, isDrawing = false;
-        function openReviewModal() {
-            try {
-                updateShiftStatus();
-                const modal = document.getElementById('review-modal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    setTimeout(() => { initSignaturePad(); }, 150);
-                } else {
-                    alert("Error: 'review-modal' element not found.");
-                }
-            } catch (err) {
-                console.error("Review modal error:", err);
-                alert("Could not open review modal.");
-            }
-        }
-
-        function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
-
-        function initSignaturePad() {
-            sigCanvas = document.getElementById('sig-canvas');
-            if(!sigCanvas) return;
-            sigCtx = sigCanvas.getContext('2d');
-            sigCtx.strokeStyle = "#000";
-            sigCtx.lineWidth = 2;
-            sigCanvas.onmousedown = startDraw;
-            sigCanvas.onmousemove = draw;
-            sigCanvas.onmouseup = stopDraw;
-            sigCanvas.ontouchstart = (e) => startDraw(e.touches[0]);
-            sigCanvas.ontouchmove = (e) => draw(e.touches[0]);
-            sigCanvas.ontouchend = stopDraw;
-        }
-
-        function startDraw(e) {
-            isDrawing = true;
-            hasSignature = true;
-            const rect = sigCanvas.getBoundingClientRect();
-            sigCtx.beginPath();
-            sigCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-        }
-
-        function draw(e) {
-            if(!isDrawing) return;
-            const rect = sigCanvas.getBoundingClientRect();
-            sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            sigCtx.stroke();
-        }
-
-        function stopDraw() { isDrawing = false; }
-
-        function clearSignature() {
-            if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-            hasSignature = false;
-        }
-
-        function confirmShiftEnd() {
-            if (shiftState.status !== 'open') return;
-            const clerk = document.getElementById('clerk-name-input').value.trim();
-            if (!clerk) {
-                alert('Enter the clerk or employee name before signing off.');
-                return;
-            }
-            if (!hasSignature) {
-                alert('Add a signature before signing off.');
-                return;
-            }
-            const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)) || (box.oldGame && (!box.oldStart || !box.oldEnd)));
-            if (incomplete.length) {
-                runValidation();
-                alert('Complete the game and ticket numbers for every active box before signing off.');
-                return;
-            }
-            const totalSales = calculateTotals();
-            const posMeter = parseFloat(document.getElementById('pos-meter-input').value) || 0;
-            const signedAt = new Date().toISOString();
-
-            shiftHistory.push({
-                date: shiftState.date,
-                shift: shiftState.name,
-                clerk,
-                signedAt,
-                totalSales,
-                posMeter,
-                variance: posMeter - totalSales,
-                signature: sigCanvas.toDataURL('image/png'),
-                boxes: JSON.parse(JSON.stringify(boxesData))
-            });
-            localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
-
-            if (shiftState.name === 'A') {
-                boxesData = boxesData.map(box => ({
-                    ...box,
-                    startTicket: box.gameId ? box.endTicket : box.startTicket,
-                    endTicket: box.gameId ? '' : box.endTicket,
-                    oldGame: null,
-                    oldStart: '',
-                    oldEnd: '',
-                    startLocked: !!box.gameId
-                }));
-                shiftState = {
-                    date: shiftState.date,
-                    name: 'B',
-                    status: 'open',
-                    startedAt: signedAt
-                };
-            } else {
-                shiftState = { ...shiftState, status: 'closed', closedAt: signedAt };
-            }
-            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
-            persist();
-            clearSignature();
-            document.getElementById('clerk-name-input').value = '';
-            document.getElementById('pos-meter-input').value = '';
-            updateShiftStatus();
-            renderBoxes();
-            closeReviewModal();
-            alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is now open, and each active game end ticket was carried forward as its new start ticket.' : 'Shift B signed off. The day is closed.');
-        }
-
-        function emailReport() {
-            const clerk = document.getElementById('clerk-name-input').value || "Staff";
-            const total = document.getElementById('header-total-sales').innerText;
-            const subject = encodeURIComponent(`Shift Audit Report - ${storeProfile.name} - ${storeProfile.number}`);
-            const body = encodeURIComponent(`Shift Audit Summary:\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerk}\nTotal Sales: ${total}\nTimestamp: ${new Date().toLocaleString()}`);
-            window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
-        }
-    </script>
-</body>
-</html>
-
-
-```
-
----
-
-Let me know when you have pasted Part 1, and I will immediately provide **Part 2** to finish out the file cleanly!
+        </div>
+    </div>
