@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Lotto - Shift Audit & Inventory</title>
     <meta name="theme-color" content="#0f172a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="./lottoinv.webmanifest">
-    <link rel="icon" href="./lotto-icon-192.png" type="image/png">
-    <link rel="apple-touch-icon" href="./lotto-icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
@@ -27,7 +22,7 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-950 font-sans antialiased min-h-screen flex flex-col">
-    <!-- Top Navigation Bar -->
+    
     <header class="bg-slate-900 text-white shadow-md p-4 flex justify-between items-center">
         <div>
             <h1 class="text-xl font-bold tracking-wide">Project Lotto</h1>
@@ -40,21 +35,13 @@
         </div>
     </header>
 
-    <!-- Main Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-4">
-        <!-- Action Controls Bar -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="initScanner()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg> Scan Global
-                </button>
-                <button onclick="openRapidEntryModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Rapid Entry Mode
-                </button>
+                <button onclick="initScanner()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition">Scan Global</button>
+                <button onclick="openRapidEntryModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition">Rapid Entry Mode</button>
                 <button onclick="runValidation()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 transition">Run Validation</button>
-                <button onclick="printWorksheet()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Print Worksheet
-                </button>
+                <button onclick="printWorksheet()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition">Print Worksheet</button>
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-right">
@@ -65,7 +52,6 @@
             </div>
         </div>
 
-        <!-- Scanner Modal -->
         <div id="scanner-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col items-center">
                 <div class="flex justify-between w-full items-center mb-4">
@@ -77,7 +63,6 @@
             </div>
         </div>
 
-        <!-- Rapid Entry Modal -->
         <div id="rapid-entry-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
                 <div class="flex justify-between w-full items-center mb-4 pb-2 border-b">
@@ -89,9 +74,7 @@
                 </div>
                 <div id="rapid-entry-list" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
                 <div class="pt-4 mt-4 border-t flex justify-between gap-2">
-                    <button onclick="printRapidEntry()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Print Audit Sheet
-                    </button>
+                    <button onclick="printRapidEntry()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Print Audit Sheet</button>
                     <div class="flex gap-2">
                         <button onclick="closeRapidEntryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">Cancel</button>
                         <button onclick="saveRapidEntry()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold">Save All Entries</button>
@@ -100,21 +83,16 @@
             </div>
         </div>
 
-        <!-- Responsive Dispenser Grid View -->
         <section class="flex-1 flex flex-col">
             <div class="flex justify-between items-center mb-2 px-1">
                 <h2 class="text-sm font-bold uppercase tracking-wider text-gray-600">Dispenser Boxes (1 - 40)</h2>
                 <button onclick="addBox()" class="text-xs text-blue-600 hover:underline font-semibold">+ Add Box</button>
             </div>
-            <div id="dispenser-grid" class="box-grid">
-                <!-- Dynamically injected boxes -->
-            </div>
+            <div id="dispenser-grid" class="box-grid"></div>
         </section>
 
-        <!-- Validation Message Banner -->
         <div id="validation-banner" class="hidden p-3 rounded-lg text-sm font-medium border"></div>
     </main>
-
     <!-- Store Profile Drawer -->
     <div id="store-drawer" class="fixed inset-0 bg-black/50 hidden z-50 flex justify-end">
         <div class="bg-white w-full max-w-md h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
@@ -230,7 +208,7 @@
     <!-- Hidden Print Containers -->
     <div id="print-worksheet" class="hidden"></div>
     <div id="print-final-report" class="hidden"></div>
-<!-- Application Script -->
+    <!-- Application Script -->
     <script>
         // Data Persistence Helper
         function persist() {
@@ -252,46 +230,26 @@
 
         // Master Games Database
         let masterGames = JSON.parse(localStorage.getItem('lotto_master_games')) || [
-            { id: '1802', name: '300x Jumbo', price: 30 },
-            { id: '1964', name: 'Mill Jumbo', price: 20 },
-            { id: '1405', name: '$50 Jumbo Collectable', price: 50 },
-            { id: '1909', name: '$25 Jumbo', price: 25 },
-            { id: '1404', name: 'Holiday Riches', price: 20 },
-            { id: '1403', name: '$50 $100 $500', price: 10 },
-            { id: '1949', name: '$10 Jumbo', price: 10 },
-            { id: '1369', name: '100x', price: 10 },
-            { id: '1397', name: '$20 Collectable Jumbo', price: 20 },
-            { id: '1204', name: '$50 Jumbo', price: 50 },
-            { id: '1996', name: 'Giant Jumbo', price: 5 },
-            { id: '1382', name: 'Instant Cash', price: 10 },
-            { id: '1402', name: 'Merry Money', price: 5 },
-            { id: '1394', name: 'Lady Crossword', price: 3 },
-            { id: '1400', name: 'Holiday Cash', price: 3 },
-            { id: '1396', name: '$10 Collectable Jumbo', price: 10 },
-            { id: '1368', name: '50x', price: 5 },
-            { id: '859', name: '$10 Crossword', price: 10 },
-            { id: '1858', name: '$5 Crossword', price: 5 },
-            { id: '1825', name: '$2 Jumbo', price: 2 },
-            { id: '1395', name: '$5 Collectable Jumbo', price: 5 },
-            { id: '1399', name: 'Nutcracker Cash', price: 2 },
-            { id: '854', name: 'Bingo Jumbo', price: 3 },
-            { id: '1856', name: '$3 Crossword Jumbo', price: 3 },
-            { id: '1392', name: '$1 Collectable Jumbo', price: 1 },
-            { id: '1951', name: '$1 Jumbo', price: 1 },
-            { id: '1398', name: 'Gift Tag Cash', price: 1 },
-            { id: '1385', name: '$5 Game Show', price: 5 },
-            { id: '1378', name: 'Max Millions', price: 20 },
-            { id: '1387', name: 'All the Money', price: 20 },
-            { id: '1266', name: '$3k Loaded', price: 30 },
-            { id: '1364', name: '$50 Jumbo Extravaganza', price: 50 },
-            { id: '1370', name: '200x', price: 20 },
-            { id: '1386', name: '24k Gold', price: 10 },
-            { id: '1377', name: '$500k Bonus', price: 10 },
-            { id: '1391', name: '$500 Fever', price: 10 },
-            { id: '1381', name: 'High Voltage Cash', price: 5 },
-            { id: '1762', name: "Lucky 7's", price: 1 },
-            { id: '1601', name: '$3 Season Jumbo', price: 3 },
-            { id: '1372', name: '$5 Collectable Jumbo', price: 5 },
+            { id: '1802', name: '300x Jumbo', price: 30 }, { id: '1964', name: 'Mill Jumbo', price: 20 },
+            { id: '1405', name: '$50 Jumbo Collectable', price: 50 }, { id: '1909', name: '$25 Jumbo', price: 25 },
+            { id: '1404', name: 'Holiday Riches', price: 20 }, { id: '1403', name: '$50 $100 $500', price: 10 },
+            { id: '1949', name: '$10 Jumbo', price: 10 }, { id: '1369', name: '100x', price: 10 },
+            { id: '1397', name: '$20 Collectable Jumbo', price: 20 }, { id: '1204', name: '$50 Jumbo', price: 50 },
+            { id: '1996', name: 'Giant Jumbo', price: 5 }, { id: '1382', name: 'Instant Cash', price: 10 },
+            { id: '1402', name: 'Merry Money', price: 5 }, { id: '1394', name: 'Lady Crossword', price: 3 },
+            { id: '1400', name: 'Holiday Cash', price: 3 }, { id: '1396', name: '$10 Collectable Jumbo', price: 10 },
+            { id: '1368', name: '50x', price: 5 }, { id: '859', name: '$10 Crossword', price: 10 },
+            { id: '1858', name: '$5 Crossword', price: 5 }, { id: '1825', name: '$2 Jumbo', price: 2 },
+            { id: '1395', name: '$5 Collectable Jumbo', price: 5 }, { id: '1399', name: 'Nutcracker Cash', price: 2 },
+            { id: '854', name: 'Bingo Jumbo', price: 3 }, { id: '1856', name: '$3 Crossword Jumbo', price: 3 },
+            { id: '1392', name: '$1 Collectable Jumbo', price: 1 }, { id: '1951', name: '$1 Jumbo', price: 1 },
+            { id: '1398', name: 'Gift Tag Cash', price: 1 }, { id: '1385', name: '$5 Game Show', price: 5 },
+            { id: '1378', name: 'Max Millions', price: 20 }, { id: '1387', name: 'All the Money', price: 20 },
+            { id: '1266', name: '$3k Loaded', price: 30 }, { id: '1364', name: '$50 Jumbo Extravaganza', price: 50 },
+            { id: '1370', name: '200x', price: 20 }, { id: '1386', name: '24k Gold', price: 10 },
+            { id: '1377', name: '$500k Bonus', price: 10 }, { id: '1391', name: '$500 Fever', price: 10 },
+            { id: '1381', name: 'High Voltage Cash', price: 5 }, { id: '1762', name: "Lucky 7's", price: 1 },
+            { id: '1601', name: '$3 Season Jumbo', price: 3 }, { id: '1372', name: '$5 Collectable Jumbo', price: 5 },
             { id: '1374', name: '$10 Cash Games', price: 10 }
         ];
 
@@ -326,31 +284,14 @@
             updateLiveDateTime();
         });
 
-        function switchActiveStore(storeId) {
-            const found = storesList.find(s => s.id === storeId);
-            if (found) {
-                activeStoreId = storeId;
-                storeProfile = found;
-                localStorage.setItem('lotto_active_store_id', activeStoreId);
-                updateStoreHeader();
-                renderBoxes();
-                alert(`Switched to active store: ${storeProfile.name}`);
-            }
-        }
-
         function updateStoreHeader() {
             const subtitleElem = document.getElementById('store-subtitle');
             if (subtitleElem) subtitleElem.innerText = `${storeProfile.name} (${storeProfile.number}) • ${storeProfile.address}`;
-            const nameInput = document.getElementById('store-name-input');
-            if (nameInput) nameInput.value = storeProfile.name;
-            const numInput = document.getElementById('store-num-input');
-            if (numInput) numInput.value = storeProfile.number;
-            const addrInput = document.getElementById('store-address-input');
-            if (addrInput) addrInput.value = storeProfile.address;
-            const emailInput = document.getElementById('store-email-input');
-            if (emailInput) emailInput.value = storeProfile.email;
-            const passInput = document.getElementById('store-password-input');
-            if (passInput) passInput.value = storeProfile.password;
+            const fields = ['name', 'num', 'address', 'email', 'password'];
+            fields.forEach(f => {
+                const el = document.getElementById(`store-${f}-input`);
+                if(el && storeProfile[f === 'num' ? 'number' : f]) el.value = storeProfile[f === 'num' ? 'number' : f];
+            });
         }
 
         function updateLiveDateTime() {
@@ -361,10 +302,7 @@
         }
 
         function getLocalDateKey(date = new Date()) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
 
         function updateShiftStatus() {
@@ -403,8 +341,7 @@
 
         function addBox() {
             boxesData.push({
-                id: boxesData.length + 1, 
-                label: 'Box ' + (boxesData.length + 1), 
+                id: boxesData.length + 1, label: 'Box ' + (boxesData.length + 1), 
                 gameId: '', startTicket: '', endTicket: '', 
                 oldGame: null, oldStart: '', oldEnd: '', 
                 mergedWithNext: false, startLocked: false
@@ -416,22 +353,16 @@
         function toggleMerge(index) {
             if(boxesData[index]) {
                 boxesData[index].mergedWithNext = !boxesData[index].mergedWithNext;
-                persist();
-                renderBoxes();
+                persist(); renderBoxes();
             }
         }
 
         function triggerMidShiftSwap(index) {
             const box = boxesData[index];
             if(!box.gameId) return;
-            box.oldGame = box.gameId;
-            box.oldStart = box.startTicket;
-            box.oldEnd = box.endTicket;
-            box.gameId = '';
-            box.startTicket = '';
-            box.endTicket = '';
-            persist();
-            renderBoxes();
+            box.oldGame = box.gameId; box.oldStart = box.startTicket; box.oldEnd = box.endTicket;
+            box.gameId = ''; box.startTicket = ''; box.endTicket = '';
+            persist(); renderBoxes();
         }
 
         function renderBoxes() {
@@ -451,7 +382,7 @@
                     grid.appendChild(createBoxCard(index));
                 }
             }
-            calculateTotals();
+            if(typeof calculateTotals === 'function') calculateTotals();
         }
 
         function createBoxCard(index) {
@@ -467,37 +398,37 @@
             
             card.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <input type="text" value="${box.label}" onchange="updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
+                    <input type="text" value="${box.label}" onchange="if(typeof updateBoxLabel === 'function') updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
                     <div class="flex items-center gap-1">
-                        <button onclick="initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
+                        <button onclick="if(typeof initScanner === 'function') initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
                         <button onclick="toggleMerge(${index})" title="Group boxes" ${groupedWithPrevious || index === boxesData.length - 1 ? 'disabled' : ''} class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-mono disabled:opacity-40 disabled:cursor-not-allowed">&</button>
-                        <button onclick="deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">&times;</button>
+                        <button onclick="if(typeof deleteBox === 'function') deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">&times;</button>
                     </div>
                 </div>
                 <div>
                     <label class="text-[10px] text-gray-500 font-semibold block">Active Game Number</label>
-                    <input type="text" inputmode="numeric" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
-                    <span class="text-[10px] text-gray-500">${getGameDescription(box.gameId)}</span>
+                    <input type="text" inputmode="numeric" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="if(typeof updateBoxGame === 'function') updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
+                    <span class="text-[10px] text-gray-500">${typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : ''}</span>
                 </div>
                 ${box.oldGame ? \`
                 <div class="bg-amber-50 p-1.5 rounded border border-amber-200 text-[10px] space-y-1">
                     <span class="font-bold text-amber-800">Mid-Shift Swapped Old Game:</span>
-                    <input type="text" inputmode="numeric" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
-                    <span class="text-[10px] text-amber-800">${getGameDescription(box.oldGame)}</span>
+                    <input type="text" inputmode="numeric" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="if(typeof updateOldGame === 'function') updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
+                    <span class="text-[10px] text-amber-800">${typeof getGameDescription === 'function' ? getGameDescription(box.oldGame) : ''}</span>
                     <div class="flex gap-1">
-                        <input type="text" placeholder="Old Start" value="${box.oldStart}" onchange="updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
-                        <input type="text" placeholder="Old End" value="${box.oldEnd}" onchange="updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" placeholder="Old Start" value="${box.oldStart}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" placeholder="Old End" value="${box.oldEnd}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
                     </div>
                 </div>
                 \` : ''}
                 <div class="flex gap-1 pt-1">
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block" title="${box.startLocked ? 'Locked by previous shift.' : ''}">Start Ticket ${box.startLocked ? '🔒' : ''}</span>
-                        <input type="text" value="${box.startTicket}" placeholder="0001" onchange="updateStartTicket(${index}, this.value)" class="${startInputClass}">
+                        <input type="text" value="${box.startTicket}" placeholder="0001" onchange="if(typeof updateStartTicket === 'function') updateStartTicket(${index}, this.value)" class="${startInputClass}">
                     </div>
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block">End Ticket</span>
-                        <input type="text" value="${box.endTicket}" placeholder="End #" onchange="updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
+                        <input type="text" value="${box.endTicket}" placeholder="End #" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
                     </div>
                 </div>
                 <div class="flex justify-between items-center pt-1">
@@ -507,7 +438,7 @@
             `;
             return card;
         }
-            // --- Math & Calculations --- //
+        // --- Math & Calculations --- //
         
         function calculateTotals() {
             let totalSales = 0;
@@ -551,7 +482,7 @@
             if(headerTotal) headerTotal.innerText = `$${totalSales.toFixed(2)}`;
             if(revTotal) revTotal.innerText = `$${totalSales.toFixed(2)}`;
             
-            calculateVariance(); 
+            if(typeof calculateVariance === 'function') calculateVariance(); 
             return totalSales;
         }
 
@@ -577,7 +508,7 @@
 
         function updateBoxLabel(index, val) {
             const saveLabel = () => { boxesData[index].label = val.trim() || `Box ${index + 1}`; persist(); renderBoxes(); };
-            if (boxSetupComplete) verifyAdminAction(saveLabel);
+            if (boxSetupComplete && typeof verifyAdminAction === 'function') verifyAdminAction(saveLabel);
             else saveLabel();
         }
 
@@ -654,12 +585,14 @@
 
         function deleteBox(index) {
             if (boxesData.length <= 1) { alert('At least one box must remain.'); return; }
-            verifyAdminAction(() => {
-                boxesData.splice(index, 1);
-                if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
-                persist();
-                renderBoxes();
-            });
+            if(typeof verifyAdminAction === 'function') {
+                verifyAdminAction(() => {
+                    boxesData.splice(index, 1);
+                    if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
+                    persist();
+                    renderBoxes();
+                });
+            }
         }
 
         function runValidation() {
@@ -670,6 +603,7 @@
                 }
             });
             const banner = document.getElementById('validation-banner');
+            if(!banner) return;
             banner.classList.remove('hidden');
             
             if(missing.length > 0) {
@@ -681,8 +615,11 @@
             }
         }
 
+        // --- Rapid Entry & Scanner Logic --- //
+
         function openRapidEntryModal() {
             const listContainer = document.getElementById('rapid-entry-list');
+            if(!listContainer) return;
             listContainer.innerHTML = '';
             let hasActiveBoxes = false;
             
@@ -704,16 +641,11 @@
                     `;
                     listContainer.appendChild(row);
 
-                    // If it already has an end ticket, calculate it immediately
-                    setTimeout(() => {
-                        if (box.endTicket) calculateRapidSales(index, box.endTicket, box.gameId);
-                    }, 10);
+                    setTimeout(() => { if (box.endTicket) calculateRapidSales(index, box.endTicket, box.gameId); }, 10);
                 }
             });
             
-            if(!hasActiveBoxes) {
-                listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>';
-            }
+            if(!hasActiveBoxes) listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>';
             document.getElementById('rapid-entry-modal').classList.remove('hidden');
         }
 
@@ -731,14 +663,10 @@
 
             if (endVal !== '') {
                 sold = e - s;
-                if (sold < 0) sold = (getPackSize(game.price) - s) + e; // Handle pack rollover
+                if (sold < 0) sold = (getPackSize(game.price) - s) + e; 
             }
 
-            if (sold > 0) {
-                salesElem.innerText = `+$${(sold * game.price).toFixed(2)}`;
-            } else {
-                salesElem.innerText = '';
-            }
+            salesElem.innerText = sold > 0 ? `+$${(sold * game.price).toFixed(2)}` : '';
         }
 
         function handleRapidNext(event, currentIndex) {
@@ -746,12 +674,8 @@
                 event.preventDefault();
                 const inputs = Array.from(document.querySelectorAll('.rapid-input'));
                 const currentIdx = inputs.findIndex(input => input.id === `rapid-end-${currentIndex}`);
-                
-                if (currentIdx !== -1 && currentIdx < inputs.length - 1) {
-                    inputs[currentIdx + 1].focus(); // Jump to next box
-                } else if (currentIdx === inputs.length - 1) {
-                    saveRapidEntry(); // If it's the last box, save automatically
-                }
+                if (currentIdx !== -1 && currentIdx < inputs.length - 1) inputs[currentIdx + 1].focus();
+                else if (currentIdx === inputs.length - 1) saveRapidEntry();
             }
         }
 
@@ -768,34 +692,27 @@
                         const s = parseInt(box.startTicket) || 0;
                         const e = parseInt(val) || 0;
                         if (val !== '' && e < s) {
-                            const confirmGame = prompt(`Box ${box.label} end ticket (${e}) is lower than start (${s}).\nIf SAME game, enter game #${box.gameId} to confirm rollover.\nIf DIFFERENT, press Cancel and use '+ New Game' on the main screen.`);
-                            if (confirmGame !== String(box.gameId)) {
-                                alert(`Validation failed for Box ${box.label}. Save aborted.`);
-                                abort = true;
-                            }
+                            const confirmGame = prompt(`Box ${box.label} end ticket (${e}) is lower than start (${s}).\nIf SAME game, enter game #${box.gameId} to confirm rollover.\nIf DIFFERENT, press Cancel and use '+ New Game'.`);
+                            if (confirmGame !== String(box.gameId)) { alert(`Validation failed for Box ${box.label}. Save aborted.`); abort = true; }
                         }
                     }
                 }
             });
-            
             if (abort) return;
-            
             boxesData.forEach((box, index) => {
                 if(box.gameId) {
                     const inputField = document.getElementById(`rapid-end-${index}`);
                     if(inputField) box.endTicket = inputField.value.trim();
                 }
             });
-            persist();
-            renderBoxes();
-            closeRapidEntryModal();
+            persist(); renderBoxes(); closeRapidEntryModal();
             alert("All entries saved successfully!");
         }
-
         function initScanner(boxIndex = null) {
             activeScannerBoxIndex = boxIndex;
             const modal = document.getElementById('scanner-modal');
             const status = document.getElementById('scanner-status');
+            if(!modal || !status) return;
             modal.classList.remove('hidden');
             
             if (typeof Html5Qrcode === 'undefined') {
@@ -816,8 +733,7 @@
                     stopScanner().then(() => {
                         if(activeScannerBoxIndex !== null) {
                             boxesData[activeScannerBoxIndex].endTicket = decodedText;
-                            persist();
-                            renderBoxes();
+                            persist(); renderBoxes();
                             alert(`Scanned Code [${decodedText}] applied to ${boxesData[activeScannerBoxIndex].label} End Ticket.`);
                         } else {
                             alert(`Global Scanned Ticket Code: ${decodedText}`);
@@ -835,18 +751,19 @@
             if (html5QrCode) {
                 try { await html5QrCode.stop(); html5QrCode.clear(); } catch (error) {}
             }
-            document.getElementById('scanner-modal').classList.add('hidden');
-        }      
+            const modal = document.getElementById('scanner-modal');
+            if(modal) modal.classList.add('hidden');
+        }
+
+        // --- Store Config & Import/Export --- //
+
         function openStoreDrawer() {
-            updateStoreHeader();
-            updateBoxSetupStatus();
-            setStoreEditing(false);
+            updateStoreHeader(); updateBoxSetupStatus(); setStoreEditing(false);
             document.getElementById('store-drawer').classList.remove('hidden');
         }
 
         function closeStoreDrawer() {
-            setStoreEditing(false);
-            document.getElementById('store-drawer').classList.add('hidden');
+            setStoreEditing(false); document.getElementById('store-drawer').classList.add('hidden');
         }
 
         function setStoreEditing(isEditing) {
@@ -867,10 +784,8 @@
 
         function completeBoxSetup() {
             if (!confirm('Complete store setup? Future box label and grouping changes will require the manager password.')) return;
-            boxSetupComplete = true;
-            localStorage.setItem('lotto_box_setup_complete', 'true');
-            updateBoxSetupStatus();
-            renderBoxes();
+            boxSetupComplete = true; localStorage.setItem('lotto_box_setup_complete', 'true');
+            updateBoxSetupStatus(); renderBoxes();
         }
 
         function saveStoreProfile(e) {
@@ -883,13 +798,9 @@
                 password: document.getElementById('store-password-input').value
             };
             localStorage.setItem('lotto_store_profile', JSON.stringify(storeProfile));
-            updateStoreHeader();
-            setStoreEditing(false);
-            closeStoreDrawer();
+            updateStoreHeader(); setStoreEditing(false); closeStoreDrawer();
             alert("Store profile updated successfully!");
         }
-
-        // --- Import / Export Logic --- //
 
         function importDataJSON(event) {
             const file = event.target.files[0];
@@ -903,9 +814,9 @@
                     if(data.boxesData) { boxesData = data.boxesData; localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
                     if(data.shiftState) { shiftState = data.shiftState; localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState)); }
                     if(data.shiftHistory) { shiftHistory = data.shiftHistory; localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory)); }
-                    alert("Data imported successfully! The page will now refresh to apply changes.");
+                    alert("Data imported successfully! The page will now refresh.");
                     location.reload(); 
-                } catch (err) { alert("Error importing backup file. Make sure the file is a valid Lotto JSON backup."); }
+                } catch (err) { alert("Error importing backup file."); }
             };
             reader.readAsText(file);
             event.target.value = ''; 
@@ -916,11 +827,8 @@
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", `lotto_backup_${storeProfile.number}_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
         }
-
         // --- Admin & Master Game Controls --- //
 
         function openAdminModal() { document.getElementById('admin-modal').classList.remove('hidden'); }
@@ -935,11 +843,8 @@
             if(pass === storeProfile.password || pass === 'admin') {
                 document.getElementById('admin-auth-view').classList.add('hidden');
                 document.getElementById('admin-content-view').classList.remove('hidden');
-                renderAdminGames();
-                document.getElementById('admin-pass-input').value = '';
-            } else {
-                alert("Incorrect Admin Password!");
-            }
+                renderAdminGames(); document.getElementById('admin-pass-input').value = '';
+            } else { alert("Incorrect Admin Password!"); }
         }
 
         function lookupGameNumber() {
@@ -958,7 +863,7 @@
                 document.getElementById('game-editor-price').value = existing.price;
                 document.getElementById('game-editor-submit').innerText = "Update Game";
             } else {
-                statusElem.innerText = `Game #${queryId} not found in catalog. Add it below:`;
+                statusElem.innerText = `Game #${queryId} not found. Add it below:`;
                 document.getElementById('game-editor-name').value = '';
                 document.getElementById('game-editor-price').value = '';
                 document.getElementById('game-editor-submit').innerText = "Add Game";
@@ -974,11 +879,9 @@
             
             const existingIndex = masterGames.findIndex(g => String(g.id) === String(id));
             if(existingIndex >= 0) {
-                masterGames[existingIndex] = { id, name, price };
-                alert(`Game #${id} updated!`);
+                masterGames[existingIndex] = { id, name, price }; alert(`Game #${id} updated!`);
             } else {
-                masterGames.push({ id, name, price });
-                alert(`Game #${id} added!`);
+                masterGames.push({ id, name, price }); alert(`Game #${id} added!`);
             }
             localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
             renderAdminGames();
@@ -996,8 +899,7 @@
 
         function renderAdminGames() {
             const list = document.getElementById('admin-games-list');
-            if(!list) return;
-            list.innerHTML = '';
+            if(!list) return; list.innerHTML = '';
             masterGames.forEach((g) => {
                 const item = document.createElement('div');
                 item.className = "flex items-center gap-2 bg-white p-2 rounded-lg border text-xs shadow-sm";
@@ -1014,15 +916,12 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     if(Array.isArray(data)) {
-                        masterGames = data;
-                        localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
-                        renderAdminGames();
-                        alert("Game catalog imported successfully!");
+                        masterGames = data; localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
+                        renderAdminGames(); alert("Game catalog imported successfully!");
                     }
                 } catch (err) { alert("Error importing catalog file."); }
             };
-            reader.readAsText(file);
-            event.target.value = ''; 
+            reader.readAsText(file); event.target.value = ''; 
         }
 
         function exportCatalogJSON() {
@@ -1030,16 +929,13 @@
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", `lotto_catalog_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
         }
 
         // --- Print & Reporting Logic --- //
 
         function printWorksheet() {
-            document.body.classList.add('print-mode-worksheet');
-            document.body.classList.remove('print-mode-report');
+            document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
@@ -1053,8 +949,7 @@
         }
 
         function printRapidEntry() {
-            document.body.classList.add('print-mode-worksheet');
-            document.body.classList.remove('print-mode-report');
+            document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             let gridHtml = '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px;">';
@@ -1072,8 +967,7 @@
         }
 
         function generateAndPrintFinalReport() {
-            document.body.classList.add('print-mode-report');
-            document.body.classList.remove('print-mode-worksheet');
+            document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
             const printArea = document.getElementById('print-final-report');
             const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
             const posMeter = document.getElementById('pos-meter-input').value || "0.00";
@@ -1088,8 +982,7 @@
                     if(game) {
                         const s = parseInt(box.startTicket) || 0;
                         const e = parseInt(box.endTicket) || 0;
-                        let sold = e - s;
-                        if (sold < 0) sold = (getPackSize(game.price) - s) + e;
+                        let sold = e - s; if (sold < 0) sold = (getPackSize(game.price) - s) + e;
                         if(sold > 0) boxSales += sold * game.price;
                     }
                 }
@@ -1123,28 +1016,21 @@
             sigCanvas = document.getElementById('sig-canvas');
             if(!sigCanvas) return;
             sigCtx = sigCanvas.getContext('2d');
-            sigCtx.strokeStyle = "#000";
-            sigCtx.lineWidth = 2;
-            sigCanvas.onmousedown = startDraw;
-            sigCanvas.onmousemove = draw;
-            sigCanvas.onmouseup = stopDraw;
-            sigCanvas.ontouchstart = (e) => startDraw(e.touches[0]);
-            sigCanvas.ontouchmove = (e) => draw(e.touches[0]);
-            sigCanvas.ontouchend = stopDraw;
+            sigCtx.strokeStyle = "#000"; sigCtx.lineWidth = 2;
+            sigCanvas.onmousedown = startDraw; sigCanvas.onmousemove = draw; sigCanvas.onmouseup = stopDraw;
+            sigCanvas.ontouchstart = (e) => startDraw(e.touches[0]); sigCanvas.ontouchmove = (e) => draw(e.touches[0]); sigCanvas.ontouchend = stopDraw;
         }
 
         function startDraw(e) {
             isDrawing = true; hasSignature = true;
             const rect = sigCanvas.getBoundingClientRect();
-            sigCtx.beginPath();
-            sigCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            sigCtx.beginPath(); sigCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
         }
 
         function draw(e) {
             if(!isDrawing) return;
             const rect = sigCanvas.getBoundingClientRect();
-            sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            sigCtx.stroke();
+            sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top); sigCtx.stroke();
         }
 
         function stopDraw() { isDrawing = false; }
@@ -1153,11 +1039,11 @@
         function confirmShiftEnd() {
             if (shiftState.status !== 'open') return;
             const clerk = document.getElementById('clerk-name-input').value.trim();
-            if (!clerk) { alert('Enter the clerk or employee name before signing off.'); return; }
-            if (!hasSignature) { alert('Add a signature before signing off.'); return; }
+            if (!clerk) { alert('Enter the clerk name.'); return; }
+            if (!hasSignature) { alert('Add a signature.'); return; }
             
             const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)) || (box.oldGame && (!box.oldStart || !box.oldEnd)));
-            if (incomplete.length) { runValidation(); alert('Complete the game and ticket numbers for every active box before signing off.'); return; }
+            if (incomplete.length) { runValidation(); alert('Complete all active boxes.'); return; }
             
             const totalSales = calculateTotals();
             const posMeter = parseFloat(document.getElementById('pos-meter-input').value) || 0;
@@ -1170,23 +1056,13 @@
             localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
             
             if (shiftState.name === 'A') {
-                boxesData = boxesData.map(box => ({
-                    ...box, startTicket: box.gameId ? box.endTicket : box.startTicket, endTicket: box.gameId ? '' : box.endTicket, 
-                    oldGame: null, oldStart: '', oldEnd: '', startLocked: !!box.gameId 
-                }));
+                boxesData = boxesData.map(box => ({ ...box, startTicket: box.gameId ? box.endTicket : box.startTicket, endTicket: box.gameId ? '' : box.endTicket, oldGame: null, oldStart: '', oldEnd: '', startLocked: !!box.gameId }));
                 shiftState = { date: shiftState.date, name: 'B', status: 'open', startedAt: signedAt };
-            } else {
-                shiftState = { ...shiftState, status: 'closed', closedAt: signedAt };
-            }
-            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
-            persist();
-            clearSignature();
-            document.getElementById('clerk-name-input').value = '';
-            document.getElementById('pos-meter-input').value = '';
-            updateShiftStatus();
-            renderBoxes();
-            closeReviewModal();
-            alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is now open, and each active game end ticket was carried forward as its new start ticket.' : 'Shift B signed off. The day is closed.');
+            } else { shiftState = { ...shiftState, status: 'closed', closedAt: signedAt }; }
+            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState)); persist(); clearSignature();
+            document.getElementById('clerk-name-input').value = ''; document.getElementById('pos-meter-input').value = '';
+            updateShiftStatus(); renderBoxes(); closeReviewModal();
+            alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is open.' : 'Shift B signed off. Day closed.');
         }
 
         function emailReport() {
