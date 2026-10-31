@@ -1199,7 +1199,7 @@ function lookupGameNumber() {
 
         // Signature Canvas
         let sigCanvas, sigCtx, isDrawing = false;
-       function openReviewModal() {
+         function openReviewModal() {
             try {
                 updateShiftStatus();
                 const modal = document.getElementById('review-modal');
@@ -1215,7 +1215,7 @@ function lookupGameNumber() {
                 console.error("Review modal error:", err);
                 alert("Could not open review modal. Check browser console.");
             }
-        }
+        }  
         function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
 
         function initSignaturePad() {
