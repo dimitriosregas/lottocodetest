@@ -8,14 +8,14 @@
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <style>
+   <style>
         .box-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
         @media (max-width: 1024px) { .box-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media print {
-            @page { size: letter portrait; margin: 0.25in; }
+            @page { size: letter portrait; margin: 0.2in; }
             body > header, body > main, body > div.fixed { display: none !important; }
-            body, html { height: auto !important; margin: 0; padding: 0; background: white !important; overflow: visible !important; }
-            #print-worksheet, #print-final-report { display: none !important; }
+            body, html { height: 96vh !important; max-height: 96vh !important; margin: 0; padding: 0; background: white !important; overflow: hidden !important; }
+            #print-worksheet, #print-final-report { display: none !important; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden; page-break-after: avoid; page-break-inside: avoid; }
             body.print-mode-worksheet #print-worksheet { display: block !important; }
             body.print-mode-report #print-final-report { display: block !important; }
             .no-print { display: none !important; }
