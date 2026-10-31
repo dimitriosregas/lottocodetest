@@ -947,23 +947,24 @@
             setTimeout(() => { window.print(); }, 150);
         }
 
-        function printRapidEntry() {
+function printRapidEntry() {
             document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
-            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px;">';
+            const totalSales = document.getElementById('header-total-sales').innerText;
+            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 1; align-content: start;">';
             let hasActive = false;
             boxesData.forEach((box) => {
                 if(box.gameId) {
                     hasActive = true;
-                    gridHtml += `<div style="border: 2px solid #334155; padding: 8px; border-radius: 4px; font-size: 12px; background-color: #fff; break-inside: avoid;"><div style="font-weight: bold; font-size: 14px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px;">${box.label} <span style="float: right; color: #475569; font-weight: normal; font-size: 11px;">Game #${box.gameId}</span></div><div style="margin-bottom: 6px; color: #475569;">Start: <b style="font-family: monospace; color: #000; font-size: 14px;">${box.startTicket || '-'}</b></div><div style="display: flex; align-items: flex-end; margin-top: 10px;"><span style="color: #475569; margin-right: 6px;">End:</span><div style="flex: 1; border-bottom: 2px solid #000; height: 16px;"></div></div></div>`;
+                    gridHtml += `<div style="border: 2px solid #334155; padding: 4px 6px; border-radius: 4px; display: flex; flex-direction: column; justify-content: center;"><div style="font-weight: bold; font-size: 1.5vh; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">${box.label} <span style="float: right; color: #475569; font-weight: normal; font-size: 1.2vh;">#${box.gameId}</span></div><div style="color: #475569; font-size: 1.3vh;">Start: <b style="font-family: monospace; color: #000;">${box.startTicket || '-'}</b></div><div style="display: flex; align-items: flex-end; margin-top: 4px;"><span style="color: #475569; font-size: 1.3vh; margin-right: 4px;">End:</span><div style="flex: 1; border-bottom: 2px solid #000; height: 1.5vh;"></div></div></div>`;
                 }
             });
             gridHtml += '</div>';
             if(!hasActive) { alert("No active games loaded to print."); return; }
-            printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;"><h2 style="font-size: 20px; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase;">Rapid Entry Walk-Around Sheet</h2><p style="text-align: center; font-size: 12px; font-style: italic; color: #475569; margin-bottom: 12px;">Write down the ending ticket numbers, then return to the tablet to input them.</p><div style="display: flex; justify-content: space-between; border: 1px solid #334155; padding: 8px; border-radius: 4px; font-size: 12px; background: #f8fafc;"><span><b>Store:</b> ${storeProfile.name}</span><span><b>Date/Time:</b> ${now}</span></div>${gridHtml}</div>`;
+            printArea.innerHTML = `<div style="height: 100vh; display: flex; flex-direction: column; padding: 0; box-sizing: border-box;"><h2 style="font-size: 2.5vh; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Walk-Around Sheet</h2><p style="text-align: center; font-size: 1.3vh; font-style: italic; color: #475569; margin-bottom: 6px;">Write down the ending ticket numbers, then return to the tablet to input them.</p><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 1.3vh; background: #f8fafc; margin-bottom: 8px;"><div><b>Store:</b> ${storeProfile.name}</div><div><b>Date/Time:</b> ${now}</div><div><b>Shift:</b> ${shiftState.name}</div><div><b>Log Total Amount:</b> <span style="color: #059669; font-weight: bold;">${totalSales}</span></div><div style="grid-column: span 2; border-top: 1px solid #cbd5e1; padding-top: 2px; display: flex; align-items: flex-end;"><span style="margin-right: 8px; font-weight: bold;">Clerk / User Name:</span><div style="flex: 1; border-bottom: 1px solid #000; height: 1vh;"></div></div></div>${gridHtml}</div>`;
             setTimeout(() => { window.print(); }, 150);
-        }
+        }   
 
         function generateAndPrintFinalReport() {
             document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
