@@ -670,6 +670,7 @@ function triggerMidShiftSwap(index) {
             const listContainer = document.getElementById('rapid-entry-list');
             listContainer.innerHTML = '';
             let hasActiveBoxes = false;
+            
             boxesData.forEach((box, index) => {
                 if(box.gameId) {
                     hasActiveBoxes = true;
@@ -678,10 +679,68 @@ function triggerMidShiftSwap(index) {
                     row.innerHTML = `
                         <div class="w-16 font-bold text-xs text-gray-700">${box.label}</div>
                         <div class="flex-1 text-[10px] text-gray-500">Game: <span class="font-bold text-gray-800">#${box.gameId}</span><br>Start: <span class="font-mono">${box.startTicket || '-'}</span></div>
-                        <div><input type="text" inputmode="numeric" id="rapid-end-${index}" value="${box.endTicket}" placeholder="End #" class="w-20 border border-gray-300 rounded p-2 text-sm text-center font-bold focus:border-blue-500 focus:outline-none bg-white"></div>
+                        <div class="flex flex-col items-end">
+                            <input type="text" inputmode="numeric" id="rapid-end-${index}" value="${box.endTicket}" placeholder="End #" 
+                                oninput="calculateRapidSales(${index}, this.value, '${box.gameId}')"
+                                onkeydown="handleRapidNext(event, ${index})"
+                                class="rapid-input w-20 border border-gray-300 rounded p-2 text-sm text-center font-bold focus:border-blue-500 focus:outline-none bg-white">
+                            <div id="rapid-sales-${index}" class="text-[10px] font-bold text-emerald-600 mt-1 h-3"></div>
+                        </div>
                     `;
                     listContainer.appendChild(row);
+
+                    // If it already has an end ticket, calculate it immediately
+                    setTimeout(() => {
+                        if (box.endTicket) calculateRapidSales(index, box.endTicket, box.gameId);
+                    }, 10);
                 }
+            });
+            
+            if(!hasActiveBoxes) {
+                listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>';
+            }
+            document.getElementById('rapid-entry-modal').classList.remove('hidden');
+        }
+
+        // NEW: Calculates the live $ amount inside the modal as you type
+        function calculateRapidSales(index, endVal, gameId) {
+            const box = boxesData[index];
+            const salesElem = document.getElementById(`rapid-sales-${index}`);
+            if (!salesElem || !gameId) return;
+
+            const game = masterGames.find(g => String(g.id) === String(gameId));
+            if (!game) { salesElem.innerText = ''; return; }
+
+            const s = parseInt(box.startTicket) || 0;
+            const e = parseInt(endVal) || 0;
+            let sold = 0;
+
+            if (endVal !== '') {
+                sold = e - s;
+                if (sold < 0) sold = (getPackSize(game.price) - s) + e; // Handle pack rollover
+            }
+
+            if (sold > 0) {
+                salesElem.innerText = `+$${(sold * game.price).toFixed(2)}`;
+            } else {
+                salesElem.innerText = '';
+            }
+        }
+
+        // NEW: Jumps to the next box when you press "Next" or "Enter" on keyboard
+        function handleRapidNext(event, currentIndex) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const inputs = Array.from(document.querySelectorAll('.rapid-input'));
+                const currentIdx = inputs.findIndex(input => input.id === `rapid-end-${currentIndex}`);
+                
+                if (currentIdx !== -1 && currentIdx < inputs.length - 1) {
+                    inputs[currentIdx + 1].focus(); // Jump to next box
+                } else if (currentIdx === inputs.length - 1) {
+                    saveRapidEntry(); // If it's the last box, save automatically
+                }
+            }
+        }
             });
             if(!hasActiveBoxes) { listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>'; }
             document.getElementById('rapid-entry-modal').classList.remove('hidden');
