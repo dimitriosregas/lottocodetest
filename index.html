@@ -107,7 +107,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Manager Report Email</label>
-                        <input type="email" id="store-email-input" value="dimitriosregas@gmail.com" class="w-full border rounded-lg p-2 text-sm border-gray-300" required>
+                        <input type="email" id="store-email-input" class="w-full border rounded-lg p-2 text-sm border-gray-300" required>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Manager Password</label>
@@ -414,6 +414,9 @@
             const pos = document.getElementById('pos-meter-input').value || "0.00";
             const variance = document.getElementById('rev-variance').innerText;
             
+            // Uses the admin/manager email saved in your Store Setup drawer
+            const adminEmail = storeProfile.email || "dimitriosregas@gmail.com";
+            
             const subject = encodeURIComponent(`Shift Audit Report - ${storeProfile.name} (${storeProfile.number})`);
             const body = encodeURIComponent(
                 `PROJECT LOTTO SHIFT AUDIT REPORT\n\n` +
@@ -426,7 +429,7 @@
                 `Variance Status: ${variance}\n\n` +
                 `Please review the official signed printout/log for complete box-by-box breakdowns.`
             );
-            window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
+            window.location.href = `mailto:${adminEmail}?subject=${subject}&body=${body}`;
         }
     </script>
 </body>
