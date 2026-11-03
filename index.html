@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Smartphone App Icon & PWA Settings -->
     <title>Project Lotto</title>
     <meta name="apple-mobile-web-app-title" content="Project Lotto">
     <meta name="application-name" content="Project Lotto">
@@ -10,20 +11,38 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#10b981">
     
+    <!-- Links to a reliable, permanent ticket icon -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ticket_icon.svg/512px-Ticket_icon.svg.png">
     <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ticket_icon.svg/512px-Ticket_icon.svg.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
-        .box-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
-        @media (max-width: 1024px) { .box-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .box-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+        @media (max-width: 1024px) {
+            .box-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
         @media print {
             @page { size: letter portrait; margin: 0.2in; }
             body > header, body > main, body > div.fixed { display: none !important; }
             body, html { height: 96vh !important; max-height: 96vh !important; margin: 0; padding: 0; background: white !important; overflow: hidden !important; }
-            #print-worksheet, #print-final-report { display: none !important; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden; page-break-after: avoid; page-break-inside: avoid; }
+            #print-worksheet, #print-final-report {
+                display: none !important;
+                width: 100%;
+                height: 96vh;
+                box-sizing: border-box;
+                overflow: hidden;
+                page-break-after: avoid;
+                page-break-inside: avoid;
+            }
             body.print-mode-worksheet #print-worksheet { display: block !important; }
             body.print-mode-report #print-final-report { display: block !important; }
             .no-print { display: none !important; }
@@ -58,7 +77,8 @@
                 <button onclick="openReviewModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow transition">Review & Sign-Off</button>
             </div>
         </div>
-   <div id="scanner-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+
+        <div id="scanner-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col items-center">
                 <div class="flex justify-between w-full items-center mb-4">
                     <h3 class="text-lg font-bold">Barcode Scanner</h3>
@@ -94,9 +114,8 @@
                 <h2 class="text-sm font-bold uppercase tracking-wider text-gray-600">Dispenser Boxes (1 - 40)</h2>
                 <button onclick="addBox()" class="text-xs text-blue-600 hover:underline font-semibold">+ Add Box</button>
             </div>
-            <div id="boxes-container" class="box-grid"></div>
+            <div id="dispenser-grid" class="box-grid"></div>
         </section>
-
         <div id="validation-banner" class="hidden p-3 rounded-lg text-sm font-medium border"></div>
     </main>
 
@@ -176,11 +195,6 @@
                     </label>
                     <button onclick="exportCatalogJSON()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold border transition">Export Catalog</button>
                 </div>
-                <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
-                    <h4 class="text-xs font-bold text-gray-500 uppercase">On-Demand Reports</h4>
-                    <button onclick="generateDailyGameSummaryEmail()" class="w-full bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">Email Daily Game Sales Summary</button>
-                    <button onclick="generateMonthlyGameSummaryEmail()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">Email Monthly Game Sales Summary</button>
-                </div>
             </div>
         </div>
     </div>
@@ -223,66 +237,15 @@
     <!-- Hidden Print Containers -->
     <div id="print-worksheet" class="hidden"></div>
     <div id="print-final-report" class="hidden"></div>
+    <script>
+    <!-- Hidden Print Containers -->
+    <div id="print-worksheet" class="hidden"></div>
+    <div id="print-final-report" class="hidden"></div>
 
     <script>
-    // Data Persistence & Store Setup Helpers
+        // Data Persistence Helper
         function persist() { localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
-
-        function updateStoreDisplay() {
-            const subtitle = document.getElementById('store-subtitle');
-            if (subtitle) subtitle.innerText = `${storeProfile.name} (#${storeProfile.number})`;
-            const nameInput = document.getElementById('store-name-input');
-            const numInput = document.getElementById('store-num-input');
-            const addrInput = document.getElementById('store-address-input');
-            const emailInput = document.getElementById('store-email-input');
-            const passInput = document.getElementById('store-password-input');
-            if (nameInput) nameInput.value = storeProfile.name || '';
-            if (numInput) numInput.value = storeProfile.number || '';
-            if (addrInput) addrInput.value = storeProfile.address || '';
-            if (emailInput) emailInput.value = storeProfile.email || '';
-            if (passInput) passInput.value = storeProfile.password || 'admin123';
-        }
-
-        function openStoreDrawer() {
-            updateStoreDisplay();
-            document.getElementById('store-drawer').classList.remove('hidden');
-        }
-        function closeStoreDrawer() { document.getElementById('store-drawer').classList.add('hidden'); }
-        function enableStoreEditing() {
-            ['store-name-input', 'store-num-input', 'store-address-input', 'store-email-input', 'store-password-input'].forEach(id => {
-                document.getElementById(id).removeAttribute('disabled');
-            });
-            document.getElementById('store-edit-button').classList.add('hidden');
-            document.getElementById('store-edit-actions').classList.remove('hidden');
-        }
-        function cancelStoreEditing() {
-            updateStoreDisplay();
-            ['store-name-input', 'store-num-input', 'store-address-input', 'store-email-input', 'store-password-input'].forEach(id => {
-                document.getElementById(id).setAttribute('disabled', 'true');
-            });
-            document.getElementById('store-edit-button').classList.remove('hidden');
-            document.getElementById('store-edit-actions').classList.add('hidden');
-        }
-        function saveStoreProfile(e) {
-            e.preventDefault();
-            storeProfile = {
-                name: document.getElementById('store-name-input').value,
-                number: document.getElementById('store-num-input').value,
-                address: document.getElementById('store-address-input').value,
-                email: document.getElementById('store-email-input').value,
-                password: document.getElementById('store-password-input').value
-            };
-            localStorage.setItem('lotto_store_profile', JSON.stringify(storeProfile));
-            updateStoreDisplay();
-            cancelStoreEditing();
-            alert('Store profile updated successfully.');
-        }
-
-        function completeBoxSetup() {
-            closeStoreDrawer();
-            openAdminModal();
-        }
-
+        
         // Pack Size Calculator
         function getPackSize(price) {
             if (price <= 2) return 300 / price;
@@ -296,7 +259,7 @@
             return Math.max(10, Math.floor(300 / price));
         }
 
-        // Master Games Database & State
+        // Master Games Database
         let masterGames = JSON.parse(localStorage.getItem('lotto_master_games')) || [
             {id: '1802', name: '300x Jumbo', price: 30},
             {id: '1964', name: 'Mill Jumbo', price: 20},
@@ -307,12 +270,20 @@
         ];
 
         let boxesData = JSON.parse(localStorage.getItem('lotto_boxes_data')) || Array.from({length: 40}, (_, i) => ({
-            id: i + 1, label: `Box ${i + 1}`, gameId: '', startTicket: '', endTicket: '', startLocked: false, oldGame: null, oldStart: '', oldEnd: ''
+            id: i + 1,
+            label: `Box ${i + 1}`,
+            gameId: '',
+            startTicket: '',
+            endTicket: '',
+            startLocked: false,
+            oldGame: null,
+            oldStart: '',
+            oldEnd: ''
         }));
 
         let shiftHistory = JSON.parse(localStorage.getItem('lotto_shift_history')) || [];
         let shiftState = JSON.parse(localStorage.getItem('lotto_shift_state')) || { date: new Date().toISOString().split('T')[0], name: 'A', status: 'open', startedAt: new Date().toISOString() };
-        let storeProfile = JSON.parse(localStorage.getItem('lotto_store_profile')) || { name: 'My Retail Store', number: '1234', address: '123 Main St', email: 'manager@store.com', password: 'admin' };
+        let storeProfile = JSON.parse(localStorage.getItem('lotto_store_profile')) || { name: 'My Retail Store', number: '1234', email: 'manager@store.com' };
 
         function getGameDescription(gameId) {
             const game = masterGames.find(g => String(g.id) === String(gameId));
@@ -330,6 +301,16 @@
                         let sold = e - s;
                         if (sold < 0) sold = (getPackSize(game.price) - s) + e;
                         if (sold > 0) total += sold * game.price;
+                    }
+                }
+                if (box.oldGame && box.oldStart && box.oldEnd) {
+                    const oldGameObj = masterGames.find(g => String(g.id) === String(box.oldGame));
+                    if (oldGameObj) {
+                        const s = parseInt(box.oldStart) || 0;
+                        const e = parseInt(box.oldEnd) || 0;
+                        let sold = e - s;
+                        if (sold < 0) sold = (getPackSize(oldGameObj.price) - s) + e;
+                        if (sold > 0) total += sold * oldGameObj.price;
                     }
                 }
             });
@@ -355,7 +336,6 @@
                 varEl.className = `text-base font-bold ${variance === 0 ? 'text-emerald-600' : variance > 0 ? 'text-blue-600' : 'text-red-600'}`;
             }
         }
-
         function renderBoxes() {
             const container = document.getElementById('boxes-container');
             if (!container) return;
@@ -438,187 +418,11 @@
             }
         }
 
-        function addBox() {
-            boxesData.push({
-                id: boxesData.length + 1,
-                label: `Box ${boxesData.length + 1}`,
-                gameId: '', startTicket: '', endTicket: '', startLocked: false, oldGame: null, oldStart: '', oldEnd: ''
-            });
-            persist();
-            renderBoxes();
-        }
-
         function runValidation() { renderBoxes(); }
+        
         function updateShiftStatus() {
             const label = document.getElementById('active-shift-label');
             if(label) label.innerText = `Shift ${shiftState.name} / ${shiftState.status.toUpperCase()}`;
-        }
-     // Master Admin Modal Functions
-        function openAdminModal() { document.getElementById('admin-modal').classList.remove('hidden'); }
-        function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); document.getElementById('admin-auth-view').classList.remove('hidden'); document.getElementById('admin-content-view').classList.add('hidden'); document.getElementById('admin-pass-input').value = ''; }
-        function verifyAdmin() {
-            const pass = document.getElementById('admin-pass-input').value;
-            if (pass === storeProfile.password) {
-                document.getElementById('admin-auth-view').classList.add('hidden');
-                document.getElementById('admin-content-view').classList.remove('hidden');
-                renderAdminGamesList();
-            } else { alert('Incorrect password.'); }
-        }
-        function renderAdminGamesList() {
-            const list = document.getElementById('admin-games-list');
-            if (!list) return;
-            list.innerHTML = masterGames.map(g => `<div class="flex justify-between items-center bg-white p-2 rounded border text-xs"><span><b>#${g.id}</b> - ${g.name} ($${g.price})</span><button onclick="deleteGame('${g.id}')" class="text-red-600 hover:underline">Delete</button></div>`).join('');
-        }
-        function lookupGameNumber() {
-            const query = document.getElementById('game-number-lookup').value.trim();
-            if (!query) return;
-            const existing = masterGames.find(g => String(g.id) === String(query));
-            const editor = document.getElementById('game-number-editor');
-            const status = document.getElementById('game-number-status');
-            const submitBtn = document.getElementById('game-editor-submit');
-            editor.classList.remove('hidden');
-            document.getElementById('game-editor-id').value = query;
-            if (existing) {
-                status.innerText = 'Game found in catalog.';
-                document.getElementById('game-editor-price').value = existing.price;
-                document.getElementById('game-editor-name').value = existing.name;
-                submitBtn.innerText = 'Update Game';
-            } else {
-                status.innerText = 'New game number. Enter details to add.';
-                document.getElementById('game-editor-price').value = '';
-                document.getElementById('game-editor-name').value = '';
-                submitBtn.innerText = 'Add Game';
-            }
-        }
-        function saveGameFromLookup(e) {
-            e.preventDefault();
-            const id = document.getElementById('game-editor-id').value;
-            const price = parseFloat(document.getElementById('game-editor-price').value);
-            const name = document.getElementById('game-editor-name').value;
-            const idx = masterGames.findIndex(g => String(g.id) === String(id));
-            if (idx >= 0) {
-                masterGames[idx] = { id, name, price };
-            } else {
-                masterGames.push({ id, name, price });
-            }
-            localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
-            renderAdminGamesList();
-            renderBoxes();
-            document.getElementById('game-number-lookup').value = '';
-            document.getElementById('game-number-editor').classList.add('hidden');
-            document.getElementById('game-number-status').innerText = 'Saved successfully!';
-        }
-        function deleteGame(id) {
-            masterGames = masterGames.filter(g => String(g.id) !== String(id));
-            localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
-            renderAdminGamesList();
-            renderBoxes();
-        }
-
-        // Data Transfer Backup & Catalog JSON
-        function exportDataJSON() {
-            const backup = { storeProfile, masterGames, boxesData, shiftHistory, shiftState };
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `lotto_store_${storeProfile.number}_backup.json`;
-            a.click();
-        }
-        function importDataJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.storeProfile) { storeProfile = data.storeProfile; localStorage.setItem('lotto_store_profile', JSON.stringify(storeProfile)); }
-                    if (data.masterGames) { masterGames = data.masterGames; localStorage.setItem('lotto_master_games', JSON.stringify(masterGames)); }
-                    if (data.boxesData) { boxesData = data.boxesData; localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
-                    if (data.shiftHistory) { shiftHistory = data.shiftHistory; localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory)); }
-                    if (data.shiftState) { shiftState = data.shiftState; localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState)); }
-                    updateStoreDisplay();
-                    renderBoxes();
-                    alert('Store backup imported successfully.');
-                } catch (err) { alert('Invalid JSON backup file.'); }
-            };
-            reader.readAsText(file);
-        }
-        function exportCatalogJSON() {
-            const blob = new Blob([JSON.stringify(masterGames, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'lotto_catalog.json';
-            a.click();
-        }
-        function importCatalogJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const catalog = JSON.parse(e.target.result);
-                    if (Array.isArray(catalog)) {
-                        masterGames = catalog;
-                        localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
-                        renderAdminGamesList();
-                        renderBoxes();
-                        alert('Catalog imported successfully.');
-                    } else { alert('Invalid catalog format.'); }
-                } catch (err) { alert('Invalid JSON file.'); }
-            };
-            reader.readAsText(file);
-        }
-
-        // Rapid Entry Mode Modal
-        function openRapidEntryModal() {
-            const list = document.getElementById('rapid-entry-list');
-            list.innerHTML = boxesData.map((box, index) => {
-                if (!box.gameId) return '';
-                const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                return `<div class="flex items-center justify-between bg-gray-50 border p-2 rounded-lg text-xs">
-                    <div><b>${box.label}</b>: #${box.gameId} - ${game ? game.name : ''} (Start: ${box.startTicket || '-'})</div>
-                    <input type="number" id="rapid-end-${index}" value="${box.endTicket}" placeholder="End #" class="w-24 border rounded p-1 font-mono text-xs text-center bg-white">
-                </div>`;
-            }).join('');
-            document.getElementById('rapid-entry-modal').classList.remove('hidden');
-        }
-        function closeRapidEntryModal() { document.getElementById('rapid-entry-modal').classList.add('hidden'); }
-        function saveRapidEntry() {
-            boxesData.forEach((box, index) => {
-                if (box.gameId) {
-                    const input = document.getElementById(`rapid-end-${index}`);
-                    if (input && input.value) { box.endTicket = input.value; }
-                }
-            });
-            persist();
-            renderBoxes();
-            closeRapidEntryModal();
-        }
-
-        // Barcode Scanner Integration
-        let html5QrCode = null;
-        function initScanner() {
-            document.getElementById('scanner-modal').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    stopScanner();
-                    document.getElementById('game-number-lookup').value = decodedText;
-                    openAdminModal();
-                    lookupGameNumber();
-                },
-                (error) => {}
-            ).catch(err => { document.getElementById('scanner-status').innerText = 'Camera access denied or unavailable.'; });
-        }
-        function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => { html5QrCode.clear(); }).catch(err => {});
-            }
-            document.getElementById('scanner-modal').classList.add('hidden');
         }
 
         // On-Demand Report Functions
@@ -763,11 +567,6 @@
             const body = encodeURIComponent(reportText);
             window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
         }
-       // --- Print Rapid Entry Audit List (Table Format) ---
-        function printWorksheet() {
-            printRapidEntry();
-        }
-
         function printRapidEntry() {
             const clerkNameInput = document.getElementById('clerk-name-input');
             const clerkName = clerkNameInput ? clerkNameInput.value.trim() : "";
@@ -842,83 +641,38 @@
             setTimeout(() => { window.print(); }, 150);
         }
 
-        // --- Print Final Report (Matching Table Format) ---
         function generateAndPrintFinalReport() {
-            document.body.classList.add('print-mode-report'); 
-            document.body.classList.remove('print-mode-worksheet');
+            document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
             const printArea = document.getElementById('print-final-report');
             const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
             const posMeter = document.getElementById('pos-meter-input').value || "0.00";
             const variance = document.getElementById('rev-variance').innerText;
             const total = document.getElementById('header-total-sales').innerText;
             const now = new Date().toLocaleString();
-
-            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 9px;">';
-            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
-            
+            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
             boxesData.forEach((box) => {
-                if(box.gameId) {
-                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
-                    let boxSales = 0;
-                    if(box.startTicket && box.endTicket) {
-                        const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                        if(game) {
-                            const s = parseInt(box.startTicket) || 0;
-                            const e = parseInt(box.endTicket) || 0;
-                            let sold = e - s;
-                            if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                            if(sold > 0) boxSales = sold * game.price;
-                        }
+                let boxSales = 0;
+                if(box.gameId && box.startTicket && box.endTicket) {
+                    const game = masterGames.find(g => String(g.id) === String(box.gameId));
+                    if(game) {
+                        const s = parseInt(box.startTicket) || 0;
+                        const e = parseInt(box.endTicket) || 0;
+                        let sold = e - s;
+                        if (sold < 0) sold = (getPackSize(game.price) - s) + e;
+                        if(sold > 0) boxSales += sold * game.price;
                     }
-                    listHtml += `<tr>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.endTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">$${boxSales.toFixed(2)}</td>
-                    </tr>`;
                 }
+                gridHtml += `<div style="border: 1px solid #94a3b8; padding: 4px; border-radius: 4px; font-size: 9px; break-inside: avoid; background-color: #fff;"><div style="font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 2px;">${box.label} <span style="font-weight: normal; color: #64748b; float: right;">${box.gameId ? '#' + box.gameId : 'No Game'}</span></div><div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">Start:</span><b style="font-family: monospace;">${box.startTicket || '-'}</b></div><div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">End:</span><b style="font-family: monospace;">${box.endTicket || '-'}</b></div><div style="display: flex; justify-content: space-between; color: #059669; font-weight: bold; margin-top: 2px; padding-top: 2px; border-top: 1px dashed #cbd5e1;"><span>Sales:</span><span>$${boxSales.toFixed(2)}</span></div></div>`;
             });
-            listHtml += '</tbody></table>';
-
+            gridHtml += '</div>';
             const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
-            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 25px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 25px; border-bottom: 1px solid #000;"></div>`;
-
-            printArea.innerHTML = `
-                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;">
-                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Final Shift Audit Report</h2>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
-                        <div><b>Store Name:</b> ${storeProfile.name} (${storeProfile.number})</div>
-                        <div><b>Date/Time Closed:</b> ${now}</div>
-                        <div><b>Shift Logged:</b> ${shiftState.name}</div>
-                        <div><b>Total Ticket Sales:</b> <span style="color: #059669; font-weight: bold;">${total}</span></div>
-                    </div>
-                    
-                    ${listHtml}
-                    
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px; padding: 4px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; font-size: 9px;">
-                        <div><b>Total Ticket Sales:</b> ${total}</div>
-                        <div><b>POS Meter Input:</b> $${parseFloat(posMeter).toFixed(2)}</div>
-                        <div><b>Shift Variance:</b> <span style="color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'}; font-weight: bold;">${variance}</span></div>
-                    </div>
-                    
-                    <div style="margin-top: 6px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
-                        <div style="flex: 1; padding-right: 20px;">
-                            <span style="font-weight: bold;">Printed Clerk Name: </span>
-                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;">${clerkName}</span>
-                        </div>
-                        <div style="width: 220px;">
-                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
-                            ${sigHtml}
-                        </div>
-                    </div>
-                </div>`;
+            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 35px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 35px; border-bottom: 1px solid #000;"></div>`;
+            printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;"><h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Final Shift Audit Report</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;"><div><b>Store Name:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div><div><b>Date/Time Closed:</b> ${now}</div><div><b>Shift Logged:</b> ${shiftState.name}</div></div>${gridHtml}<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px;"><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Total Ticket Sales</div><div style="font-size: 14px; font-weight: bold;">${total}</div></div><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">POS Meter Input</div><div style="font-size: 14px; font-weight: bold;">$${parseFloat(posMeter).toFixed(2)}</div></div><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Shift Variance</div><div style="font-size: 14px; font-weight: bold; color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'};">${variance}</div></div></div><div style="margin-top: 12px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end;"><div style="flex: 1; padding-right: 20px;"><span style="font-weight: bold;">Printed Clerk Name: </span><span style="border-bottom: 1px solid #000; display: inline-block; width: 200px; padding-bottom: 2px;">${clerkName}</span></div><div style="width: 250px;"><span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>${sigHtml}</div></div></div>`;
             setTimeout(() => { window.print(); }, 150);
         }
 
         // --- Drawing & Sign-off Logic ---
-        let sigCanvas, sigCtx, isDrawing = false, hasSignature = false;
+        let sigCanvas, sigCtx, isDrawing = false;
         function openReviewModal() {
             try {
                 updateShiftStatus();
@@ -966,7 +720,7 @@
             const clerk = document.getElementById('clerk-name-input').value.trim();
             if (!clerk) { alert('Enter the clerk name.'); return; }
             if (!hasSignature) { alert('Add a signature.'); return; }
-            const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)));
+            const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)) || (box.oldGame && (!box.oldStart || !box.oldEnd)));
             if (incomplete.length) { runValidation(); alert('Complete all active boxes.'); return; }
             const totalSales = calculateTotals();
             const posMeter = parseFloat(document.getElementById('pos-meter-input').value) || 0;
@@ -982,6 +736,7 @@
                     ...box,
                     startTicket: box.gameId ? box.endTicket : box.startTicket,
                     endTicket: box.gameId ? '' : box.endTicket,
+                    oldGame: null, oldStart: '', oldEnd: '',
                     startLocked: !!box.gameId
                 }));
                 shiftState = { date: shiftState.date, name: 'B', status: 'open', startedAt: signedAt };
@@ -1006,272 +761,6 @@
             const body = encodeURIComponent(`Shift Audit Summary:\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerk}\nTotal Sales: ${total}\nTimestamp: ${new Date().toLocaleString()}`);
             window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
         }
-
-        // Initialize App on Load
-        window.onload = function() {
-            updateStoreDisplay();
-            renderBoxes();
-            updateShiftStatus();
-            const now = new Date();
-            const dtEl = document.getElementById('live-datetime');
-            if(dtEl) dtEl.innerText = now.toLocaleString();
-        };
-    </script>
-    // --- Print Rapid Entry Audit List (Table Format) ---
-        function printWorksheet() {
-            printRapidEntry();
-        }
-
-        function printRapidEntry() {
-            const clerkNameInput = document.getElementById('clerk-name-input');
-            const clerkName = clerkNameInput ? clerkNameInput.value.trim() : "";
-            
-            if (!clerkName) {
-                alert('Please enter the Clerk Name in the Review & Sign-Off modal before printing the Rapid Entry Audit List.');
-                openReviewModal();
-                return;
-            }
-            if (!hasSignature) {
-                alert('Please provide a Clerk Signature in the Review & Sign-Off modal before printing.');
-                openReviewModal();
-                return;
-            }
-
-            document.body.classList.add('print-mode-worksheet'); 
-            document.body.classList.remove('print-mode-report');
-            const printArea = document.getElementById('print-worksheet');
-            const now = new Date().toLocaleString();
-            const totalSales = document.getElementById('header-total-sales').innerText;
-            
-            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 9px;">';
-            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1; width: 90px;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
-            
-            let hasActive = false;
-            boxesData.forEach((box, idx) => {
-                if(box.gameId) {
-                    hasActive = true;
-                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
-                    const boxSalesText = document.getElementById(`box-subtotal-${idx}`) ? document.getElementById(`box-subtotal-${idx}`).innerText : '$0.00';
-                    listHtml += `<tr>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;"><div style="border: 1px solid #000; height: 16px; width: 100%; background: #fff;"></div></td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">${boxSalesText}</td>
-                    </tr>`;
-                }
-            });
-            listHtml += '</tbody></table>';
-            
-            if(!hasActive) { alert("No active games loaded to print."); return; }
-            
-            const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
-            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 20px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 20px; border-bottom: 1px solid #000;"></div>`;
-
-            printArea.innerHTML = `
-                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
-                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
-                    <p style="text-align: center; font-size: 9px; font-style: italic; color: #475569; margin-bottom: 4px;">Record ending ticket numbers during walk-around, then enter them into the app.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
-                        <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
-                        <div><b>Date/Time:</b> ${now}</div>
-                        <div><b>Shift:</b> ${shiftState.name}</div>
-                        <div><b>Expected Total Sales:</b> <span style="color: #059669; font-weight: bold;">${totalSales}</span></div>
-                    </div>
-                    
-                    ${listHtml}
-                    
-                    <div style="margin-top: 6px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
-                        <div style="flex: 1; padding-right: 20px;">
-                            <span style="font-weight: bold;">Clerk Name: </span>
-                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;">${clerkName}</span>
-                        </div>
-                        <div style="width: 220px;">
-                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
-                            ${sigHtml}
-                        </div>
-                    </div>
-                </div>`;
-            setTimeout(() => { window.print(); }, 150);
-        }
-
-        // --- Print Final Report (Matching Table Format) ---
-        function generateAndPrintFinalReport() {
-            document.body.classList.add('print-mode-report'); 
-            document.body.classList.remove('print-mode-worksheet');
-            const printArea = document.getElementById('print-final-report');
-            const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
-            const posMeter = document.getElementById('pos-meter-input').value || "0.00";
-            const variance = document.getElementById('rev-variance').innerText;
-            const total = document.getElementById('header-total-sales').innerText;
-            const now = new Date().toLocaleString();
-
-            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 9px;">';
-            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
-            
-            boxesData.forEach((box) => {
-                if(box.gameId) {
-                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
-                    let boxSales = 0;
-                    if(box.startTicket && box.endTicket) {
-                        const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                        if(game) {
-                            const s = parseInt(box.startTicket) || 0;
-                            const e = parseInt(box.endTicket) || 0;
-                            let sold = e - s;
-                            if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                            if(sold > 0) boxSales = sold * game.price;
-                        }
-                    }
-                    listHtml += `<tr>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.endTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">$${boxSales.toFixed(2)}</td>
-                    </tr>`;
-                }
-            });
-            listHtml += '</tbody></table>';
-
-            const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
-            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 25px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 25px; border-bottom: 1px solid #000;"></div>`;
-
-            printArea.innerHTML = `
-                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;">
-                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Final Shift Audit Report</h2>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
-                        <div><b>Store Name:</b> ${storeProfile.name} (${storeProfile.number})</div>
-                        <div><b>Date/Time Closed:</b> ${now}</div>
-                        <div><b>Shift Logged:</b> ${shiftState.name}</div>
-                        <div><b>Total Ticket Sales:</b> <span style="color: #059669; font-weight: bold;">${total}</span></div>
-                    </div>
-                    
-                    ${listHtml}
-                    
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px; padding: 4px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; font-size: 9px;">
-                        <div><b>Total Ticket Sales:</b> ${total}</div>
-                        <div><b>POS Meter Input:</b> $${parseFloat(posMeter).toFixed(2)}</div>
-                        <div><b>Shift Variance:</b> <span style="color: ${parseFloat(variance.replace(/[^0-9.-+/g,"")) === 0 ? '#059669' : '#dc2626'}; font-weight: bold;">${variance}</span></div>
-                    </div>
-                    
-                    <div style="margin-top: 6px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
-                        <div style="flex: 1; padding-right: 20px;">
-                            <span style="font-weight: bold;">Printed Clerk Name: </span>
-                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;">${clerkName}</span>
-                        </div>
-                        <div style="width: 220px;">
-                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
-                            ${sigHtml}
-                        </div>
-                    </div>
-                </div>`;
-            setTimeout(() => { window.print(); }, 150);
-        }
-
-        // --- Drawing & Sign-off Logic ---
-        let sigCanvas, sigCtx, isDrawing = false, hasSignature = false;
-        function openReviewModal() {
-            try {
-                updateShiftStatus();
-                const modal = document.getElementById('review-modal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    setTimeout(() => { initSignaturePad(); }, 150);
-                } else { alert("Error: 'review-modal' element not found."); }
-            } catch (err) { alert("Could not open review modal."); }
-        }
-        function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
-        function initSignaturePad() {
-            sigCanvas = document.getElementById('sig-canvas');
-            if(!sigCanvas) return;
-            sigCtx = sigCanvas.getContext('2d');
-            sigCtx.strokeStyle = "#000";
-            sigCtx.lineWidth = 2;
-            sigCanvas.onmousedown = startDraw;
-            sigCanvas.onmousemove = draw;
-            sigCanvas.onmouseup = stopDraw;
-            sigCanvas.ontouchstart = (e) => startDraw(e.touches[0]);
-            sigCanvas.ontouchmove = (e) => draw(e.touches[0]);
-            sigCanvas.ontouchend = stopDraw;
-        }
-        function startDraw(e) {
-            isDrawing = true;
-            hasSignature = true;
-            const rect = sigCanvas.getBoundingClientRect();
-            sigCtx.beginPath();
-            sigCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-        }
-        function draw(e) {
-            if(!isDrawing) return;
-            const rect = sigCanvas.getBoundingClientRect();
-            sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            sigCtx.stroke();
-        }
-        function stopDraw() { isDrawing = false; }
-        function clearSignature() {
-            if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-            hasSignature = false;
-        }
-        function confirmShiftEnd() {
-            if (shiftState.status !== 'open') return;
-            const clerk = document.getElementById('clerk-name-input').value.trim();
-            if (!clerk) { alert('Enter the clerk name.'); return; }
-            if (!hasSignature) { alert('Add a signature.'); return; }
-            const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)));
-            if (incomplete.length) { runValidation(); alert('Complete all active boxes.'); return; }
-            const totalSales = calculateTotals();
-            const posMeter = parseFloat(document.getElementById('pos-meter-input').value) || 0;
-            const signedAt = new Date().toISOString();
-            shiftHistory.push({
-                date: shiftState.date, shift: shiftState.name, clerk, signedAt, totalSales, posMeter, variance: posMeter - totalSales,
-                signature: sigCanvas.toDataURL('image/png'),
-                boxes: JSON.parse(JSON.stringify(boxesData))
-            });
-            localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
-            if (shiftState.name === 'A') {
-                boxesData = boxesData.map(box => ({
-                    ...box,
-                    startTicket: box.gameId ? box.endTicket : box.startTicket,
-                    endTicket: box.gameId ? '' : box.endTicket,
-                    startLocked: !!box.gameId
-                }));
-                shiftState = { date: shiftState.date, name: 'B', status: 'open', startedAt: signedAt };
-            } else {
-                shiftState = { ...shiftState, status: 'closed', closedAt: signedAt };
-            }
-            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
-            persist();
-            clearSignature();
-            document.getElementById('clerk-name-input').value = '';
-            document.getElementById('pos-meter-input').value = '';
-            updateShiftStatus();
-            renderBoxes();
-            closeReviewModal();
-            alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is open.' : 'Shift B signed off. Day closed.');
-        }
-
-        function emailReport() {
-            const clerk = document.getElementById('clerk-name-input').value || "Staff";
-            const total = document.getElementById('header-total-sales').innerText;
-            const subject = encodeURIComponent(`Shift Audit Report - ${storeProfile.name} - ${storeProfile.number}`);
-            const body = encodeURIComponent(`Shift Audit Summary:\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerk}\nTotal Sales: ${total}\nTimestamp: ${new Date().toLocaleString()}`);
-            window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
-        }
-
-        // Initialize App on Load
-        window.onload = function() {
-            updateStoreDisplay();
-            renderBoxes();
-            updateShiftStatus();
-            const now = new Date();
-            const dtEl = document.getElementById('live-datetime');
-            if(dtEl) dtEl.innerText = now.toLocaleString();
-        };
     </script>
 </body>
 </html>
-</body>
-</html> 
