@@ -897,26 +897,42 @@
             printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box; font-size: 12px;"><h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Shift Inventory Worksheet</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;"><div><b>Store:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div><div><b>Date/Time:</b> ${now}</div><div><b>Shift:</b> ${shiftState.name}</div><div style="grid-column: span 2; border-top: 1px solid #cbd5e1; padding-top: 4px; display: flex; align-items: flex-end;"><span style="margin-right: 8px; font-weight: bold;">Clerk Name:</span><div style="flex: 1; border-bottom: 1px solid #000; height: 12px;"></div></div></div>${gridHtml}</div>`;
             setTimeout(() => { window.print(); }, 150);
         }
+function printRapidEntry() {
+            const clerkNameInput = document.getElementById('clerk-name-input');
+            const clerkName = clerkNameInput ? clerkNameInput.value.trim() : "";
+            
+            if (!clerkName) {
+                alert('Please enter the Clerk Name in the Review & Sign-Off modal before printing the Rapid Entry Audit List.');
+                openReviewModal();
+                return;
+            }
+            if (!hasSignature) {
+                alert('Please provide a Clerk Signature in the Review & Sign-Off modal before printing.');
+                openReviewModal();
+                return;
+            }
 
-        function printRapidEntry() {
-            document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
+            document.body.classList.add('print-mode-worksheet'); 
+            document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             const totalSales = document.getElementById('header-total-sales').innerText;
             
-            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px;">';
-            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 6px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 6px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 6px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 6px; text-align: center; border: 1px solid #cbd5e1; width: 120px;">End Ticket</th></tr></thead><tbody>';
+            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 9px;">';
+            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1; width: 90px;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
             
             let hasActive = false;
-            boxesData.forEach((box) => {
+            boxesData.forEach((box, idx) => {
                 if(box.gameId) {
                     hasActive = true;
                     const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
+                    const boxSalesText = document.getElementById(`box-subtotal-${idx}`) ? document.getElementById(`box-subtotal-${idx}`).innerText : '$0.00';
                     listHtml += `<tr>
-                        <td style="padding: 6px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
-                        <td style="padding: 6px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
-                        <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
-                        <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; height: 24px;"></td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;"><div style="border: 1px solid #000; height: 16px; width: 100%; background: #fff;"></div></td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">${boxSalesText}</td>
                     </tr>`;
                 }
             });
@@ -924,12 +940,15 @@
             
             if(!hasActive) { alert("No active games loaded to print."); return; }
             
+            const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
+            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 20px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 20px; border-bottom: 1px solid #000;"></div>`;
+
             printArea.innerHTML = `
-                <div style="padding: 10px; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;">
-                    <h2 style="font-size: 18px; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
-                    <p style="text-align: center; font-size: 11px; font-style: italic; color: #475569; margin-bottom: 10px;">Record ending ticket numbers on this sheet during walk-around, then enter them into the app.</p>
+                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
+                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
+                    <p style="text-align: center; font-size: 9px; font-style: italic; color: #475569; margin-bottom: 4px;">Record ending ticket numbers during walk-around, then enter them into the app.</p>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border: 1px solid #334155; padding: 8px; border-radius: 4px; font-size: 11px; background: #f8fafc; margin-bottom: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
                         <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
                         <div><b>Date/Time:</b> ${now}</div>
                         <div><b>Shift:</b> ${shiftState.name}</div>
@@ -938,14 +957,14 @@
                     
                     ${listHtml}
                     
-                    <div style="margin-top: 20px; font-size: 11px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 15px;">
+                    <div style="margin-top: 6px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
                         <div style="flex: 1; padding-right: 20px;">
                             <span style="font-weight: bold;">Clerk Name: </span>
-                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 220px; padding-bottom: 2px;"></span>
+                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;">${clerkName}</span>
                         </div>
-                        <div style="width: 280px;">
+                        <div style="width: 220px;">
                             <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
-                            <div style="height: 35px; border-bottom: 1px solid #000;"></div>
+                            ${sigHtml}
                         </div>
                     </div>
                 </div>`;
@@ -1026,7 +1045,7 @@
             if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
             hasSignature = false;
         }
-      function confirmShiftEnd() {
+        function confirmShiftEnd() {
             if (shiftState.status !== 'open') return;
             const clerk = document.getElementById('clerk-name-input').value.trim();
             if (!clerk) { alert('Enter the clerk name.'); return; }
@@ -1063,63 +1082,6 @@
             renderBoxes();
             closeReviewModal();
             alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is open.' : 'Shift B signed off. Day closed.');
-        }
-
-        function printRapidEntry() {
-            document.body.classList.add('print-mode-worksheet'); 
-            document.body.classList.remove('print-mode-report');
-            const printArea = document.getElementById('print-worksheet');
-            const now = new Date().toLocaleString();
-            const totalSales = document.getElementById('header-total-sales').innerText;
-            
-            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 9px;">';
-            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1; width: 90px;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
-            
-            let hasActive = false;
-            boxesData.forEach((box, idx) => {
-                if(box.gameId) {
-                    hasActive = true;
-                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
-                    const boxSalesText = document.getElementById(`box-subtotal-${idx}`) ? document.getElementById(`box-subtotal-${idx}`).innerText : '$0.00';
-                    listHtml += `<tr>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; height: 16px;"></td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">${boxSalesText}</td>
-                    </tr>`;
-                }
-            });
-            listHtml += '</tbody></table>';
-            
-            if(!hasActive) { alert("No active games loaded to print."); return; }
-            
-            printArea.innerHTML = `
-                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
-                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
-                    <p style="text-align: center; font-size: 9px; font-style: italic; color: #475569; margin-bottom: 4px;">Record ending ticket numbers during walk-around, then enter them into the app.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
-                        <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
-                        <div><b>Date/Time:</b> ${now}</div>
-                        <div><b>Shift:</b> ${shiftState.name}</div>
-                        <div><b>Expected Total Sales:</b> <span style="color: #059669; font-weight: bold;">${totalSales}</span></div>
-                    </div>
-                    
-                    ${listHtml}
-                    
-                    <div style="margin-top: 6px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
-                        <div style="flex: 1; padding-right: 20px;">
-                            <span style="font-weight: bold;">Clerk Name: </span>
-                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;"></span>
-                        </div>
-                        <div style="width: 220px;">
-                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
-                            <div style="height: 20px; border-bottom: 1px solid #000;"></div>
-                        </div>
-                    </div>
-                </div>`;
-            setTimeout(() => { window.print(); }, 150);
         }
 
         function emailReport() {
