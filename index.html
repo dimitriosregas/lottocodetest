@@ -3,46 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Smartphone App Icon & PWA Settings -->
     <title>Project Lotto</title>
     <meta name="apple-mobile-web-app-title" content="Project Lotto">
     <meta name="application-name" content="Project Lotto">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#10b981">
-    
-    <!-- Links to a reliable, permanent ticket icon -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ticket_icon.svg/512px-Ticket_icon.svg.png">
     <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ticket_icon.svg/512px-Ticket_icon.svg.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
     <style>
-        .box-grid {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 0.5rem;
-        }
-        @media (max-width: 1024px) {
-            .box-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
+        .box-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
+        @media (max-width: 1024px) { .box-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media print {
             @page { size: letter portrait; margin: 0.2in; }
             body > header, body > main, body > div.fixed { display: none !important; }
             body, html { height: 96vh !important; max-height: 96vh !important; margin: 0; padding: 0; background: white !important; overflow: hidden !important; }
-            #print-worksheet, #print-final-report {
-                display: none !important;
-                width: 100%;
-                height: 96vh;
-                box-sizing: border-box;
-                overflow: hidden;
-                page-break-after: avoid;
-                page-break-inside: avoid;
-            }
+            #print-worksheet, #print-final-report { display: none !important; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden; page-break-after: avoid; page-break-inside: avoid; }
             body.print-mode-worksheet #print-worksheet { display: block !important; }
             body.print-mode-report #print-final-report { display: block !important; }
             .no-print { display: none !important; }
@@ -116,6 +96,7 @@
             </div>
             <div id="dispenser-grid" class="box-grid"></div>
         </section>
+
         <div id="validation-banner" class="hidden p-3 rounded-lg text-sm font-medium border"></div>
     </main>
 
@@ -194,6 +175,10 @@
                         <input type="file" class="hidden" accept=".json" onchange="importCatalogJSON(event)">
                     </label>
                     <button onclick="exportCatalogJSON()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold border transition">Export Catalog</button>
+                </div>
+                <div class="pt-4 mt-4 border-t flex gap-2">
+                    <button onclick="generateDailyGameSummaryEmail()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-semibold">Daily Sales Report</button>
+                    <button onclick="generateMonthlyGameSummaryEmail()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-semibold">Monthly Sales Report</button>
                 </div>
             </div>
         </div>
@@ -294,12 +279,14 @@
         let html5QrCode = null;
         let hasSignature = false;
         let activeScannerBoxIndex = null;
+        let sigCanvas, sigCtx, isDrawing = false;
 
         // Initialization on Load
         window.addEventListener('DOMContentLoaded', () => {
             updateStoreHeader();
             updateShiftStatus();
             renderBoxes();
+            initSignaturePad();
             setInterval(updateLiveDateTime, 1000);
             updateLiveDateTime();
         });
@@ -333,7 +320,7 @@
             button.disabled = shiftState.status !== 'open';
             button.classList.toggle('opacity-50', button.disabled);
             button.classList.toggle('cursor-not-allowed', button.disabled);
-            button.innerText = shiftState.status !== 'open' ? 'Shift B Signed Off' : shiftState.name === 'A' ? 'Confirm Shift End & Start Shift B' : 'Confirm Shift B End';
+            button.innerText = shiftState.status !== 'open' ? 'Shift Signed Off' : shiftState.name === 'A' ? 'Confirm Shift End & Start Shift B' : 'Confirm Shift B End';
         }
 
         function rolloverClosedShiftIfNeeded(now) {
@@ -353,13 +340,76 @@
             return true;
         }
 
+        // --- Signature Pad Setup ---
+        function initSignaturePad() {
+            sigCanvas = document.getElementById('sig-canvas');
+            if (!sigCanvas) return;
+            sigCtx = sigCanvas.getContext('2d');
+            sigCtx.lineWidth = 2;
+            sigCtx.lineJoin = 'round';
+            sigCtx.lineCap = 'round';
+            sigCtx.strokeStyle = '#000';
+
+            const getPos = (e) => {
+                const rect = sigCanvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+
+            sigCanvas.addEventListener('mousedown', (e) => { isDrawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
+            sigCanvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); hasSignature = true; });
+            window.addEventListener('mouseup', () => { isDrawing = false; });
+
+            sigCanvas.addEventListener('touchstart', (e) => { isDrawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); e.preventDefault(); });
+            sigCanvas.addEventListener('touchmove', (e) => { if (!isDrawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); hasSignature = true; e.preventDefault(); });
+            window.addEventListener('touchend', () => { isDrawing = false; });
+        }
+
+        function clearSignature() {
+            if (!sigCtx) return;
+            sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+            hasSignature = false;
+        }
+
+        function openReviewModal() {
+            calculateTotals();
+            document.getElementById('review-modal').classList.remove('hidden');
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').classList.add('hidden');
+        }
+
+        function confirmShiftEnd() {
+            const clerkName = document.getElementById('clerk-name-input').value.trim();
+            if (!clerkName) { alert('Please enter your Clerk Name.'); return; }
+            if (!hasSignature) { alert('Please provide a signature.'); return; }
+
+            shiftState.status = 'closed';
+            shiftState.signedAt = new Date().toISOString();
+            shiftHistory.push({ ...shiftState, boxes: JSON.parse(JSON.stringify(boxesData)), clerkName });
+            localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
+            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
+            
+            alert("Shift successfully signed off and archived!");
+            closeReviewModal();
+            updateShiftStatus();
+        }
+
+        function emailReport() {
+            const total = document.getElementById('header-total-sales').innerText;
+            const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
+            const body = encodeURIComponent(`Shift Report Summary\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerkName}\nTotal Sales: ${total}`);
+            window.location.href = `mailto:${storeProfile.email}?subject=Shift Report - ${storeProfile.name}&body=${body}`;
+        }
+
         // --- Core Box Logic ---
         function openRapidEntryModal() {
             const listContainer = document.getElementById('rapid-entry-list');
             if(!listContainer) return;
             listContainer.innerHTML = '';
             let hasActiveBoxes = false;
-            
             boxesData.forEach((box, index) => {
                 if(box.gameId) {
                     hasActiveBoxes = true;
@@ -371,10 +421,7 @@
                         <div class="flex items-center gap-3">
                             <div class="text-right">
                                 <label class="block text-[10px] font-bold text-gray-500 uppercase">Ending #</label>
-                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="rapid-end-${index}" value="${box.endTicket}" placeholder="Enter End #" 
-                                    oninput="calculateRapidSales(${index}, this.value, '${box.gameId}')"
-                                    onkeydown="handleRapidNext(event, ${index})"
-                                    class="rapid-input w-32 border-2 border-gray-300 rounded-lg p-2 text-base text-center font-bold focus:border-blue-500 focus:outline-none bg-white">
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="rapid-end-${index}" value="${box.endTicket}" placeholder="Enter End #" oninput="calculateRapidSales(${index}, this.value, '${box.gameId}')" onkeydown="handleRapidNext(event, ${index})" class="rapid-input w-32 border-2 border-gray-300 rounded-lg p-2 text-base text-center font-bold focus:border-blue-500 focus:outline-none bg-white">
                             </div>
                             <div id="rapid-sales-${index}" class="text-xs font-bold text-emerald-600 w-16 text-right"></div>
                         </div>
@@ -383,7 +430,6 @@
                     setTimeout(() => { if (box.endTicket) calculateRapidSales(index, box.endTicket, box.gameId); }, 10);
                 }
             });
-            
             if(!hasActiveBoxes) listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>';
             document.getElementById('rapid-entry-modal').classList.remove('hidden');
         }
@@ -439,44 +485,40 @@
             const groupedWithPrevious = index > 0 && boxesData[index - 1].mergedWithNext;
             const card = document.createElement('div');
             card.className = 'min-w-0 bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-2';
-            
-            const startInputClass = box.startLocked ? 
-                "w-full border rounded p-1 text-xs text-center font-mono border-red-300 bg-red-50 cursor-pointer" : 
-                "w-full border rounded p-1 text-xs text-center font-mono border-gray-300";
-            
+            const startInputClass = box.startLocked ? "w-full border rounded p-1 text-xs text-center font-mono border-red-300 bg-red-50 cursor-pointer" : "w-full border rounded p-1 text-xs text-center font-mono border-gray-300";
             card.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <input type="text" value="${box.label}" onchange="if(typeof updateBoxLabel === 'function') updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
+                    <input type="text" value="${box.label}" onchange="updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
                     <div class="flex items-center gap-1">
-                        <button onclick="if(typeof initScanner === 'function') initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
+                        <button onclick="initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
                         <button onclick="toggleMerge(${index})" title="Group boxes" ${groupedWithPrevious || index === boxesData.length - 1 ? 'disabled' : ''} class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-mono disabled:opacity-40 disabled:cursor-not-allowed">&</button>
-                        <button onclick="if(typeof deleteBox === 'function') deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">×</button>
+                        <button onclick="deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">×</button>
                     </div>
                 </div>
                 <div>
                     <label class="text-[10px] text-gray-500 font-semibold block">Active Game Number</label>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="if(typeof updateBoxGame === 'function') updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
-                    <span class="text-[10px] text-gray-500">${typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : ''}</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
+                    <span class="text-[10px] text-gray-500">${getGameDescription(box.gameId)}</span>
                 </div>
                 ${box.oldGame ? `
                 <div class="bg-amber-50 p-1.5 rounded border border-amber-200 text-[10px] space-y-1">
                     <span class="font-bold text-amber-800">Mid-Shift Swapped Old Game:</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="if(typeof updateOldGame === 'function') updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
-                    <span class="text-[10px] text-amber-800">${typeof getGameDescription === 'function' ? getGameDescription(box.oldGame) : ''}</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
+                    <span class="text-[10px] text-amber-800">${getGameDescription(box.oldGame)}</span>
                     <div class="flex gap-1">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old Start" value="${box.oldStart}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old End" value="${box.oldEnd}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old Start" value="${box.oldStart}" onchange="updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old End" value="${box.oldEnd}" onchange="updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
                     </div>
                 </div>
                 ` : ''}
                 <div class="flex gap-1 pt-1">
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block" title="${box.startLocked ? 'Locked by previous shift.' : ''}">Start Ticket ${box.startLocked ? '🔒' : ''}</span>
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.startTicket}" placeholder="0001" onchange="if(typeof updateStartTicket === 'function') updateStartTicket(${index}, this.value)" class="${startInputClass}">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.startTicket}" placeholder="0001" onchange="updateStartTicket(${index}, this.value)" class="${startInputClass}">
                     </div>
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block">End Ticket</span>
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.endTicket}" placeholder="End #" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.endTicket}" placeholder="End #" onchange="updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
                     </div>
                 </div>
                 <div class="flex justify-between items-center pt-1">
@@ -486,6 +528,7 @@
             `;
             return card;
         }
+
         // --- Math & Calculations ---
         function calculateTotals() {
             let totalSales = 0;
@@ -519,7 +562,7 @@
             const revTotal = document.getElementById('rev-total-sales');
             if(headerTotal) headerTotal.innerText = `$${totalSales.toFixed(2)}`;
             if(revTotal) revTotal.innerText = `$${totalSales.toFixed(2)}`;
-            if(typeof calculateVariance === 'function') calculateVariance();
+            calculateVariance();
             return totalSales;
         }
 
@@ -543,8 +586,7 @@
 
         function updateBoxLabel(index, val) {
             const saveLabel = () => { boxesData[index].label = val.trim() || `Box ${index + 1}`; persist(); renderBoxes(); };
-            if (boxSetupComplete && typeof verifyAdminAction === 'function') verifyAdminAction(saveLabel);
-            else saveLabel();
+            if (boxSetupComplete) verifyAdminAction(saveLabel); else saveLabel();
         }
 
         function updateBoxGame(index, val) {
@@ -563,7 +605,10 @@
                     renderBoxes();
                     alert("Game added successfully.");
                     return;
-                } else { renderBoxes(); return; }
+                } else {
+                    renderBoxes();
+                    return;
+                }
             }
             boxesData[index]['gameId'] = gameId;
             persist();
@@ -603,33 +648,12 @@
 
         function deleteBox(index) {
             if (boxesData.length <= 1) { alert('At least one box must remain.'); return; }
-            if(typeof verifyAdminAction === 'function') {
-                verifyAdminAction(() => {
-                    boxesData.splice(index, 1);
-                    if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
-                    persist();
-                    renderBoxes();
-                });
-            }
-        }
-
-        function runValidation() {
-            let missing = [];
-            boxesData.forEach((box) => {
-                if(box.gameId && (!box.startTicket || !box.endTicket)) {
-                    missing.push(`Box ${box.label} has active game selected but missing start/end numbers.`);
-                }
+            verifyAdminAction(() => {
+                boxesData.splice(index, 1);
+                if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
+                persist();
+                renderBoxes();
             });
-            const banner = document.getElementById('validation-banner');
-            if(!banner) return;
-            banner.classList.remove('hidden');
-            if(missing.length > 0) {
-                banner.className = "p-3 rounded-lg text-sm font-medium border bg-red-50 border-red-200 text-red-700";
-                banner.innerHTML = "<b>Validation Issues Found:</b><br>" + missing.join('<br>');
-            } else {
-                banner.className = "p-3 rounded-lg text-sm font-medium border bg-emerald-50 border-emerald-200 text-emerald-750";
-                banner.innerText = "All active boxes successfully validated. No missing ticket entries.";
-            }
         }
 
         function calculateRapidSales(index, endVal, gameId) {
@@ -709,21 +733,20 @@
                             persist();
                             renderBoxes();
                             alert(`Scanned Code [${decodedText}] applied to ${boxesData[activeScannerBoxIndex].label} End Ticket.`);
-                        } else { alert(`Global Scanned Ticket Code: ${decodedText}`); }
+                        } else {
+                            alert(`Global Scanned Ticket Code: ${decodedText}`);
+                        }
                     });
                 }, (error) => {}
             ).catch((error) => { status.innerText = `Could not start camera.`; html5QrCode = null; });
         }
 
         async function stopScanner() {
-            if (html5QrCode) {
-                try { await html5QrCode.stop(); html5QrCode.clear(); } catch (error) {}
-            }
+            if (html5QrCode) { try { await html5QrCode.stop(); html5QrCode.clear(); } catch (error) {} }
             const modal = document.getElementById('scanner-modal');
             if(modal) modal.classList.add('hidden');
         }
 
-        // --- Store Config & Import/Export ---
         function openStoreDrawer() { updateStoreHeader(); updateBoxSetupStatus(); setStoreEditing(false); document.getElementById('store-drawer').classList.remove('hidden'); }
         function closeStoreDrawer() { setStoreEditing(false); document.getElementById('store-drawer').classList.add('hidden'); }
         function setStoreEditing(isEditing) {
@@ -778,7 +801,6 @@
                     location.reload();
                 } catch (err) { alert("Error importing backup file."); }
             };
-            
             reader.readAsText(file);
             event.target.value = '';
         }
@@ -792,7 +814,6 @@
             downloadAnchor.click();
             downloadAnchor.remove();
         }
-
         // --- Admin & Master Game Controls ---
         function openAdminModal() { document.getElementById('admin-modal').classList.remove('hidden'); }
         function closeAdminModal() {
@@ -809,6 +830,7 @@
                 document.getElementById('admin-pass-input').value = '';
             } else { alert("Incorrect Admin Password!"); }
         }
+
         function lookupGameNumber() {
             const queryId = document.getElementById('game-number-lookup').value.trim();
             const statusElem = document.getElementById('game-number-status');
@@ -829,6 +851,7 @@
                 document.getElementById('game-editor-submit').innerText = "Add Game";
             }
         }
+
         function saveGameFromLookup(e) {
             e.preventDefault();
             const id = document.getElementById('game-editor-id').value.trim();
@@ -836,20 +859,27 @@
             const price = parseFloat(document.getElementById('game-editor-price').value);
             if(!id || !name || isNaN(price)) return;
             const existingIndex = masterGames.findIndex(g => String(g.id) === String(id));
-            if(existingIndex >= 0) { masterGames[existingIndex] = { id, name, price }; alert(`Game #${id} updated!`); }
-            else { masterGames.push({ id, name, price }); alert(`Game #${id} added!`); }
+            if(existingIndex >= 0) {
+                masterGames[existingIndex] = { id, name, price };
+                alert(`Game #${id} updated!`);
+            } else {
+                masterGames.push({ id, name, price });
+                alert(`Game #${id} added!`);
+            }
             localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
             renderAdminGames();
             document.getElementById('game-number-editor').classList.add('hidden');
             document.getElementById('game-number-lookup').value = '';
             document.getElementById('game-number-status').innerText = '';
         }
+
         function verifyAdminAction(callback) {
             const pass = prompt("Enter Manager Password to proceed:");
             if(pass === storeProfile.password || pass === 'admin') { callback(); return true; }
             else if(pass !== null) alert("Incorrect password.");
             return false;
         }
+
         function renderAdminGames() {
             const list = document.getElementById('admin-games-list');
             if(!list) return;
@@ -861,6 +891,7 @@
                 list.appendChild(item);
             });
         }
+
         function importCatalogJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -868,12 +899,18 @@
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if(Array.isArray(data)) { masterGames = data; localStorage.setItem('lotto_master_games', JSON.stringify(masterGames)); renderAdminGames(); alert("Game catalog imported successfully!"); }
+                    if(Array.isArray(data)) {
+                        masterGames = data;
+                        localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
+                        renderAdminGames();
+                        alert("Game catalog imported successfully!");
+                    }
                 } catch (err) { alert("Error importing catalog file."); }
             };
             reader.readAsText(file);
             event.target.value = '';
         }
+
         function exportCatalogJSON() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(masterGames));
             const downloadAnchor = document.createElement('a');
@@ -886,7 +923,8 @@
 
         // --- Print & Reporting Logic ---
         function printWorksheet() {
-            document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
+            document.body.classList.add('print-mode-worksheet');
+            document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
@@ -898,7 +936,8 @@
             printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box; font-size: 12px;"><h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Shift Inventory Worksheet</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;"><div><b>Store:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div><div><b>Date/Time:</b> ${now}</div><div><b>Shift:</b> ${shiftState.name}</div><div style="grid-column: span 2; border-top: 1px solid #cbd5e1; padding-top: 4px; display: flex; align-items: flex-end;"><span style="margin-right: 8px; font-weight: bold;">Clerk Name:</span><div style="flex: 1; border-bottom: 1px solid #000; height: 12px;"></div></div></div>${gridHtml}</div>`;
             setTimeout(() => { window.print(); }, 150);
         }
-function printRapidEntry() {
+
+        function printRapidEntry() {
             const clerkNameInput = document.getElementById('clerk-name-input');
             const clerkName = clerkNameInput ? clerkNameInput.value.trim() : "";
             
@@ -1223,3 +1262,6 @@ function printRapidEntry() {
                 </div>`;
             setTimeout(() => { window.print(); }, 150);
         }
+    </script>
+</body>
+</html>
