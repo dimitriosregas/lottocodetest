@@ -52,7 +52,6 @@
             <div class="flex items-center gap-2 flex-wrap">
                 <button onclick="initScanner()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition">Scan Global</button>
                 <button onclick="openRapidEntryModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition">Rapid Entry Mode</button>
-                <button onclick="runValidation()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 transition">Run Validation</button>
                 <button onclick="printWorksheet()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition">Print Worksheet</button>
             </div>
             <div class="flex items-center gap-4">
@@ -264,7 +263,50 @@
             { id: '1601', name: '$3 Season Jumbo', price: 3 }, { id: '1372', name: '$5 Collectable Jumbo', price: 5 },
             { id: '1374', name: '$10 Cash Games', price: 10 }
         ];
-
+const startInputClass = box.startLocked ? 
+                "w-full border rounded p-1 text-xs text-center font-mono border-red-300 bg-red-50 cursor-pointer" : 
+                "w-full border rounded p-1 text-xs text-center font-mono border-gray-300";
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <input type="text" value="${box.label}" onchange="if(typeof updateBoxLabel === 'function') updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
+                    <div class="flex items-center gap-1">
+                        <button onclick="if(typeof initScanner === 'function') initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
+                        <button onclick="toggleMerge(${index})" title="Group boxes" ${groupedWithPrevious || index === boxesData.length - 1 ? 'disabled' : ''} class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-mono disabled:opacity-40 disabled:cursor-not-allowed">&</button>
+                        <button onclick="if(typeof deleteBox === 'function') deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">×</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-semibold block">Active Game Number</label>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="if(typeof updateBoxGame === 'function') updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
+                    <span class="text-[10px] text-gray-500">${typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : ''}</span>
+                </div>
+                ${box.oldGame ? `
+                <div class="bg-amber-50 p-1.5 rounded border border-amber-200 text-[10px] space-y-1">
+                    <span class="font-bold text-amber-800">Mid-Shift Swapped Old Game:</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="if(typeof updateOldGame === 'function') updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
+                    <span class="text-[10px] text-amber-800">${typeof getGameDescription === 'function' ? getGameDescription(box.oldGame) : ''}</span>
+                    <div class="flex gap-1">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old Start" value="${box.oldStart}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old End" value="${box.oldEnd}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                    </div>
+                </div>
+                ` : ''}
+                <div class="flex gap-1 pt-1">
+                    <div class="w-1/2">
+                        <span class="text-[9px] text-gray-400 block" title="${box.startLocked ? 'Locked by previous shift.' : ''}">Start Ticket ${box.startLocked ? '🔒' : ''}</span>
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.startTicket}" placeholder="0001" onchange="if(typeof updateStartTicket === 'function') updateStartTicket(${index}, this.value)" class="${startInputClass}">
+                    </div>
+                    <div class="w-1/2">
+                        <span class="text-[9px] text-gray-400 block">End Ticket</span>
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.endTicket}" placeholder="End #" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
+                    </div>
+                </div>
+                <div class="flex justify-between items-center pt-1">
+                    <button onclick="triggerMidShiftSwap(${index})" class="text-[10px] text-blue-600 hover:underline">+ New Game</button>
+                    <span id="box-subtotal-${index}" class="text-[10px] font-bold text-emerald-600">$0.00</span>
+                </div>
+            `;
         let boxesData = JSON.parse(localStorage.getItem('lotto_boxes_data')) || Array.from({ length: 40 }, (_, i) => ({
             id: i + 1, label: `Box ${i + 1}`, gameId: '', startTicket: '', endTicket: '', oldGame: null, oldStart: '', oldEnd: '', mergedWithNext: false, startLocked: false 
         }));
@@ -350,7 +392,40 @@
         }
 
         // --- Core Box Logic --- //
+function openRapidEntryModal() {
+            const listContainer = document.getElementById('rapid-entry-list');
+            if(!listContainer) return;
+            listContainer.innerHTML = '';
+            let hasActiveBoxes = false;
+            
+            boxesData.forEach((box, index) => {
+                if(box.gameId) {
+                    hasActiveBoxes = true;
+                    const row = document.createElement('div');
+                    row.className = "flex items-center justify-between gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200";
+                    row.innerHTML = `
+                        <div class="w-24 font-bold text-sm text-gray-800">${box.label}</div>
+                        <div class="flex-1 text-xs text-gray-600">Game: <span class="font-bold text-gray-900">#${box.gameId}</span> | Start: <span class="font-mono font-semibold">${box.startTicket || '-'}</span></div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase">Ending #</label>
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="rapid-end-${index}" value="${box.endTicket}" placeholder="Enter End #" 
+                                    oninput="calculateRapidSales(${index}, this.value, '${box.gameId}')"
+                                    onkeydown="handleRapidNext(event, ${index})"
+                                    class="rapid-input w-32 border-2 border-gray-300 rounded-lg p-2 text-base text-center font-bold focus:border-blue-500 focus:outline-none bg-white">
+                            </div>
+                            <div id="rapid-sales-${index}" class="text-xs font-bold text-emerald-600 w-16 text-right"></div>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
 
+                    setTimeout(() => { if (box.endTicket) calculateRapidSales(index, box.endTicket, box.gameId); }, 10);
+                }
+            });
+            
+            if(!hasActiveBoxes) listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>';
+            document.getElementById('rapid-entry-modal').classList.remove('hidden');
+        }
         function addBox() {
             boxesData.push({
                 id: boxesData.length + 1, label: 'Box ' + (boxesData.length + 1), 
@@ -964,19 +1039,54 @@ function printRapidEntry() {
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             const totalSales = document.getElementById('header-total-sales').innerText;
-            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 1; align-content: start;">';
+            
+            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px;">';
+            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 6px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 6px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 6px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 6px; text-align: center; border: 1px solid #cbd5e1; width: 120px;">End Ticket</th></tr></thead><tbody>';
+            
             let hasActive = false;
             boxesData.forEach((box) => {
                 if(box.gameId) {
                     hasActive = true;
-                    gridHtml += `<div style="border: 2px solid #334155; padding: 4px 6px; border-radius: 4px; display: flex; flex-direction: column; justify-content: center;"><div style="font-weight: bold; font-size: 1.5vh; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">${box.label} <span style="float: right; color: #475569; font-weight: normal; font-size: 1.2vh;">#${box.gameId}</span></div><div style="color: #475569; font-size: 1.3vh;">Start: <b style="font-family: monospace; color: #000;">${box.startTicket || '-'}</b></div><div style="display: flex; align-items: flex-end; margin-top: 4px;"><span style="color: #475569; font-size: 1.3vh; margin-right: 4px;">End:</span><div style="flex: 1; border-bottom: 2px solid #000; height: 1.5vh;"></div></div></div>`;
+                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
+                    listHtml += `<tr>
+                        <td style="padding: 6px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
+                        <td style="padding: 6px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
+                        <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
+                        <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; height: 24px;"></td>
+                    </tr>`;
                 }
             });
-            gridHtml += '</div>';
+            listHtml += '</tbody></table>';
+            
             if(!hasActive) { alert("No active games loaded to print."); return; }
-            printArea.innerHTML = `<div style="height: 100vh; display: flex; flex-direction: column; padding: 0; box-sizing: border-box;"><h2 style="font-size: 2.5vh; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Walk-Around Sheet</h2><p style="text-align: center; font-size: 1.3vh; font-style: italic; color: #475569; margin-bottom: 6px;">Write down the ending ticket numbers, then return to the tablet to input them.</p><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 1.3vh; background: #f8fafc; margin-bottom: 8px;"><div><b>Store:</b> ${storeProfile.name}</div><div><b>Date/Time:</b> ${now}</div><div><b>Shift:</b> ${shiftState.name}</div><div><b>Log Total Amount:</b> <span style="color: #059669; font-weight: bold;">${totalSales}</span></div><div style="grid-column: span 2; border-top: 1px solid #cbd5e1; padding-top: 2px; display: flex; align-items: flex-end;"><span style="margin-right: 8px; font-weight: bold;">Clerk / User Name:</span><div style="flex: 1; border-bottom: 1px solid #000; height: 1vh;"></div></div></div>${gridHtml}</div>`;
+            
+            printArea.innerHTML = `
+                <div style="padding: 10px; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;">
+                    <h2 style="font-size: 18px; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
+                    <p style="text-align: center; font-size: 11px; font-style: italic; color: #475569; margin-bottom: 10px;">Record ending ticket numbers on this sheet during walk-around, then enter them into the app.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border: 1px solid #334155; padding: 8px; border-radius: 4px; font-size: 11px; background: #f8fafc; margin-bottom: 10px;">
+                        <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
+                        <div><b>Date/Time:</b> ${now}</div>
+                        <div><b>Shift:</b> ${shiftState.name}</div>
+                        <div><b>Expected Total Sales:</b> <span style="color: #059669; font-weight: bold;">${totalSales}</span></div>
+                    </div>
+                    
+                    ${listHtml}
+                    
+                    <div style="margin-top: 20px; font-size: 11px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 15px;">
+                        <div style="flex: 1; padding-right: 20px;">
+                            <span style="font-weight: bold;">Clerk Name: </span>
+                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 220px; padding-bottom: 2px;"></span>
+                        </div>
+                        <div style="width: 280px;">
+                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
+                            <div style="height: 35px; border-bottom: 1px solid #000;"></div>
+                        </div>
+                    </div>
+                </div>`;
             setTimeout(() => { window.print(); }, 150);
-        }   
+        }
 
         function generateAndPrintFinalReport() {
             document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
