@@ -238,22 +238,177 @@
     <div id="print-worksheet" class="hidden"></div>
     <div id="print-final-report" class="hidden"></div>
     <script>
-        // Data Persistence Helper
-        function persist() { localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
+      <!-- Inside #admin-content-view (around line 240) -->
+    <div class="space-y-3 border-t pt-4 mt-4">
+        <h4 class="text-xs font-bold text-gray-500 uppercase">Store Reports & Audits</h4>
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <label class="block text-[10px] font-semibold text-gray-500 mb-1">Select Date (Daily Report)</label>
+                <input type="date" id="admin-report-date" class="w-full border rounded p-2 text-xs border-gray-300">
+            </div>
+            <div class="flex items-end">
+                <button type="button" onclick="generateDailyReport()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-xs font-semibold">View Daily Report</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+            <div>
+                <label class="block text-[10px] font-semibold text-gray-500 mb-1">Select Month (Monthly Summary)</label>
+                <input type="month" id="admin-report-month" class="w-full border rounded p-2 text-xs border-gray-300">
+            </div>
+            <div class="flex items-end">
+                <button type="button" onclick="generateMonthlyReport()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded text-xs font-semibold">View Monthly Report</button>
+            </div>
+        </div>
+    </div>
+</div> <!-- End of #admin-content-view -->
 
-        // Pack Size Calculator
-        function getPackSize(price) {
-            if (price <= 2) return 300 / price;
-            if (price === 3) return 100;
-            if (price === 5) return 60;
-            if (price === 10) return 60;
-            if (price === 20) return 30;
-            if (price === 25) return 24;
-            if (price === 30) return 20;
-            if (price === 50) return 12;
-            return Math.max(10, Math.floor(300 / price));
+<!-- Report Display Modal (Place alongside your other modals like #review-modal) -->
+<div id="admin-report-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center pb-4 border-b">
+            <h3 id="admin-report-title" class="text-lg font-bold">Audit Report</h3>
+            <button onclick="closeAdminReportModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+        </div>
+        <div id="admin-report-body" class="flex-1 overflow-y-auto py-4 space-y-4 text-sm text-gray-700"></div>
+        <div class="pt-4 border-t flex justify-end gap-2">
+            <button onclick="window.print()" class="bg-slate-900 text-white px-4 py-2 rounded text-xs font-semibold">Print Report</button>
+            <button onclick="closeAdminReportModal()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded text-xs font-semibold">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- JavaScript goes cleanly inside the script tag ---
+
+    function generateDailyReport() {
+        const dateVal = document.getElementById('admin-report-date').value;
+        if (!dateVal) {
+            alert("Please select a date for the daily report.");
+            return;
         }
 
+        const dayShifts = shiftHistory.filter(shift => shift.date === dateVal);
+        let totalSales = 0, totalPos = 0, totalVariance = 0;
+        
+        let html = `
+            <div class="space-y-3">
+                <div class="bg-slate-50 p-3 rounded-lg border text-xs grid grid-cols-2 gap-2">
+                    <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
+                    <div><b>Report Date:</b> ${dateVal}</div>
+                    <div><b>Shifts Logged:</b> ${dayShifts.length}</div>
+                </div>
+        `;
+
+        if (dayShifts.length === 0) {
+            html += `<p class="text-gray-500 text-center py-4">No completed shifts found for ${dateVal}.</p>`;
+        } else {
+            html += `<div class="space-y-4">`;
+            dayShifts.forEach((s) => {
+                totalSales += s.totalSales;
+                totalPos += s.posMeter;
+                totalVariance += s.variance;
+                
+                html += `
+                    <div class="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                        <div class="flex justify-between font-bold text-xs border-b pb-1">
+                            <span>Shift ${s.shift} (Clerk: ${s.clerk})</span>
+                            <span class="text-gray-500">${new Date(s.signedAt).toLocaleTimeString()}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            <div>Sales: <b class="text-emerald-600">$${s.totalSales.toFixed(2)}</b></div>
+                            <div>POS Meter: <b>$${s.posMeter.toFixed(2)}</b></div>
+                            <div>Variance: <b style="color: ${s.variance === 0 ? '#059669' : '#dc2626'}">$${s.variance.toFixed(2)}</b></div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            html += `
+                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mt-4">
+                    <h4 class="font-bold text-xs text-emerald-900 uppercase mb-2">Daily Totals Summary</h4>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div>Total Sales: <b>$${totalSales.toFixed(2)}</b></div>
+                        <div>Total POS: <b>$${totalPos.toFixed(2)}</b></div>
+                        <div>Net Variance: <b style="color: ${totalVariance === 0 ? '#059669' : '#dc2626'}">$${totalVariance.toFixed(2)}</b></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+        document.getElementById('admin-report-title').innerText = `Daily Audit Report — ${dateVal}`;
+        document.getElementById('admin-report-body').innerHTML = html;
+        document.getElementById('admin-report-modal').classList.remove('hidden');
+    }
+
+    function generateMonthlyReport() {
+        const monthVal = document.getElementById('admin-report-month').value;
+        if (!monthVal) {
+            alert("Please select a month for the monthly summary.");
+            return;
+        }
+
+        const monthShifts = shiftHistory.filter(shift => shift.date && shift.date.startsWith(monthVal));
+        let totalSales = 0, totalPos = 0, totalVariance = 0;
+        let activeDaysCount = new Set(monthShifts.map(s => s.date)).size;
+
+        monthShifts.forEach(s => {
+            totalSales += s.totalSales;
+            totalPos += s.posMeter;
+            totalVariance += s.variance;
+        });
+
+        let html = `
+            <div class="space-y-3">
+                <div class="bg-slate-50 p-3 rounded-lg border text-xs grid grid-cols-2 gap-2">
+                    <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
+                    <div><b>Reporting Month:</b> ${monthVal}</div>
+                    <div><b>Active Audit Days:</b> ${activeDaysCount}</div>
+                    <div><b>Total Shifts Recorded:</b> ${monthShifts.length}</div>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl">
+                    <h4 class="font-bold text-xs text-indigo-900 uppercase mb-2">Monthly Aggregate Totals</h4>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div>Gross Sales: <b class="text-emerald-600">$${totalSales.toFixed(2)}</b></div>
+                        <div>Total POS: <b>$${totalPos.toFixed(2)}</b></div>
+                        <div>Total Variance: <b style="color: ${totalVariance === 0 ? '#059669' : '#dc2626'}">$${totalVariance.toFixed(2)}</b></div>
+                    </div>
+                </div>
+        `;
+
+        if (monthShifts.length === 0) {
+            html += `<p class="text-gray-500 text-center py-4">No completed shifts recorded for month ${monthVal}.</p>`;
+        } else {
+            html += `
+                <h4 class="text-xs font-bold text-gray-500 uppercase mt-4">Shift Breakdown Log</h4>
+                <div class="max-h-64 overflow-y-auto space-y-2 border rounded p-2 bg-gray-50 text-xs">
+            `;
+            monthShifts.forEach(s => {
+                html += `
+                    <div class="flex justify-between items-center bg-white p-2 rounded border">
+                        <div><b>${s.date}</b> (Shift ${s.shift}) — ${s.clerk}</div>
+                        <div>Sales: <b class="text-emerald-600">$${s.totalSales.toFixed(2)}</b></div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+        document.getElementById('admin-report-title').innerText = `Monthly Summary Report — ${monthVal}`;
+        document.getElementById('admin-report-body').innerHTML = html;
+        document.getElementById('admin-report-modal').classList.remove('hidden');
+    }
+
+    function closeAdminReportModal() {
+        document.getElementById('admin-report-modal').classList.add('hidden');
+    }
+
+    // Your existing functions below...
+    function persist() { localStorage.setItem('lotto_boxes_data', JSON.stringify(boxesData)); }
+    // ...
         // Master Games Database
         let masterGames = JSON.parse(localStorage.getItem('lotto_master_games')) || [
             { id: '1802', name: '300x Jumbo', price: 30 }, { id: '1964', name: 'Mill Jumbo', price: 20 },
@@ -294,7 +449,133 @@
         let html5QrCode = null;
         let hasSignature = false;
         let activeScannerBoxIndex = null;
+// --- Admin Report Generators ---
 
+function generateDailyReport() {
+    const dateVal = document.getElementById('admin-report-date').value;
+    if (!dateVal) {
+        alert("Please select a date for the daily report.");
+        return;
+    }
+
+    const dayShifts = shiftHistory.filter(shift => shift.date === dateVal);
+    let totalSales = 0, totalPos = 0, totalVariance = 0;
+    
+    let html = `
+        <div class="space-y-3">
+            <div class="bg-slate-50 p-3 rounded-lg border text-xs grid grid-cols-2 gap-2">
+                <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
+                <div><b>Report Date:</b> ${dateVal}</div>
+                <div><b>Shifts Logged:</b> ${dayShifts.length}</div>
+            </div>
+    `;
+
+    if (dayShifts.length === 0) {
+        html += `<p class="text-gray-500 text-center py-4">No completed shifts found for ${dateVal}.</p>`;
+    } else {
+        html += `<div class="space-y-4">`;
+        dayShifts.forEach((s) => {
+            totalSales += s.totalSales;
+            totalPos += s.posMeter;
+            totalVariance += s.variance;
+            
+            html += `
+                <div class="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                    <div class="flex justify-between font-bold text-xs border-b pb-1">
+                        <span>Shift ${s.shift} (Clerk: ${s.clerk})</span>
+                        <span class="text-gray-500">${new Date(s.signedAt).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div>Sales: <b class="text-emerald-600">$${s.totalSales.toFixed(2)}</b></div>
+                        <div>POS Meter: <b>$${s.posMeter.toFixed(2)}</b></div>
+                        <div>Variance: <b style="color: ${s.variance === 0 ? '#059669' : '#dc2626'}">$${s.variance.toFixed(2)}</b></div>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+
+        html += `
+            <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mt-4">
+                <h4 class="font-bold text-xs text-emerald-900 uppercase mb-2">Daily Totals Summary</h4>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                    <div>Total Sales: <b>$${totalSales.toFixed(2)}</b></div>
+                    <div>Total POS: <b>$${totalPos.toFixed(2)}</b></div>
+                    <div>Net Variance: <b style="color: ${totalVariance === 0 ? '#059669' : '#dc2626'}">$${totalVariance.toFixed(2)}</b></div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    document.getElementById('admin-report-title').innerText = `Daily Audit Report — ${dateVal}`;
+    document.getElementById('admin-report-body').innerHTML = html;
+    document.getElementById('admin-report-modal').classList.remove('hidden');
+}
+
+function generateMonthlyReport() {
+    const monthVal = document.getElementById('admin-report-month').value;
+    if (!monthVal) {
+        alert("Please select a month for the monthly summary.");
+        return;
+    }
+
+    const monthShifts = shiftHistory.filter(shift => shift.date && shift.date.startsWith(monthVal));
+    let totalSales = 0, totalPos = 0, totalVariance = 0;
+    let activeDaysCount = new Set(monthShifts.map(s => s.date)).size;
+
+    monthShifts.forEach(s => {
+        totalSales += s.totalSales;
+        totalPos += s.posMeter;
+        totalVariance += s.variance;
+    });
+
+    let html = `
+        <div class="space-y-3">
+            <div class="bg-slate-50 p-3 rounded-lg border text-xs grid grid-cols-2 gap-2">
+                <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
+                <div><b>Reporting Month:</b> ${monthVal}</div>
+                <div><b>Active Audit Days:</b> ${activeDaysCount}</div>
+                <div><b>Total Shifts Recorded:</b> ${monthShifts.length}</div>
+            </div>
+
+            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl">
+                <h4 class="font-bold text-xs text-indigo-900 uppercase mb-2">Monthly Aggregate Totals</h4>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                    <div>Gross Sales: <b class="text-emerald-600">$${totalSales.toFixed(2)}</b></div>
+                    <div>Total POS: <b>$${totalPos.toFixed(2)}</b></div>
+                    <div>Total Variance: <b style="color: ${totalVariance === 0 ? '#059669' : '#dc2626'}">$${totalVariance.toFixed(2)}</b></div>
+                </div>
+            </div>
+    `;
+
+    if (monthShifts.length === 0) {
+        html += `<p class="text-gray-500 text-center py-4">No completed shifts recorded for month ${monthVal}.</p>`;
+    } else {
+        html += `
+            <h4 class="text-xs font-bold text-gray-500 uppercase mt-4">Shift Breakdown Log</h4>
+            <div class="max-h-64 overflow-y-auto space-y-2 border rounded p-2 bg-gray-50 text-xs">
+        `;
+        monthShifts.forEach(s => {
+            html += `
+                <div class="flex justify-between items-center bg-white p-2 rounded border">
+                    <div><b>${s.date}</b> (Shift ${s.shift}) — ${s.clerk}</div>
+                    <div>Sales: <b class="text-emerald-600">$${s.totalSales.toFixed(2)}</b></div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    document.getElementById('admin-report-title').innerText = `Monthly Summary Report — ${monthVal}`;
+    document.getElementById('admin-report-body').innerHTML = html;
+    document.getElementById('admin-report-modal').classList.remove('hidden');
+}
+
+function closeAdminReportModal() {
+    document.getElementById('admin-report-modal').classList.add('hidden');
+}
         // Initialization on Load
         window.addEventListener('DOMContentLoaded', () => {
             updateStoreHeader();
