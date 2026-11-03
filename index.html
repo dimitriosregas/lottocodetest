@@ -110,7 +110,11 @@
             <div class="flex flex-wrap gap-2 mb-4">
                 <button onclick="toggleScanner()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-2 rounded font-medium shadow-sm transition flex items-center">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                    Rapid Scan
+                    Camera Scan
+                </button>
+                <button onclick="openRapidEntry()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded font-medium shadow-sm transition flex items-center">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Rapid Entry
                 </button>
                 <button onclick="openEndShiftModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded font-medium shadow-sm transition">
                     End Shift Report
@@ -132,46 +136,73 @@
 
     <!-- Hidden Print Containers -->
     <div id="print-worksheet" class="bg-white text-black p-6 no-print">
-        <div class="text-center border-b-2 border-black pb-2 mb-4">
-            <h2 class="text-2xl font-bold uppercase">Scratch-Off Audit Worksheet</h2>
-            <p id="print-ws-store" class="text-sm font-medium"></p>
-            <p class="text-sm">Date: __________________ Shift: ________ Cashier: __________________</p>
+        <div class="text-center mb-4">
+            <h2 class="text-xl font-bold uppercase">RAPID ENTRY AUDIT LIST</h2>
+            <p class="text-xs italic">Record ending ticket numbers during walk-around, then enter them into the app.</p>
         </div>
-        <div id="print-ws-grid" class="grid grid-columns-4 gap-2 text-xs">
-            <!-- Worksheet generated here -->
+        <div class="border border-black p-2 mb-4 text-sm flex justify-between">
+            <div>
+                <p>Store: <span id="print-ws-store" class="font-medium"></span></p>
+                <p>Shift: <span id="print-ws-shift" class="font-medium"></span></p>
+            </div>
+            <div class="text-right">
+                <p>Date/Time: <span id="print-ws-datetime" class="font-medium"></span></p>
+                <p>Expected Total Sales: <span id="print-ws-expected">_______</span></p>
+            </div>
+        </div>
+        
+        <table class="w-full text-xs text-left mb-6 border-collapse">
+            <thead>
+                <tr class="bg-gray-100 border-y border-black">
+                    <th class="py-1 px-2 font-bold w-16">Box</th>
+                    <th class="py-1 px-2 font-bold">Game # & Name</th>
+                    <th class="py-1 px-2 font-bold text-center w-24">Start Ticket</th>
+                    <th class="py-1 px-2 font-bold text-center w-24">End Ticket</th>
+                    <th class="py-1 px-2 font-bold text-right w-24">Box Sales</th>
+                </tr>
+            </thead>
+            <tbody id="print-ws-table">
+                <!-- Worksheet generated here -->
+            </tbody>
+        </table>
+
+        <div class="mt-8 pt-4 flex justify-between text-sm">
+            <div class="w-1/2">
+                <p>Clerk Name: __________________________</p>
+            </div>
+            <div class="w-1/2 text-right">
+                <p>Clerk Signature: __________________________</p>
+            </div>
         </div>
     </div>
 
     <div id="print-final-report" class="bg-white text-black p-6 no-print">
-        <div class="text-center border-b-2 border-black pb-2 mb-4">
-            <h2 class="text-2xl font-bold uppercase">End of Shift Lotto Report</h2>
-            <p id="print-fr-store" class="text-sm font-medium"></p>
-            <p id="print-fr-meta" class="text-sm">Date/Time</p>
+        <div class="text-center mb-4">
+            <h2 class="text-xl font-bold uppercase">END OF SHIFT LOTTO REPORT</h2>
         </div>
         
-        <div class="flex justify-between mb-6">
-            <div class="border p-3 w-[48%]">
-                <h3 class="font-bold border-b mb-2">POS Totals</h3>
-                <p>Register Lotto Sales: <span id="print-fr-pos-sales" class="float-right font-mono"></span></p>
-                <p>Register Payouts: <span id="print-fr-pos-payouts" class="float-right font-mono"></span></p>
+        <div class="border border-black p-2 mb-4 text-sm flex justify-between">
+            <div>
+                <p>Store: <span id="print-fr-store" class="font-medium"></span></p>
+                <p>Shift: <span id="print-fr-shift" class="font-medium"></span></p>
+                <p>Date/Time: <span id="print-fr-meta" class="font-medium"></span></p>
             </div>
-            <div class="border p-3 w-[48%]">
-                <h3 class="font-bold border-b mb-2">Variance</h3>
-                <p class="text-lg font-bold mt-2">Status: <span id="print-fr-variance" class="float-right font-mono"></span></p>
+            <div class="text-right">
+                <p>Register Lotto Sales: <span id="print-fr-pos-sales" class="font-mono"></span></p>
+                <p>Register Payouts: <span id="print-fr-pos-payouts" class="font-mono"></span></p>
+                <p class="font-bold mt-1">Variance: <span id="print-fr-variance" class="font-mono"></span></p>
             </div>
         </div>
 
-        <h3 class="font-bold text-sm mb-2 border-b">Dispenser Activity</h3>
         <table class="w-full text-xs text-left mb-6 border-collapse">
             <thead>
-                <tr class="bg-gray-200">
-                    <th class="border p-1">Box</th>
-                    <th class="border p-1">Game</th>
-                    <th class="border p-1">Price</th>
-                    <th class="border p-1">Start</th>
-                    <th class="border p-1">End</th>
-                    <th class="border p-1">Sold</th>
-                    <th class="border p-1">Value</th>
+                <tr class="bg-gray-100 border-y border-black">
+                    <th class="py-1 px-2 font-bold w-16">Box</th>
+                    <th class="py-1 px-2 font-bold">Game # & Name</th>
+                    <th class="py-1 px-2 font-bold text-center w-20">Start</th>
+                    <th class="py-1 px-2 font-bold text-center w-20">End</th>
+                    <th class="py-1 px-2 font-bold text-center w-16">Sold</th>
+                    <th class="py-1 px-2 font-bold text-right w-24">Value</th>
                 </tr>
             </thead>
             <tbody id="print-fr-table">
@@ -179,14 +210,12 @@
             </tbody>
         </table>
 
-        <div class="mt-8 pt-4 border-t-2 border-black flex justify-between">
+        <div class="mt-8 pt-4 flex justify-between text-sm">
             <div class="w-1/2">
-                <p class="mb-4">Cashier Signature:</p>
-                <div class="border-b border-black w-3/4"></div>
+                <p>Clerk Name: __________________________</p>
             </div>
-            <div class="w-1/2">
-                <p class="mb-4">Manager Signature:</p>
-                <div class="border-b border-black w-3/4"></div>
+            <div class="w-1/2 text-right">
+                <p>Clerk Signature: __________________________</p>
             </div>
         </div>
     </div>
@@ -213,6 +242,26 @@
                 <input type="number" id="setup-dispenser-count" class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white" max="40" min="1" value="40">
             </div>
             <button onclick="saveStoreSetup()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded transition">Save Configuration</button>
+        </div>
+    </div>
+
+    <!-- Rapid Entry Modal -->
+    <div id="rapid-entry-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 text-white w-11/12 max-w-sm rounded-lg shadow-2xl z-50 hidden flex-col">
+        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+            <h2 class="text-lg font-bold flex items-center"><svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Rapid Entry</h2>
+            <button onclick="closeModals()" class="text-slate-400 hover:text-white">&times;</button>
+        </div>
+        <div class="p-4 space-y-4">
+            <div>
+                <label class="block text-sm text-slate-300 mb-1">Box Number</label>
+                <input type="number" id="rapid-box" class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-3 text-white text-lg font-bold" placeholder="e.g. 12" onkeypress="if(event.key === 'Enter') document.getElementById('rapid-ticket').focus();">
+            </div>
+            <div>
+                <label class="block text-sm text-slate-300 mb-1">End Ticket Number</label>
+                <input type="number" id="rapid-ticket" class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-3 text-white text-lg font-bold" placeholder="e.g. 059" onkeypress="if(event.key === 'Enter') submitRapidEntry();">
+            </div>
+            <button onclick="submitRapidEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition mt-2">Log Ticket (Enter)</button>
+            <p id="rapid-status" class="text-xs text-center text-emerald-400 h-4"></p>
         </div>
     </div>
 
@@ -399,7 +448,7 @@
                             <input type="text" id="game-${i}" value="${d.gameName}" onchange="updateDispenser(${i}, 'gameName', this.value)" class="w-2/3 border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none" placeholder="Game Name">
                             <div class="relative w-1/3">
                                 <span class="absolute left-2 top-1.5 text-xs text-slate-500">$</span>
-                                <input type="number" id="price-${i}" value="${d.price}" onchange="updateDispenser(${i}, 'price', this.value)" class="w-full border rounded pl-5 pr-1 py-1 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none" placeholder="0">
+                                <input type="number" id="price-${i}" value="${d.price}" readonly class="w-full bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed border rounded pl-5 pr-1 py-1 text-xs focus:outline-none" title="Price is locked" placeholder="0">
                             </div>
                         </div>
                         
@@ -470,21 +519,17 @@
             let totalSold = 0;
             
             if (d.rollovers && d.rollovers.length > 0) {
-                // Calculate first segment (start to end of first roll)
                 let currentStart = start;
                 for (let i = 0; i < d.rollovers.length; i++) {
                     const roll = d.rollovers[i];
                     totalSold += (parseInt(roll.oldEnd) - currentStart);
                     currentStart = parseInt(roll.newStart);
                 }
-                // Calculate final segment (last new start to current end)
                 totalSold += (end - currentStart);
             } else {
-                // Standard calculation (no rollovers)
                 totalSold = end - start;
             }
 
-            // Validate logic (can't sell negative)
             if (totalSold < 0) {
                 soldEl.textContent = "ERR";
                 soldEl.className = "font-bold text-red-600";
@@ -514,7 +559,6 @@
                         html5QrcodeScanner.clear();
                     }).catch(err => {
                         console.error("Failed to stop scanner", err);
-                        // Force hide anyway
                         isScannerActive = false;
                         section.classList.add('hidden');
                     });
@@ -541,7 +585,6 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // Beep sound
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
@@ -553,15 +596,13 @@
 
             const status = document.getElementById('scanner-status');
             
-            // Standard lotto barcode parsing logic
             if(decodedText.length >= 10) {
                 const ticketNum = decodedText.substring(decodedText.length - 3);
                 
-                // Auto-match Game ID from barcode to a Box
                 let matchedBox = null;
                 for(let i = 1; i <= storeProfile.count; i++) {
                     const gameName = dispensers[i].gameName || "";
-                    const gameIdMatch = gameName.match(/^(\d+)/); // Extracts Game ID if it's at the start of the name
+                    const gameIdMatch = gameName.match(/^(\d+)/); 
                     if(gameIdMatch) {
                         const gameId = gameIdMatch[1];
                         if(decodedText.startsWith(gameId)) {
@@ -578,7 +619,6 @@
                         inputEl.value = ticketNum;
                         updateDispenser(matchedBox, 'endTicket', ticketNum);
                         
-                        // Flash the box green to confirm visual success
                         inputEl.classList.add('ring-4', 'ring-emerald-500');
                         setTimeout(() => inputEl.classList.remove('ring-4', 'ring-emerald-500'), 1500);
                     }
@@ -588,9 +628,7 @@
             }
         }
 
-        function onScanFailure(error) {
-            // Ignore ongoing scan failures
-        }
+        function onScanFailure(error) {}
 
         function focusBoxFromManual() {
             const val = document.getElementById('manual-box-input').value;
@@ -599,13 +637,49 @@
                 if (el) {
                     el.focus();
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Highlight effect
                     const card = document.getElementById(`box-card-${val}`);
                     card.classList.add('ring-4', 'ring-amber-500');
                     setTimeout(() => card.classList.remove('ring-4', 'ring-amber-500'), 1500);
                 }
             }
             document.getElementById('manual-box-input').value = '';
+        }
+
+        // --- RAPID ENTRY MANUAL LOGIC ---
+        function openRapidEntry() {
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            document.getElementById('rapid-entry-modal').classList.remove('hidden');
+            document.getElementById('rapid-box').value = '';
+            document.getElementById('rapid-ticket').value = '';
+            document.getElementById('rapid-status').textContent = '';
+            setTimeout(() => document.getElementById('rapid-box').focus(), 100);
+        }
+
+        function submitRapidEntry() {
+            const boxVal = document.getElementById('rapid-box').value;
+            const ticketVal = document.getElementById('rapid-ticket').value;
+            
+            if(boxVal >= 1 && boxVal <= storeProfile.count && ticketVal !== '') {
+                updateDispenser(boxVal, 'endTicket', ticketVal);
+                
+                const statusEl = document.getElementById('rapid-status');
+                statusEl.textContent = `Saved Box ${boxVal} -> Ticket ${ticketVal}`;
+                
+                const inputEl = document.getElementById(`end-${boxVal}`);
+                if(inputEl) {
+                    inputEl.value = ticketVal;
+                    inputEl.classList.add('ring-4', 'ring-emerald-500');
+                    setTimeout(() => inputEl.classList.remove('ring-4', 'ring-emerald-500'), 1500);
+                }
+
+                document.getElementById('rapid-box').value = '';
+                document.getElementById('rapid-ticket').value = '';
+                document.getElementById('rapid-box').focus();
+            } else {
+                document.getElementById('rapid-status').textContent = 'Invalid Box or Ticket!';
+                document.getElementById('rapid-status').className = 'text-xs text-center text-red-400 h-4';
+                setTimeout(() => { document.getElementById('rapid-status').className = 'text-xs text-center text-emerald-400 h-4'; document.getElementById('rapid-status').textContent = ''; }, 2000);
+            }
         }
 
         // --- MODAL & SETUP LOGIC ---
@@ -615,6 +689,7 @@
             document.getElementById('end-shift-modal').classList.add('hidden');
             document.getElementById('admin-modal').classList.add('hidden');
             document.getElementById('rollover-modal').classList.add('hidden');
+            document.getElementById('rapid-entry-modal').classList.add('hidden');
         }
 
         function openStoreDrawer() {
@@ -628,18 +703,14 @@
 
         function saveStoreSetup() {
             const newCount = parseInt(document.getElementById('setup-dispenser-count').value);
-            
-            if(newCount < 1 || newCount > 40) {
-                alert("Dispenser count must be between 1 and 40.");
-                return;
-            }
+            if(newCount < 1 || newCount > 40) return alert("Dispenser count must be between 1 and 40.");
             
             storeProfile.name = document.getElementById('setup-store-name').value;
             storeProfile.id = document.getElementById('setup-store-id').value;
             storeProfile.count = newCount;
             
             saveData();
-            loadData(); // Re-initialize missing boxes if count increased
+            loadData(); 
             updateHeader();
             renderGrid();
             closeModals();
@@ -647,7 +718,6 @@
 
         // --- MID-SHIFT ROLLOVER LOGIC ---
         let activeRolloverBox = null;
-        
         function openRolloverModal(id) {
             activeRolloverBox = id;
             document.getElementById('rollover-box-id').textContent = id;
@@ -661,20 +731,12 @@
         function processRollover() {
             const oldEnd = document.getElementById('rollover-old-end').value;
             const newStart = document.getElementById('rollover-new-start').value;
-            
-            if(!oldEnd || !newStart) {
-                alert("Please enter both ticket numbers.");
-                return;
-            }
+            if(!oldEnd || !newStart) return alert("Please enter both ticket numbers.");
             
             const d = dispensers[activeRolloverBox];
             if(!d.rollovers) d.rollovers = [];
             
-            d.rollovers.push({
-                oldEnd: oldEnd,
-                newStart: newStart,
-                timestamp: new Date().toISOString()
-            });
+            d.rollovers.push({ oldEnd, newStart, timestamp: new Date().toISOString() });
             
             saveData();
             renderGrid();
@@ -685,7 +747,6 @@
         function clearCurrentShift() {
             if(confirm("WARNING: This will clear all Start and End tickets for the new shift. Game names and prices will be kept. Proceed?")) {
                 for(let i = 1; i <= storeProfile.count; i++) {
-                    // Make the old end ticket the new start ticket (standard shift change behavior)
                     if(dispensers[i].endTicket) {
                         dispensers[i].startTicket = dispensers[i].endTicket;
                     }
@@ -706,20 +767,31 @@
         }
 
         function generatePrintWorksheet() {
-            document.getElementById('print-ws-store').textContent = `${storeProfile.name} #${storeProfile.id}`;
-            const grid = document.getElementById('print-ws-grid');
-            grid.innerHTML = '';
+            const shiftPrompt = prompt("Enter Shift (A, B, or C):", "A");
+            if(shiftPrompt === null) return; 
+
+            document.getElementById('print-ws-store').textContent = `${storeProfile.name} (#${storeProfile.id})`;
+            document.getElementById('print-ws-shift').textContent = shiftPrompt.toUpperCase();
+            document.getElementById('print-ws-datetime').textContent = new Date().toLocaleString();
+            
+            const tbody = document.getElementById('print-ws-table');
+            tbody.innerHTML = '';
             
             for(let i = 1; i <= storeProfile.count; i++) {
                 const d = dispensers[i];
-                grid.innerHTML += `
-                    <div class="border p-2">
-                        <div class="font-bold border-b pb-1 mb-1">BOX ${i}</div>
-                        <div class="truncate">${d.gameName || '_______________'}</div>
-                        <div>$${d.price || '___'}</div>
-                        <div class="mt-2">Start: ${d.startTicket || '___'}</div>
-                        <div class="mt-1">End: ________</div>
-                    </div>
+                let gameInfo = "";
+                if (d.gameName) {
+                    gameInfo = `${d.gameName.startsWith('#') ? '' : '#'}${d.gameName} - $${d.price || '0'} per ticket`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-300">
+                        <td class="py-1 px-2 font-bold">Box ${i}</td>
+                        <td class="py-1 px-2">${gameInfo}</td>
+                        <td class="py-1 px-2 text-center">${d.startTicket || ''}</td>
+                        <td class="py-1 px-2 text-center"></td>
+                        <td class="py-1 px-2 text-right"></td>
+                    </tr>
                 `;
             }
             
@@ -733,8 +805,12 @@
             const posSales = parseFloat(document.getElementById('pos-sales-input').value) || 0;
             const posPayouts = parseFloat(document.getElementById('pos-payouts-input').value) || 0;
             
-            document.getElementById('print-fr-store').textContent = `${storeProfile.name} #${storeProfile.id}`;
-            document.getElementById('print-fr-meta').textContent = `Printed: ${new Date().toLocaleString()}`;
+            const shiftPrompt = prompt("Enter Shift (A, B, or C):", "A");
+            if(shiftPrompt === null) return; 
+
+            document.getElementById('print-fr-store').textContent = `${storeProfile.name} (#${storeProfile.id})`;
+            document.getElementById('print-fr-shift').textContent = shiftPrompt.toUpperCase();
+            document.getElementById('print-fr-meta').textContent = new Date().toLocaleString();
             
             document.getElementById('print-fr-pos-sales').textContent = `$${posSales.toFixed(2)}`;
             document.getElementById('print-fr-pos-payouts').textContent = `$${posPayouts.toFixed(2)}`;
@@ -751,7 +827,6 @@
                 const price = parseFloat(d.price);
                 
                 if(!isNaN(start) && !isNaN(end) && !isNaN(price)) {
-                    // Recalculate for report to ensure accuracy
                     let sold = 0;
                     if (d.rollovers && d.rollovers.length > 0) {
                         let currentStart = start;
@@ -767,26 +842,23 @@
                     const val = sold * price;
                     totalShiftValue += val;
                     
-                    // Add row if there was activity
                     if(sold > 0) {
+                        let gameInfo = `${d.gameName.startsWith('#') ? '' : '#'}${d.gameName}`;
+                        
                         tbody.innerHTML += `
-                            <tr class="border-b">
-                                <td class="border p-1 font-bold">${i}</td>
-                                <td class="border p-1">${d.gameName}</td>
-                                <td class="border p-1">$${price.toFixed(2)}</td>
-                                <td class="border p-1">${d.startTicket}</td>
-                                <td class="border p-1">${d.endTicket}</td>
-                                <td class="border p-1">${sold}</td>
-                                <td class="border p-1">$${val.toFixed(2)}</td>
+                            <tr class="border-b border-gray-300">
+                                <td class="py-1 px-2 font-bold">Box ${i}</td>
+                                <td class="py-1 px-2">${gameInfo}</td>
+                                <td class="py-1 px-2 text-center">${d.startTicket}</td>
+                                <td class="py-1 px-2 text-center">${d.endTicket}</td>
+                                <td class="py-1 px-2 text-center">${sold}</td>
+                                <td class="py-1 px-2 text-right">$${val.toFixed(2)}</td>
                             </tr>
                         `;
                     }
                 }
             }
             
-            // Variance Math:
-            // What we should have = Total Shift Value (scratchers sold) - Payouts
-            // Variance = POS Sales Entered - What we should have
             const expectedCash = totalShiftValue - posPayouts;
             const variance = posSales - expectedCash;
             
@@ -794,12 +866,12 @@
             varEl.textContent = `$${variance.toFixed(2)}`;
             
             if(variance === 0) {
-                varEl.className = "float-right font-mono text-black";
+                varEl.className = "font-mono text-black";
             } else if(variance > 0) {
-                varEl.className = "float-right font-mono text-emerald-600";
+                varEl.className = "font-mono text-emerald-600";
                 varEl.textContent += " (OVER)";
             } else {
-                varEl.className = "float-right font-mono text-red-600";
+                varEl.className = "font-mono text-red-600";
                 varEl.textContent += " (SHORT)";
             }
             
