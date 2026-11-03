@@ -902,8 +902,8 @@ function printRapidEntry() {
             const clerkNameInput = document.getElementById('clerk-name-input');
             const clerkName = clerkNameInput ? clerkNameInput.value.trim() : "";
             
-            if (!clerkName || !hasSignature) {
-                alert('Please enter your Clerk Name and provide a Signature in the "Review & Sign-Off" section before printing the Rapid Entry Audit List.');
+            if (!clerkName) {
+                alert('Please enter your Clerk Name in the Review & Sign-Off section before printing.');
                 closeRapidEntryModal();
                 openReviewModal();
                 return;
