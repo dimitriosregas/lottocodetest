@@ -909,9 +909,9 @@ function printRapidEntry() {
                 return;
             }
 
-            document.body.classList.add('print-mode-worksheet'); 
-            document.body.classList.remove('print-mode-report');
-            const printArea = document.getElementById('print-worksheet');
+            document.body.classList.add('print-mode-report'); 
+            document.body.classList.remove('print-mode-worksheet');
+            const printArea = document.getElementById('print-final-report');
             const now = new Date().toLocaleString();
             const totalSales = document.getElementById('header-total-sales').innerText;
             
@@ -941,7 +941,7 @@ function printRapidEntry() {
             const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 20px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 20px; border-bottom: 1px solid #000;"></div>`;
 
             printArea.innerHTML = `
-                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
+                <div style="padding: 4px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
                     <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
                     <p style="text-align: center; font-size: 9px; font-style: italic; color: #475569; margin-bottom: 4px;">Record ending ticket numbers during walk-around, then enter them into the app.</p>
                     
