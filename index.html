@@ -970,48 +970,67 @@ function printRapidEntry() {
                 </div>`;
             setTimeout(() => { window.print(); }, 150);
         }
-
-        function generateAndPrintFinalReport() {
-            document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
+function generateAndPrintFinalReport() {
+            document.body.classList.add('print-mode-report'); 
+            document.body.classList.remove('print-mode-worksheet');
             const printArea = document.getElementById('print-final-report');
             const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
             const posMeter = document.getElementById('pos-meter-input').value || "0.00";
             const variance = document.getElementById('rev-variance').innerText;
             const total = document.getElementById('header-total-sales').innerText;
             const now = new Date().toLocaleString();
-            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
-            boxesData.forEach((box) => {
-                let boxSales = 0;
-                if(box.gameId && box.startTicket && box.endTicket) {
-                    const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                    if(game) {
-                        const s = parseInt(box.startTicket) || 0;
-                        const e = parseInt(box.endTicket) || 0;
-                        let sold = e - s;
-                        if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                        if(sold > 0) boxSales += sold * game.price;
-                    }
+            
+            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9px;">';
+            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
+            
+            let hasActive = false;
+            boxesData.forEach((box, idx) => {
+                if(box.gameId) {
+                    hasActive = true;
+                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
+                    const boxSalesText = document.getElementById(`box-subtotal-${idx}`) ? document.getElementById(`box-subtotal-${idx}`).innerText : '$0.00';
+                    listHtml += `<tr>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; font-weight: bold;">${box.endTicket || '-'}</td>
+                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">${boxSalesText}</td>
+                    </tr>`;
                 }
-                gridHtml += `<div style="border: 1px solid #94a3b8; padding: 4px; border-radius: 4px; font-size: 9px; break-inside: avoid; background-color: #fff;"><div style="font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 2px;">${box.label} <span style="font-weight: normal; color: #64748b; float: right;">${box.gameId ? '#' + box.gameId : 'No Game'}</span></div><div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">Start:</span><b style="font-family: monospace;">${box.startTicket || '-'}</b></div><div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">End:</span><b style="font-family: monospace;">${box.endTicket || '-'}</b></div><div style="display: flex; justify-content: space-between; color: #059669; font-weight: bold; margin-top: 2px; padding-top: 2px; border-top: 1px dashed #cbd5e1;"><span>Sales:</span><span>$${boxSales.toFixed(2)}</span></div></div>`;
             });
-            gridHtml += '</div>';
-            const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
-            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 35px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 35px; border-bottom: 1px solid #000;"></div>`;
-            printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;"><h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Final Shift Audit Report</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;"><div><b>Store Name:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div><div><b>Date/Time Closed:</b> ${now}</div><div><b>Shift Logged:</b> ${shiftState.name}</div></div>${gridHtml}<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px;"><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Total Ticket Sales</div><div style="font-size: 14px; font-weight: bold;">${total}</div></div><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">POS Meter Input</div><div style="font-size: 14px; font-weight: bold;">$${parseFloat(posMeter).toFixed(2)}</div></div><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Shift Variance</div><div style="font-size: 14px; font-weight: bold; color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'};">${variance}</div></div></div><div style="margin-top: 12px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end;"><div style="flex: 1; padding-right: 20px;"><span style="font-weight: bold;">Printed Clerk Name: </span><span style="border-bottom: 1px solid #000; display: inline-block; width: 200px; padding-bottom: 2px;">${clerkName}</span></div><div style="width: 250px;"><span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>${sigHtml}</div></div></div>`;
-            setTimeout(() => { window.print(); }, 150);
-        }
+            listHtml += '</tbody></table>';
 
-        // --- Drawing & Sign-off Logic ---
-        let sigCanvas, sigCtx, isDrawing = false;
-        function openReviewModal() {
-            try {
-                updateShiftStatus();
-                const modal = document.getElementById('review-modal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    setTimeout(() => { initSignaturePad(); }, 150);
-                } else { alert("Error: 'review-modal' element not found."); }
-            } catch (err) { alert("Could not open review modal."); }
+            if(!hasActive) { alert("No active games loaded for final report."); return; }
+
+            const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
+            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 25px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 25px; border-bottom: 1px solid #000;"></div>`;
+
+            printArea.innerHTML = `
+                <div style="padding: 4px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
+                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Final Shift Audit Report</h2>
+                    <p style="text-align: center; font-size: 9px; color: #475569; margin-bottom: 4px;">Store: ${storeProfile.name} (${storeProfile.number}) | Date: ${now}</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
+                        <div><b>Shift:</b> ${shiftState.name}</div>
+                        <div><b>Total Shift Sales:</b> <span style="color: #059669; font-weight: bold;">${total}</span></div>
+                        <div><b>POS Meter Read:</b> $${parseFloat(posMeter).toFixed(2)}</div>
+                        <div><b>Variance / Diff:</b> <span style="font-weight: bold; color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'};">${variance}</span></div>
+                    </div>
+                    
+                    ${listHtml}
+                    
+                    <div style="margin-top: 8px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
+                        <div style="flex: 1; padding-right: 20px;">
+                            <span style="font-weight: bold;">Clerk Name: </span>
+                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;">${clerkName}</span>
+                        </div>
+                        <div style="width: 220px;">
+                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
+                            ${sigHtml}
+                        </div>
+                    </div>
+                </div>`;
+            setTimeout(() => { window.print(); }, 150);
         }
         function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
         function initSignaturePad() {
