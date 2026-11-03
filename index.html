@@ -970,6 +970,199 @@ function printRapidEntry() {
                 </div>`;
             setTimeout(() => { window.print(); }, 150);
         }
+        // --- Daily & Monthly Summary Print / Email Functions ---
+        function generateDailyGameSummaryEmail() {
+            const defaultDate = new Date().toISOString().split('T')[0];
+            const targetDate = prompt("Enter the date to summarize (YYYY-MM-DD):", defaultDate);
+            if (!targetDate) return;
+
+            const gameSalesMap = {};
+            let grandTotalSales = 0;
+            let grandTotalTickets = 0;
+
+            shiftHistory.forEach(shift => {
+                const shiftDateKey = shift.date || (shift.signedAt ? shift.signedAt.split('T')[0] : '');
+                if (shiftDateKey !== targetDate) return;
+
+                if (shift.boxes && Array.isArray(shift.boxes)) {
+                    shift.boxes.forEach(box => {
+                        if (box.gameId && box.startTicket && box.endTicket) {
+                            const game = masterGames.find(g => String(g.id) === String(box.gameId));
+                            if (game) {
+                                const s = parseInt(box.startTicket) || 0;
+                                const e = parseInt(box.endTicket) || 0;
+                                let sold = e - s;
+                                if (sold < 0) sold = (getPackSize(game.price) - s) + e;
+                                
+                                if (sold > 0) {
+                                    const revenue = sold * game.price;
+                                    if (!gameSalesMap[box.gameId]) {
+                                        gameSalesMap[box.gameId] = { name: game.name, price: game.price, ticketsSold: 0, revenue: 0 };
+                                    }
+                                    gameSalesMap[box.gameId].ticketsSold += sold;
+                                    gameSalesMap[box.gameId].revenue += revenue;
+                                    grandTotalTickets += sold;
+                                    grandTotalSales += revenue;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            const gameIds = Object.keys(gameSalesMap);
+            if (gameIds.length === 0) {
+                alert(`No completed shift data found for date: ${targetDate}`);
+                return;
+            }
+
+            let reportText = `DAILY LOTTERY GAME SALES SUMMARY\n`;
+            reportText += `Store: ${storeProfile.name} (${storeProfile.number})\n`;
+            reportText += `Date: ${targetDate}\n`;
+            reportText += `--------------------------------------------------\n`;
+            reportText += `GAME ID & NAME              | TICKETS SOLD | TOTAL SALES\n`;
+            reportText += `--------------------------------------------------\n`;
+
+            gameIds.forEach(id => {
+                const item = gameSalesMap[id];
+                const idNameStr = `#${id} - ${item.name}`.padEnd(28, ' ');
+                const ticketsStr = String(item.ticketsSold).padStart(12, ' ');
+                const revenueStr = `$${item.revenue.toFixed(2)}`.padStart(12, ' ');
+                reportText += `${idNameStr} | ${ticketsStr} | ${revenueStr}\n`;
+            });
+
+            reportText += `--------------------------------------------------\n`;
+            reportText += `GRAND TOTAL TICKETS SOLD: ${grandTotalTickets}\n`;
+            reportText += `GRAND TOTAL REVENUE: $${grandTotalSales.toFixed(2)}\n`;
+            reportText += `--------------------------------------------------\n`;
+            reportText += `Generated on: ${new Date().toLocaleString()}\n`;
+
+            const action = confirm("Click OK to Print this Report, or Cancel to Email it.");
+            if (action) {
+                printAdminSummaryReport(`Daily Sales Summary (${targetDate})`, reportText, grandTotalTickets, grandTotalSales, gameSalesMap);
+            } else {
+                const subject = encodeURIComponent(`Daily Game Sales Summary - ${storeProfile.name} - ${targetDate}`);
+                const body = encodeURIComponent(reportText);
+                window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
+            }
+        }
+
+        function generateMonthlyGameSummaryEmail() {
+            const now = new Date();
+            const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const targetMonth = prompt("Enter the month to summarize (YYYY-MM):", defaultMonth);
+            if (!targetMonth) return;
+
+            const gameSalesMap = {};
+            let grandTotalSales = 0;
+            let grandTotalTickets = 0;
+
+            shiftHistory.forEach(shift => {
+                if (!shift.date || !shift.date.startsWith(targetMonth)) return;
+
+                if (shift.boxes && Array.isArray(shift.boxes)) {
+                    shift.boxes.forEach(box => {
+                        if (box.gameId && box.startTicket && box.endTicket) {
+                            const game = masterGames.find(g => String(g.id) === String(box.gameId));
+                            if (game) {
+                                const s = parseInt(box.startTicket) || 0;
+                                const e = parseInt(box.endTicket) || 0;
+                                let sold = e - s;
+                                if (sold < 0) sold = (getPackSize(game.price) - s) + e;
+                                
+                                if (sold > 0) {
+                                    const revenue = sold * game.price;
+                                    if (!gameSalesMap[box.gameId]) {
+                                        gameSalesMap[box.gameId] = { name: game.name, price: game.price, ticketsSold: 0, revenue: 0 };
+                                    }
+                                    gameSalesMap[box.gameId].ticketsSold += sold;
+                                    gameSalesMap[box.gameId].revenue += revenue;
+                                    grandTotalTickets += sold;
+                                    grandTotalSales += revenue;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            const gameIds = Object.keys(gameSalesMap);
+            if (gameIds.length === 0) {
+                alert(`No completed shift data found for month: ${targetMonth}`);
+                return;
+            }
+
+            let reportText = `MONTHLY LOTTERY GAME SALES SUMMARY\n`;
+            reportText += `Store: ${storeProfile.name} (${storeProfile.number})\n`;
+            reportText += `Period: ${targetMonth}\n`;
+            reportText += `--------------------------------------------------\n`;
+            reportText += `GAME ID & NAME              | TICKETS SOLD | TOTAL SALES\n`;
+            reportText += `--------------------------------------------------\n`;
+
+            gameIds.forEach(id => {
+                const item = gameSalesMap[id];
+                const idNameStr = `#${id} - ${item.name}`.padEnd(28, ' ');
+                const ticketsStr = String(item.ticketsSold).padStart(12, ' ');
+                const revenueStr = `$${item.revenue.toFixed(2)}`.padStart(12, ' ');
+                reportText += `${idNameStr} | ${ticketsStr} | ${revenueStr}\n`;
+            });
+
+            reportText += `--------------------------------------------------\n`;
+            reportText += `GRAND TOTAL TICKETS SOLD: ${grandTotalTickets}\n`;
+            reportText += `GRAND TOTAL REVENUE: $${grandTotalSales.toFixed(2)}\n`;
+            reportText += `--------------------------------------------------\n`;
+            reportText += `Generated on: ${new Date().toLocaleString()}\n`;
+
+            const action = confirm("Click OK to Print this Report, or Cancel to Email it.");
+            if (action) {
+                printAdminSummaryReport(`Monthly Sales Summary (${targetMonth})`, reportText, grandTotalTickets, grandTotalSales, gameSalesMap);
+            } else {
+                const subject = encodeURIComponent(`Monthly Game Sales Summary - ${storeProfile.name} - ${targetMonth}`);
+                const body = encodeURIComponent(reportText);
+                window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
+            }
+        }
+
+        function printAdminSummaryReport(titleText, rawText, totalTickets, totalRevenue, gameMap) {
+            document.body.classList.add('print-mode-report');
+            document.body.classList.remove('print-mode-worksheet');
+            const printArea = document.getElementById('print-final-report');
+
+            let tableRows = '';
+            Object.keys(gameMap).forEach(id => {
+                const item = gameMap[id];
+                tableRows += `<tr>
+                    <td style="padding: 4px; border: 1px solid #cbd5e1;">#${id} - ${item.name}</td>
+                    <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: center;">${item.ticketsSold}</td>
+                    <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">$${item.revenue.toFixed(2)}</td>
+                </tr>`;
+            });
+
+            printArea.innerHTML = `
+                <div style="padding: 10px; background: white; color: black; font-family: sans-serif; width: 100%;">
+                    <h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase;">${titleText}</h2>
+                    <p style="text-align: center; font-size: 10px; color: #475569; margin-bottom: 10px;">Store: ${storeProfile.name} (${storeProfile.number})</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                        <thead>
+                            <tr style="background: #f1f5f9; border-bottom: 2px solid #334155;">
+                                <th style="padding: 4px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th>
+                                <th style="padding: 4px; text-align: center; border: 1px solid #cbd5e1; width: 90px;">Tickets Sold</th>
+                                <th style="padding: 4px; text-align: right; border: 1px solid #cbd5e1; width: 100px;">Total Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 10px; display: flex; justify-content: space-between; border-top: 2px solid #334155; padding-top: 6px; font-size: 11px; font-weight: bold;">
+                        <div>Total Tickets Sold: ${totalTickets}</div>
+                        <div style="color: #059669;">Grand Total Revenue: $${totalRevenue.toFixed(2)}</div>
+                    </div>
+                </div>`;
+            setTimeout(() => { window.print(); }, 150);
+        }
 function generateAndPrintFinalReport() {
             document.body.classList.add('print-mode-report'); 
             document.body.classList.remove('print-mode-worksheet');
