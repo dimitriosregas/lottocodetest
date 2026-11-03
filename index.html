@@ -1034,44 +1034,59 @@
             const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)) || (box.oldGame && (!box.oldStart || !box.oldEnd)));
             if (incomplete.length) { runValidation(); alert('Complete all active boxes.'); return; }
             const totalSales = calculateTotals();
-            const posMeter = parseFloat(document.getElementById('pos-meter-input').value) || 0;
-            const signedAt = new Date().toISOString();
-            shiftHistory.push({
-                date: shiftState.date, shift: shiftState.name, clerk, signedAt, totalSales, posMeter, variance: posMeter - totalSales,
-                signature: sigCanvas.toDataURL('image/png'),
-                boxes: JSON.parse(JSON.stringify(boxesData))
+            function printRapidEntry() {
+            document.body.classList.add('print-mode-worksheet'); 
+            document.body.classList.remove('print-mode-report');
+            const printArea = document.getElementById('print-worksheet');
+            const now = new Date().toLocaleString();
+            const totalSales = document.getElementById('header-total-sales').innerText;
+            
+            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10px;">';
+            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 4px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 4px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 4px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 4px; text-align: center; border: 1px solid #cbd5e1; width: 110px;">End Ticket</th><th style="padding: 4px; text-align: right; border: 1px solid #cbd5e1; width: 80px;">Box Sales</th></tr></thead><tbody>';
+            
+            let hasActive = false;
+            boxesData.forEach((box, idx) => {
+                if(box.gameId) {
+                    hasActive = true;
+                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
+                    const boxSalesText = document.getElementById(`box-subtotal-${idx}`) ? document.getElementById(`box-subtotal-${idx}`).innerText : '$0.00';
+                    listHtml += `<tr>
+                        <td style="padding: 4px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
+                        <td style="padding: 4px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
+                        <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
+                        <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; height: 18px;"></td>
+                        <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">${boxSalesText}</td>
+                    </tr>`;
+                }
             });
-            localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
-            if (shiftState.name === 'A') {
-                boxesData = boxesData.map(box => ({
-                    ...box,
-                    startTicket: box.gameId ? box.endTicket : box.startTicket,
-                    endTicket: box.gameId ? '' : box.endTicket,
-                    oldGame: null, oldStart: '', oldEnd: '',
-                    startLocked: !!box.gameId
-                }));
-                shiftState = { date: shiftState.date, name: 'B', status: 'open', startedAt: signedAt };
-            } else {
-                shiftState = { ...shiftState, status: 'closed', closedAt: signedAt };
-            }
-            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
-            persist();
-            clearSignature();
-            document.getElementById('clerk-name-input').value = '';
-            document.getElementById('pos-meter-input').value = '';
-            updateShiftStatus();
-            renderBoxes();
-            closeReviewModal();
-            alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is open.' : 'Shift B signed off. Day closed.');
+            listHtml += '</tbody></table>';
+            
+            if(!hasActive) { alert("No active games loaded to print."); return; }
+            
+            printArea.innerHTML = `
+                <div style="padding: 4px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
+                    <h2 style="font-size: 15px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
+                    <p style="text-align: center; font-size: 10px; font-style: italic; color: #475569; margin-bottom: 6px;">Record ending ticket numbers during walk-around, then enter them into the app.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc; margin-bottom: 6px;">
+                        <div><b>Store:</b> ${storeProfile.name} (${storeProfile.number})</div>
+                        <div><b>Date/Time:</b> ${now}</div>
+                        <div><b>Shift:</b> ${shiftState.name}</div>
+                        <div><b>Expected Total Sales:</b> <span style="color: #059669; font-weight: bold;">${totalSales}</span></div>
+                    </div>
+                    
+                    ${listHtml}
+                    
+                    <div style="margin-top: 10px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 8px;">
+                        <div style="flex: 1; padding-right: 20px;">
+                            <span style="font-weight: bold;">Clerk Name: </span>
+                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 200px; padding-bottom: 2px;"></span>
+                        </div>
+                        <div style="width: 250px;">
+                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
+                            <div style="height: 25px; border-bottom: 1px solid #000;"></div>
+                        </div>
+                    </div>
+                </div>`;
+            setTimeout(() => { window.print(); }, 150);
         }
-
-        function emailReport() {
-            const clerk = document.getElementById('clerk-name-input').value || "Staff";
-            const total = document.getElementById('header-total-sales').innerText;
-            const subject = encodeURIComponent(`Shift Audit Report - ${storeProfile.name} - ${storeProfile.number}`);
-            const body = encodeURIComponent(`Shift Audit Summary:\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerk}\nTotal Sales: ${total}\nTimestamp: ${new Date().toLocaleString()}`);
-            window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
-        }
-    </script>
-</body>
-</html>
