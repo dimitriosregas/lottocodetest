@@ -3,26 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Smartphone App Icon & PWA Settings -->
     <title>Project Lotto</title>
     <meta name="apple-mobile-web-app-title" content="Project Lotto">
     <meta name="application-name" content="Project Lotto">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#10b981">
+    
+    <!-- Links to a reliable, permanent ticket icon -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ticket_icon.svg/512px-Ticket_icon.svg.png">
     <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ticket_icon.svg/512px-Ticket_icon.svg.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
-        .box-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
-        @media (max-width: 1024px) { .box-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .box-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+        @media (max-width: 1024px) {
+            .box-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
         @media print {
             @page { size: letter portrait; margin: 0.2in; }
             body > header, body > main, body > div.fixed { display: none !important; }
             body, html { height: 96vh !important; max-height: 96vh !important; margin: 0; padding: 0; background: white !important; overflow: hidden !important; }
-            #print-worksheet, #print-final-report { display: none !important; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden; page-break-after: avoid; page-break-inside: avoid; }
+            #print-worksheet, #print-final-report {
+                display: none !important;
+                width: 100%;
+                height: 96vh;
+                box-sizing: border-box;
+                overflow: hidden;
+                page-break-after: avoid;
+                page-break-inside: avoid;
+            }
             body.print-mode-worksheet #print-worksheet { display: block !important; }
             body.print-mode-report #print-final-report { display: block !important; }
             .no-print { display: none !important; }
@@ -96,7 +116,6 @@
             </div>
             <div id="dispenser-grid" class="box-grid"></div>
         </section>
-
         <div id="validation-banner" class="hidden p-3 rounded-lg text-sm font-medium border"></div>
     </main>
 
@@ -175,10 +194,6 @@
                         <input type="file" class="hidden" accept=".json" onchange="importCatalogJSON(event)">
                     </label>
                     <button onclick="exportCatalogJSON()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold border transition">Export Catalog</button>
-                </div>
-                <div class="pt-4 mt-4 border-t flex gap-2">
-                    <button onclick="generateDailyGameSummaryEmail()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-semibold">Daily Sales Report</button>
-                    <button onclick="generateMonthlyGameSummaryEmail()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-semibold">Monthly Sales Report</button>
                 </div>
             </div>
         </div>
@@ -279,14 +294,12 @@
         let html5QrCode = null;
         let hasSignature = false;
         let activeScannerBoxIndex = null;
-        let sigCanvas, sigCtx, isDrawing = false;
 
         // Initialization on Load
         window.addEventListener('DOMContentLoaded', () => {
             updateStoreHeader();
             updateShiftStatus();
             renderBoxes();
-            initSignaturePad();
             setInterval(updateLiveDateTime, 1000);
             updateLiveDateTime();
         });
@@ -320,7 +333,7 @@
             button.disabled = shiftState.status !== 'open';
             button.classList.toggle('opacity-50', button.disabled);
             button.classList.toggle('cursor-not-allowed', button.disabled);
-            button.innerText = shiftState.status !== 'open' ? 'Shift Signed Off' : shiftState.name === 'A' ? 'Confirm Shift End & Start Shift B' : 'Confirm Shift B End';
+            button.innerText = shiftState.status !== 'open' ? 'Shift B Signed Off' : shiftState.name === 'A' ? 'Confirm Shift End & Start Shift B' : 'Confirm Shift B End';
         }
 
         function rolloverClosedShiftIfNeeded(now) {
@@ -340,76 +353,13 @@
             return true;
         }
 
-        // --- Signature Pad Setup ---
-        function initSignaturePad() {
-            sigCanvas = document.getElementById('sig-canvas');
-            if (!sigCanvas) return;
-            sigCtx = sigCanvas.getContext('2d');
-            sigCtx.lineWidth = 2;
-            sigCtx.lineJoin = 'round';
-            sigCtx.lineCap = 'round';
-            sigCtx.strokeStyle = '#000';
-
-            const getPos = (e) => {
-                const rect = sigCanvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                return { x: clientX - rect.left, y: clientY - rect.top };
-            };
-
-            sigCanvas.addEventListener('mousedown', (e) => { isDrawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
-            sigCanvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); hasSignature = true; });
-            window.addEventListener('mouseup', () => { isDrawing = false; });
-
-            sigCanvas.addEventListener('touchstart', (e) => { isDrawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); e.preventDefault(); });
-            sigCanvas.addEventListener('touchmove', (e) => { if (!isDrawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); hasSignature = true; e.preventDefault(); });
-            window.addEventListener('touchend', () => { isDrawing = false; });
-        }
-
-        function clearSignature() {
-            if (!sigCtx) return;
-            sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-            hasSignature = false;
-        }
-
-        function openReviewModal() {
-            calculateTotals();
-            document.getElementById('review-modal').classList.remove('hidden');
-        }
-
-        function closeReviewModal() {
-            document.getElementById('review-modal').classList.add('hidden');
-        }
-
-        function confirmShiftEnd() {
-            const clerkName = document.getElementById('clerk-name-input').value.trim();
-            if (!clerkName) { alert('Please enter your Clerk Name.'); return; }
-            if (!hasSignature) { alert('Please provide a signature.'); return; }
-
-            shiftState.status = 'closed';
-            shiftState.signedAt = new Date().toISOString();
-            shiftHistory.push({ ...shiftState, boxes: JSON.parse(JSON.stringify(boxesData)), clerkName });
-            localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
-            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
-            
-            alert("Shift successfully signed off and archived!");
-            closeReviewModal();
-            updateShiftStatus();
-        }
-
-        function emailReport() {
-            const total = document.getElementById('header-total-sales').innerText;
-            const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
-            const body = encodeURIComponent(`Shift Report Summary\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerkName}\nTotal Sales: ${total}`);
-            window.location.href = `mailto:${storeProfile.email}?subject=Shift Report - ${storeProfile.name}&body=${body}`;
-        }
-
         // --- Core Box Logic ---
         function openRapidEntryModal() {
             const listContainer = document.getElementById('rapid-entry-list');
             if(!listContainer) return;
             listContainer.innerHTML = '';
             let hasActiveBoxes = false;
+            
             boxesData.forEach((box, index) => {
                 if(box.gameId) {
                     hasActiveBoxes = true;
@@ -421,7 +371,10 @@
                         <div class="flex items-center gap-3">
                             <div class="text-right">
                                 <label class="block text-[10px] font-bold text-gray-500 uppercase">Ending #</label>
-                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="rapid-end-${index}" value="${box.endTicket}" placeholder="Enter End #" oninput="calculateRapidSales(${index}, this.value, '${box.gameId}')" onkeydown="handleRapidNext(event, ${index})" class="rapid-input w-32 border-2 border-gray-300 rounded-lg p-2 text-base text-center font-bold focus:border-blue-500 focus:outline-none bg-white">
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="rapid-end-${index}" value="${box.endTicket}" placeholder="Enter End #" 
+                                    oninput="calculateRapidSales(${index}, this.value, '${box.gameId}')"
+                                    onkeydown="handleRapidNext(event, ${index})"
+                                    class="rapid-input w-32 border-2 border-gray-300 rounded-lg p-2 text-base text-center font-bold focus:border-blue-500 focus:outline-none bg-white">
                             </div>
                             <div id="rapid-sales-${index}" class="text-xs font-bold text-emerald-600 w-16 text-right"></div>
                         </div>
@@ -430,6 +383,7 @@
                     setTimeout(() => { if (box.endTicket) calculateRapidSales(index, box.endTicket, box.gameId); }, 10);
                 }
             });
+            
             if(!hasActiveBoxes) listContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No active games loaded into boxes yet.</p>';
             document.getElementById('rapid-entry-modal').classList.remove('hidden');
         }
@@ -485,40 +439,44 @@
             const groupedWithPrevious = index > 0 && boxesData[index - 1].mergedWithNext;
             const card = document.createElement('div');
             card.className = 'min-w-0 bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-2';
-            const startInputClass = box.startLocked ? "w-full border rounded p-1 text-xs text-center font-mono border-red-300 bg-red-50 cursor-pointer" : "w-full border rounded p-1 text-xs text-center font-mono border-gray-300";
+            
+            const startInputClass = box.startLocked ? 
+                "w-full border rounded p-1 text-xs text-center font-mono border-red-300 bg-red-50 cursor-pointer" : 
+                "w-full border rounded p-1 text-xs text-center font-mono border-gray-300";
+            
             card.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <input type="text" value="${box.label}" onchange="updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
+                    <input type="text" value="${box.label}" onchange="if(typeof updateBoxLabel === 'function') updateBoxLabel(${index}, this.value)" class="font-bold text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none min-w-0 w-24">
                     <div class="flex items-center gap-1">
-                        <button onclick="initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
+                        <button onclick="if(typeof initScanner === 'function') initScanner(${index})" title="Scan ticket for this box" class="text-xs px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">📷</button>
                         <button onclick="toggleMerge(${index})" title="Group boxes" ${groupedWithPrevious || index === boxesData.length - 1 ? 'disabled' : ''} class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-mono disabled:opacity-40 disabled:cursor-not-allowed">&</button>
-                        <button onclick="deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">×</button>
+                        <button onclick="if(typeof deleteBox === 'function') deleteBox(${index})" title="Delete" class="text-gray-400 hover:text-red-600 text-xs font-bold">×</button>
                     </div>
                 </div>
                 <div>
                     <label class="text-[10px] text-gray-500 font-semibold block">Active Game Number</label>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
-                    <span class="text-[10px] text-gray-500">${getGameDescription(box.gameId)}</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.gameId || ''}" placeholder="e.g. 1858" onchange="if(typeof updateBoxGame === 'function') updateBoxGame(${index}, this.value)" class="w-full text-xs border rounded p-1 bg-gray-50 border-gray-300">
+                    <span class="text-[10px] text-gray-500">${typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : ''}</span>
                 </div>
                 ${box.oldGame ? `
                 <div class="bg-amber-50 p-1.5 rounded border border-amber-200 text-[10px] space-y-1">
                     <span class="font-bold text-amber-800">Mid-Shift Swapped Old Game:</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
-                    <span class="text-[10px] text-amber-800">${getGameDescription(box.oldGame)}</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${box.oldGame || ''}" placeholder="Old game number" onchange="if(typeof updateOldGame === 'function') updateOldGame(${index}, this.value)" class="w-full text-[10px] border rounded p-0.5 bg-white border-amber-300">
+                    <span class="text-[10px] text-amber-800">${typeof getGameDescription === 'function' ? getGameDescription(box.oldGame) : ''}</span>
                     <div class="flex gap-1">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old Start" value="${box.oldStart}" onchange="updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old End" value="${box.oldEnd}" onchange="updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old Start" value="${box.oldStart}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldStart', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Old End" value="${box.oldEnd}" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'oldEnd', this.value)" class="w-1/2 border rounded p-0.5 text-center bg-white">
                     </div>
                 </div>
                 ` : ''}
                 <div class="flex gap-1 pt-1">
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block" title="${box.startLocked ? 'Locked by previous shift.' : ''}">Start Ticket ${box.startLocked ? '🔒' : ''}</span>
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.startTicket}" placeholder="0001" onchange="updateStartTicket(${index}, this.value)" class="${startInputClass}">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.startTicket}" placeholder="0001" onchange="if(typeof updateStartTicket === 'function') updateStartTicket(${index}, this.value)" class="${startInputClass}">
                     </div>
                     <div class="w-1/2">
                         <span class="text-[9px] text-gray-400 block">End Ticket</span>
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.endTicket}" placeholder="End #" onchange="updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" value="${box.endTicket}" placeholder="End #" onchange="if(typeof updateBoxData === 'function') updateBoxData(${index}, 'endTicket', this.value)" class="w-full border rounded p-1 text-xs text-center font-mono border-gray-300">
                     </div>
                 </div>
                 <div class="flex justify-between items-center pt-1">
@@ -528,7 +486,6 @@
             `;
             return card;
         }
-
         // --- Math & Calculations ---
         function calculateTotals() {
             let totalSales = 0;
@@ -562,7 +519,7 @@
             const revTotal = document.getElementById('rev-total-sales');
             if(headerTotal) headerTotal.innerText = `$${totalSales.toFixed(2)}`;
             if(revTotal) revTotal.innerText = `$${totalSales.toFixed(2)}`;
-            calculateVariance();
+            if(typeof calculateVariance === 'function') calculateVariance();
             return totalSales;
         }
 
@@ -586,7 +543,8 @@
 
         function updateBoxLabel(index, val) {
             const saveLabel = () => { boxesData[index].label = val.trim() || `Box ${index + 1}`; persist(); renderBoxes(); };
-            if (boxSetupComplete) verifyAdminAction(saveLabel); else saveLabel();
+            if (boxSetupComplete && typeof verifyAdminAction === 'function') verifyAdminAction(saveLabel);
+            else saveLabel();
         }
 
         function updateBoxGame(index, val) {
@@ -605,10 +563,7 @@
                     renderBoxes();
                     alert("Game added successfully.");
                     return;
-                } else {
-                    renderBoxes();
-                    return;
-                }
+                } else { renderBoxes(); return; }
             }
             boxesData[index]['gameId'] = gameId;
             persist();
@@ -648,12 +603,33 @@
 
         function deleteBox(index) {
             if (boxesData.length <= 1) { alert('At least one box must remain.'); return; }
-            verifyAdminAction(() => {
-                boxesData.splice(index, 1);
-                if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
-                persist();
-                renderBoxes();
+            if(typeof verifyAdminAction === 'function') {
+                verifyAdminAction(() => {
+                    boxesData.splice(index, 1);
+                    if (index > 0 && boxesData[index - 1].mergedWithNext) boxesData[index - 1].mergedWithNext = false;
+                    persist();
+                    renderBoxes();
+                });
+            }
+        }
+
+        function runValidation() {
+            let missing = [];
+            boxesData.forEach((box) => {
+                if(box.gameId && (!box.startTicket || !box.endTicket)) {
+                    missing.push(`Box ${box.label} has active game selected but missing start/end numbers.`);
+                }
             });
+            const banner = document.getElementById('validation-banner');
+            if(!banner) return;
+            banner.classList.remove('hidden');
+            if(missing.length > 0) {
+                banner.className = "p-3 rounded-lg text-sm font-medium border bg-red-50 border-red-200 text-red-700";
+                banner.innerHTML = "<b>Validation Issues Found:</b><br>" + missing.join('<br>');
+            } else {
+                banner.className = "p-3 rounded-lg text-sm font-medium border bg-emerald-50 border-emerald-200 text-emerald-750";
+                banner.innerText = "All active boxes successfully validated. No missing ticket entries.";
+            }
         }
 
         function calculateRapidSales(index, endVal, gameId) {
@@ -733,20 +709,21 @@
                             persist();
                             renderBoxes();
                             alert(`Scanned Code [${decodedText}] applied to ${boxesData[activeScannerBoxIndex].label} End Ticket.`);
-                        } else {
-                            alert(`Global Scanned Ticket Code: ${decodedText}`);
-                        }
+                        } else { alert(`Global Scanned Ticket Code: ${decodedText}`); }
                     });
                 }, (error) => {}
             ).catch((error) => { status.innerText = `Could not start camera.`; html5QrCode = null; });
         }
 
         async function stopScanner() {
-            if (html5QrCode) { try { await html5QrCode.stop(); html5QrCode.clear(); } catch (error) {} }
+            if (html5QrCode) {
+                try { await html5QrCode.stop(); html5QrCode.clear(); } catch (error) {}
+            }
             const modal = document.getElementById('scanner-modal');
             if(modal) modal.classList.add('hidden');
         }
 
+        // --- Store Config & Import/Export ---
         function openStoreDrawer() { updateStoreHeader(); updateBoxSetupStatus(); setStoreEditing(false); document.getElementById('store-drawer').classList.remove('hidden'); }
         function closeStoreDrawer() { setStoreEditing(false); document.getElementById('store-drawer').classList.add('hidden'); }
         function setStoreEditing(isEditing) {
@@ -814,6 +791,7 @@
             downloadAnchor.click();
             downloadAnchor.remove();
         }
+
         // --- Admin & Master Game Controls ---
         function openAdminModal() { document.getElementById('admin-modal').classList.remove('hidden'); }
         function closeAdminModal() {
@@ -830,7 +808,6 @@
                 document.getElementById('admin-pass-input').value = '';
             } else { alert("Incorrect Admin Password!"); }
         }
-
         function lookupGameNumber() {
             const queryId = document.getElementById('game-number-lookup').value.trim();
             const statusElem = document.getElementById('game-number-status');
@@ -851,7 +828,6 @@
                 document.getElementById('game-editor-submit').innerText = "Add Game";
             }
         }
-
         function saveGameFromLookup(e) {
             e.preventDefault();
             const id = document.getElementById('game-editor-id').value.trim();
@@ -859,27 +835,20 @@
             const price = parseFloat(document.getElementById('game-editor-price').value);
             if(!id || !name || isNaN(price)) return;
             const existingIndex = masterGames.findIndex(g => String(g.id) === String(id));
-            if(existingIndex >= 0) {
-                masterGames[existingIndex] = { id, name, price };
-                alert(`Game #${id} updated!`);
-            } else {
-                masterGames.push({ id, name, price });
-                alert(`Game #${id} added!`);
-            }
+            if(existingIndex >= 0) { masterGames[existingIndex] = { id, name, price }; alert(`Game #${id} updated!`); }
+            else { masterGames.push({ id, name, price }); alert(`Game #${id} added!`); }
             localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
             renderAdminGames();
             document.getElementById('game-number-editor').classList.add('hidden');
             document.getElementById('game-number-lookup').value = '';
             document.getElementById('game-number-status').innerText = '';
         }
-
         function verifyAdminAction(callback) {
             const pass = prompt("Enter Manager Password to proceed:");
             if(pass === storeProfile.password || pass === 'admin') { callback(); return true; }
             else if(pass !== null) alert("Incorrect password.");
             return false;
         }
-
         function renderAdminGames() {
             const list = document.getElementById('admin-games-list');
             if(!list) return;
@@ -891,7 +860,6 @@
                 list.appendChild(item);
             });
         }
-
         function importCatalogJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -899,18 +867,12 @@
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if(Array.isArray(data)) {
-                        masterGames = data;
-                        localStorage.setItem('lotto_master_games', JSON.stringify(masterGames));
-                        renderAdminGames();
-                        alert("Game catalog imported successfully!");
-                    }
+                    if(Array.isArray(data)) { masterGames = data; localStorage.setItem('lotto_master_games', JSON.stringify(masterGames)); renderAdminGames(); alert("Game catalog imported successfully!"); }
                 } catch (err) { alert("Error importing catalog file."); }
             };
             reader.readAsText(file);
             event.target.value = '';
         }
-
         function exportCatalogJSON() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(masterGames));
             const downloadAnchor = document.createElement('a');
@@ -923,8 +885,7 @@
 
         // --- Print & Reporting Logic ---
         function printWorksheet() {
-            document.body.classList.add('print-mode-worksheet');
-            document.body.classList.remove('print-mode-report');
+            document.body.classList.add('print-mode-worksheet'); document.body.classList.remove('print-mode-report');
             const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
@@ -936,21 +897,24 @@
             printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box; font-size: 12px;"><h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Shift Inventory Worksheet</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;"><div><b>Store:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div><div><b>Date/Time:</b> ${now}</div><div><b>Shift:</b> ${shiftState.name}</div><div style="grid-column: span 2; border-top: 1px solid #cbd5e1; padding-top: 4px; display: flex; align-items: flex-end;"><span style="margin-right: 8px; font-weight: bold;">Clerk Name:</span><div style="flex: 1; border-bottom: 1px solid #000; height: 12px;"></div></div></div>${gridHtml}</div>`;
             setTimeout(() => { window.print(); }, 150);
         }
-
-        function printRapidEntry() {
+function printRapidEntry() {
             const clerkNameInput = document.getElementById('clerk-name-input');
             const clerkName = clerkNameInput ? clerkNameInput.value.trim() : "";
             
             if (!clerkName) {
-                alert('Please enter your Clerk Name in the Review & Sign-Off section before printing.');
-                closeRapidEntryModal();
+                alert('Please enter the Clerk Name in the Review & Sign-Off modal before printing the Rapid Entry Audit List.');
+                openReviewModal();
+                return;
+            }
+            if (!hasSignature) {
+                alert('Please provide a Clerk Signature in the Review & Sign-Off modal before printing.');
                 openReviewModal();
                 return;
             }
 
-            document.body.classList.add('print-mode-report'); 
-            document.body.classList.remove('print-mode-worksheet');
-            const printArea = document.getElementById('print-final-report');
+            document.body.classList.add('print-mode-worksheet'); 
+            document.body.classList.remove('print-mode-report');
+            const printArea = document.getElementById('print-worksheet');
             const now = new Date().toLocaleString();
             const totalSales = document.getElementById('header-total-sales').innerText;
             
@@ -980,7 +944,7 @@
             const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 20px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 20px; border-bottom: 1px solid #000;"></div>`;
 
             printArea.innerHTML = `
-                <div style="padding: 4px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
+                <div style="padding: 2px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
                     <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Rapid Entry Audit List</h2>
                     <p style="text-align: center; font-size: 9px; font-style: italic; color: #475569; margin-bottom: 4px;">Record ending ticket numbers during walk-around, then enter them into the app.</p>
                     
@@ -1008,259 +972,124 @@
         }
 
         function generateAndPrintFinalReport() {
-            document.body.classList.add('print-mode-report'); 
-            document.body.classList.remove('print-mode-worksheet');
+            document.body.classList.add('print-mode-report'); document.body.classList.remove('print-mode-worksheet');
             const printArea = document.getElementById('print-final-report');
             const clerkName = document.getElementById('clerk-name-input').value || "Not Entered";
             const posMeter = document.getElementById('pos-meter-input').value || "0.00";
             const variance = document.getElementById('rev-variance').innerText;
             const total = document.getElementById('header-total-sales').innerText;
             const now = new Date().toLocaleString();
-            
-            let listHtml = '<table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9px;">';
-            listHtml += '<thead><tr style="background: #f1f5f9; border-bottom: 2px solid #334155;"><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Box</th><th style="padding: 3px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">Start Ticket</th><th style="padding: 3px; text-align: center; border: 1px solid #cbd5e1;">End Ticket</th><th style="padding: 3px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Box Sales</th></tr></thead><tbody>';
-            
-            let hasActive = false;
-            boxesData.forEach((box, idx) => {
-                if(box.gameId) {
-                    hasActive = true;
-                    const gameDesc = typeof getGameDescription === 'function' ? getGameDescription(box.gameId) : '';
-                    const boxSalesText = document.getElementById(`box-subtotal-${idx}`) ? document.getElementById(`box-subtotal-${idx}`).innerText : '$0.00';
-                    listHtml += `<tr>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; font-weight: bold;">${box.label}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1;">#${box.gameId} - ${gameDesc}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${box.startTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace; font-weight: bold;">${box.endTicket || '-'}</td>
-                        <td style="padding: 3px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">${boxSalesText}</td>
-                    </tr>`;
+            let gridHtml = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px;">';
+            boxesData.forEach((box) => {
+                let boxSales = 0;
+                if(box.gameId && box.startTicket && box.endTicket) {
+                    const game = masterGames.find(g => String(g.id) === String(box.gameId));
+                    if(game) {
+                        const s = parseInt(box.startTicket) || 0;
+                        const e = parseInt(box.endTicket) || 0;
+                        let sold = e - s;
+                        if (sold < 0) sold = (getPackSize(game.price) - s) + e;
+                        if(sold > 0) boxSales += sold * game.price;
+                    }
                 }
+                gridHtml += `<div style="border: 1px solid #94a3b8; padding: 4px; border-radius: 4px; font-size: 9px; break-inside: avoid; background-color: #fff;"><div style="font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 2px;">${box.label} <span style="font-weight: normal; color: #64748b; float: right;">${box.gameId ? '#' + box.gameId : 'No Game'}</span></div><div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">Start:</span><b style="font-family: monospace;">${box.startTicket || '-'}</b></div><div style="display: flex; justify-content: space-between; margin-bottom: 1px;"><span style="color: #475569;">End:</span><b style="font-family: monospace;">${box.endTicket || '-'}</b></div><div style="display: flex; justify-content: space-between; color: #059669; font-weight: bold; margin-top: 2px; padding-top: 2px; border-top: 1px dashed #cbd5e1;"><span>Sales:</span><span>$${boxSales.toFixed(2)}</span></div></div>`;
             });
-            listHtml += '</tbody></table>';
-
-            if(!hasActive) { alert("No active games loaded for final report."); return; }
-
+            gridHtml += '</div>';
             const signatureData = hasSignature ? sigCanvas.toDataURL('image/png') : '';
-            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 25px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 25px; border-bottom: 1px solid #000;"></div>`;
-
-            printArea.innerHTML = `
-                <div style="padding: 4px; background: white; color: black; font-family: sans-serif; width: 100%; height: 96vh; box-sizing: border-box; overflow: hidden;">
-                    <h2 style="font-size: 14px; font-weight: bold; text-align: center; margin: 0 0 2px 0; text-transform: uppercase;">Final Shift Audit Report</h2>
-                    <p style="text-align: center; font-size: 9px; color: #475569; margin-bottom: 4px;">Store: ${storeProfile.name} (${storeProfile.number}) | Date: ${now}</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 4px; border-radius: 4px; font-size: 9px; background: #f8fafc; margin-bottom: 4px;">
-                        <div><b>Shift:</b> ${shiftState.name}</div>
-                        <div><b>Total Shift Sales:</b> <span style="color: #059669; font-weight: bold;">${total}</span></div>
-                        <div><b>POS Meter Read:</b> $${parseFloat(posMeter).toFixed(2)}</div>
-                        <div><b>Variance / Diff:</b> <span style="font-weight: bold; color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'};">${variance}</span></div>
-                    </div>
-                    
-                    ${listHtml}
-                    
-                    <div style="margin-top: 8px; font-size: 9px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #334155; padding-top: 6px;">
-                        <div style="flex: 1; padding-right: 20px;">
-                            <span style="font-weight: bold;">Clerk Name: </span>
-                            <span style="border-bottom: 1px solid #000; display: inline-block; width: 180px; padding-bottom: 2px;">${clerkName}</span>
-                        </div>
-                        <div style="width: 220px;">
-                            <span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>
-                            ${sigHtml}
-                        </div>
-                    </div>
-                </div>`;
+            const sigHtml = signatureData ? `<img src="${signatureData}" style="height: 35px; border-bottom: 1px solid #000; width: auto;" />` : `<div style="height: 35px; border-bottom: 1px solid #000;"></div>`;
+            printArea.innerHTML = `<div style="padding: 0; background: white; color: black; font-family: sans-serif; width: 100%; box-sizing: border-box;"><h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 8px 0; text-transform: uppercase;">Final Shift Audit Report</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #334155; padding: 6px; border-radius: 4px; font-size: 10px; background: #f8fafc;"><div><b>Store Name:</b> ${storeProfile.name}</div><div><b>Retailer #:</b> ${storeProfile.number}</div><div><b>Date/Time Closed:</b> ${now}</div><div><b>Shift Logged:</b> ${shiftState.name}</div></div>${gridHtml}<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px;"><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Total Ticket Sales</div><div style="font-size: 14px; font-weight: bold;">${total}</div></div><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">POS Meter Input</div><div style="font-size: 14px; font-weight: bold;">$${parseFloat(posMeter).toFixed(2)}</div></div><div style="background: #f1f5f9; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0;"><div style="font-size: 9px; color: #475569; text-transform: uppercase; font-weight: bold;">Shift Variance</div><div style="font-size: 14px; font-weight: bold; color: ${parseFloat(variance.replace(/[^0-9.-]+/g,"")) === 0 ? '#059669' : '#dc2626'};">${variance}</div></div></div><div style="margin-top: 12px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end;"><div style="flex: 1; padding-right: 20px;"><span style="font-weight: bold;">Printed Clerk Name: </span><span style="border-bottom: 1px solid #000; display: inline-block; width: 200px; padding-bottom: 2px;">${clerkName}</span></div><div style="width: 250px;"><span style="font-weight: bold; display: block; margin-bottom: 2px;">Clerk Signature:</span>${sigHtml}</div></div></div>`;
             setTimeout(() => { window.print(); }, 150);
         }
 
-        function generateDailyGameSummaryEmail() {
-            const defaultDate = new Date().toISOString().split('T')[0];
-            const targetDate = prompt("Enter the date to summarize (YYYY-MM-DD):", defaultDate);
-            if (!targetDate) return;
-
-            const gameSalesMap = {};
-            let grandTotalSales = 0;
-            let grandTotalTickets = 0;
-
-            shiftHistory.forEach(shift => {
-                const shiftDateKey = shift.date || (shift.signedAt ? shift.signedAt.split('T')[0] : '');
-                if (shiftDateKey !== targetDate) return;
-
-                if (shift.boxes && Array.isArray(shift.boxes)) {
-                    shift.boxes.forEach(box => {
-                        if (box.gameId && box.startTicket && box.endTicket) {
-                            const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                            if (game) {
-                                const s = parseInt(box.startTicket) || 0;
-                                const e = parseInt(box.endTicket) || 0;
-                                let sold = e - s;
-                                if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                                
-                                if (sold > 0) {
-                                    const revenue = sold * game.price;
-                                    if (!gameSalesMap[box.gameId]) {
-                                        gameSalesMap[box.gameId] = { name: game.name, price: game.price, ticketsSold: 0, revenue: 0 };
-                                    }
-                                    gameSalesMap[box.gameId].ticketsSold += sold;
-                                    gameSalesMap[box.gameId].revenue += revenue;
-                                    grandTotalTickets += sold;
-                                    grandTotalSales += revenue;
-                                }
-                            }
-                        }
-                    });
-                }
+        // --- Drawing & Sign-off Logic ---
+        let sigCanvas, sigCtx, isDrawing = false;
+        function openReviewModal() {
+            try {
+                updateShiftStatus();
+                const modal = document.getElementById('review-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    setTimeout(() => { initSignaturePad(); }, 150);
+                } else { alert("Error: 'review-modal' element not found."); }
+            } catch (err) { alert("Could not open review modal."); }
+        }
+        function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
+        function initSignaturePad() {
+            sigCanvas = document.getElementById('sig-canvas');
+            if(!sigCanvas) return;
+            sigCtx = sigCanvas.getContext('2d');
+            sigCtx.strokeStyle = "#000";
+            sigCtx.lineWidth = 2;
+            sigCanvas.onmousedown = startDraw;
+            sigCanvas.onmousemove = draw;
+            sigCanvas.onmouseup = stopDraw;
+            sigCanvas.ontouchstart = (e) => startDraw(e.touches[0]);
+            sigCanvas.ontouchmove = (e) => draw(e.touches[0]);
+            sigCanvas.ontouchend = stopDraw;
+        }
+        function startDraw(e) {
+            isDrawing = true;
+            hasSignature = true;
+            const rect = sigCanvas.getBoundingClientRect();
+            sigCtx.beginPath();
+            sigCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+        function draw(e) {
+            if(!isDrawing) return;
+            const rect = sigCanvas.getBoundingClientRect();
+            sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            sigCtx.stroke();
+        }
+        function stopDraw() { isDrawing = false; }
+        function clearSignature() {
+            if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+            hasSignature = false;
+        }
+        function confirmShiftEnd() {
+            if (shiftState.status !== 'open') return;
+            const clerk = document.getElementById('clerk-name-input').value.trim();
+            if (!clerk) { alert('Enter the clerk name.'); return; }
+            if (!hasSignature) { alert('Add a signature.'); return; }
+            const incomplete = boxesData.filter(box => (box.gameId && (!box.startTicket || !box.endTicket)) || (box.oldGame && (!box.oldStart || !box.oldEnd)));
+            if (incomplete.length) { runValidation(); alert('Complete all active boxes.'); return; }
+            const totalSales = calculateTotals();
+            const posMeter = parseFloat(document.getElementById('pos-meter-input').value) || 0;
+            const signedAt = new Date().toISOString();
+            shiftHistory.push({
+                date: shiftState.date, shift: shiftState.name, clerk, signedAt, totalSales, posMeter, variance: posMeter - totalSales,
+                signature: sigCanvas.toDataURL('image/png'),
+                boxes: JSON.parse(JSON.stringify(boxesData))
             });
-
-            const gameIds = Object.keys(gameSalesMap);
-            if (gameIds.length === 0) {
-                alert(`No completed shift data found for date: ${targetDate}`);
-                return;
-            }
-
-            let reportText = `DAILY LOTTERY GAME SALES SUMMARY\n`;
-            reportText += `Store: ${storeProfile.name} (${storeProfile.number})\n`;
-            reportText += `Date: ${targetDate}\n`;
-            reportText += `--------------------------------------------------\n`;
-            reportText += `GAME ID & NAME              | TICKETS SOLD | TOTAL SALES\n`;
-            reportText += `--------------------------------------------------\n`;
-
-            gameIds.forEach(id => {
-                const item = gameSalesMap[id];
-                const idNameStr = `#${id} - ${item.name}`.padEnd(28, ' ');
-                const ticketsStr = String(item.ticketsSold).padStart(12, ' ');
-                const revenueStr = `$${item.revenue.toFixed(2)}`.padStart(12, ' ');
-                reportText += `${idNameStr} | ${ticketsStr} | ${revenueStr}\n`;
-            });
-
-            reportText += `--------------------------------------------------\n`;
-            reportText += `GRAND TOTAL TICKETS SOLD: ${grandTotalTickets}\n`;
-            reportText += `GRAND TOTAL REVENUE: $${grandTotalSales.toFixed(2)}\n`;
-            reportText += `--------------------------------------------------\n`;
-            reportText += `Generated on: ${new Date().toLocaleString()}\n`;
-
-            const action = confirm("Click OK to Print this Report, or Cancel to Email it.");
-            if (action) {
-                printAdminSummaryReport(`Daily Sales Summary (${targetDate})`, reportText, grandTotalTickets, grandTotalSales, gameSalesMap);
+            localStorage.setItem('lotto_shift_history', JSON.stringify(shiftHistory));
+            if (shiftState.name === 'A') {
+                boxesData = boxesData.map(box => ({
+                    ...box,
+                    startTicket: box.gameId ? box.endTicket : box.startTicket,
+                    endTicket: box.gameId ? '' : box.endTicket,
+                    oldGame: null, oldStart: '', oldEnd: '',
+                    startLocked: !!box.gameId
+                }));
+                shiftState = { date: shiftState.date, name: 'B', status: 'open', startedAt: signedAt };
             } else {
-                const subject = encodeURIComponent(`Daily Game Sales Summary - ${storeProfile.name} - ${targetDate}`);
-                const body = encodeURIComponent(reportText);
-                window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
+                shiftState = { ...shiftState, status: 'closed', closedAt: signedAt };
             }
+            localStorage.setItem('lotto_shift_state', JSON.stringify(shiftState));
+            persist();
+            clearSignature();
+            document.getElementById('clerk-name-input').value = '';
+            document.getElementById('pos-meter-input').value = '';
+            updateShiftStatus();
+            renderBoxes();
+            closeReviewModal();
+            alert(shiftState.status === 'open' ? 'Shift A signed off. Shift B is open.' : 'Shift B signed off. Day closed.');
         }
 
-        function generateMonthlyGameSummaryEmail() {
-            const now = new Date();
-            const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const targetMonth = prompt("Enter the month to summarize (YYYY-MM):", defaultMonth);
-            if (!targetMonth) return;
-
-            const gameSalesMap = {};
-            let grandTotalSales = 0;
-            let grandTotalTickets = 0;
-
-            shiftHistory.forEach(shift => {
-                if (!shift.date || !shift.date.startsWith(targetMonth)) return;
-
-                if (shift.boxes && Array.isArray(shift.boxes)) {
-                    shift.boxes.forEach(box => {
-                        if (box.gameId && box.startTicket && box.endTicket) {
-                            const game = masterGames.find(g => String(g.id) === String(box.gameId));
-                            if (game) {
-                                const s = parseInt(box.startTicket) || 0;
-                                const e = parseInt(box.endTicket) || 0;
-                                let sold = e - s;
-                                if (sold < 0) sold = (getPackSize(game.price) - s) + e;
-                                
-                                if (sold > 0) {
-                                    const revenue = sold * game.price;
-                                    if (!gameSalesMap[box.gameId]) {
-                                        gameSalesMap[box.gameId] = { name: game.name, price: game.price, ticketsSold: 0, revenue: 0 };
-                                    }
-                                    gameSalesMap[box.gameId].ticketsSold += sold;
-                                    gameSalesMap[box.gameId].revenue += revenue;
-                                    grandTotalTickets += sold;
-                                    grandTotalSales += revenue;
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-
-            const gameIds = Object.keys(gameSalesMap);
-            if (gameIds.length === 0) {
-                alert(`No completed shift data found for month: ${targetMonth}`);
-                return;
-            }
-
-            let reportText = `MONTHLY LOTTERY GAME SALES SUMMARY\n`;
-            reportText += `Store: ${storeProfile.name} (${storeProfile.number})\n`;
-            reportText += `Period: ${targetMonth}\n`;
-            reportText += `--------------------------------------------------\n`;
-            reportText += `GAME ID & NAME              | TICKETS SOLD | TOTAL SALES\n`;
-            reportText += `--------------------------------------------------\n`;
-
-            gameIds.forEach(id => {
-                const item = gameSalesMap[id];
-                const idNameStr = `#${id} - ${item.name}`.padEnd(28, ' ');
-                const ticketsStr = String(item.ticketsSold).padStart(12, ' ');
-                const revenueStr = `$${item.revenue.toFixed(2)}`.padStart(12, ' ');
-                reportText += `${idNameStr} | ${ticketsStr} | ${revenueStr}\n`;
-            });
-
-            reportText += `--------------------------------------------------\n`;
-            reportText += `GRAND TOTAL TICKETS SOLD: ${grandTotalTickets}\n`;
-            reportText += `GRAND TOTAL REVENUE: $${grandTotalSales.toFixed(2)}\n`;
-            reportText += `--------------------------------------------------\n`;
-            reportText += `Generated on: ${new Date().toLocaleString()}\n`;
-
-            const action = confirm("Click OK to Print this Report, or Cancel to Email it.");
-            if (action) {
-                printAdminSummaryReport(`Monthly Sales Summary (${targetMonth})`, reportText, grandTotalTickets, grandTotalSales, gameSalesMap);
-            } else {
-                const subject = encodeURIComponent(`Monthly Game Sales Summary - ${storeProfile.name} - ${targetMonth}`);
-                const body = encodeURIComponent(reportText);
-                window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
-            }
-        }
-
-        function printAdminSummaryReport(titleText, rawText, totalTickets, totalRevenue, gameMap) {
-            document.body.classList.add('print-mode-report');
-            document.body.classList.remove('print-mode-worksheet');
-            const printArea = document.getElementById('print-final-report');
-
-            let tableRows = '';
-            Object.keys(gameMap).forEach(id => {
-                const item = gameMap[id];
-                tableRows += `<tr>
-                    <td style="padding: 4px; border: 1px solid #cbd5e1;">#${id} - ${item.name}</td>
-                    <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: center;">${item.ticketsSold}</td>
-                    <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #059669;">$${item.revenue.toFixed(2)}</td>
-                </tr>`;
-            });
-
-            printArea.innerHTML = `
-                <div style="padding: 10px; background: white; color: black; font-family: sans-serif; width: 100%;">
-                    <h2 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase;">${titleText}</h2>
-                    <p style="text-align: center; font-size: 10px; color: #475569; margin-bottom: 10px;">Store: ${storeProfile.name} (${storeProfile.number})</p>
-                    
-                    <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                        <thead>
-                            <tr style="background: #f1f5f9; border-bottom: 2px solid #334155;">
-                                <th style="padding: 4px; text-align: left; border: 1px solid #cbd5e1;">Game # & Name</th>
-                                <th style="padding: 4px; text-align: center; border: 1px solid #cbd5e1; width: 90px;">Tickets Sold</th>
-                                <th style="padding: 4px; text-align: right; border: 1px solid #cbd5e1; width: 100px;">Total Sales</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${tableRows}
-                        </tbody>
-                    </table>
-
-                    <div style="margin-top: 10px; display: flex; justify-content: space-between; border-top: 2px solid #334155; padding-top: 6px; font-size: 11px; font-weight: bold;">
-                        <div>Total Tickets Sold: ${totalTickets}</div>
-                        <div style="color: #059669;">Grand Total Revenue: $${totalRevenue.toFixed(2)}</div>
-                    </div>
-                </div>`;
-            setTimeout(() => { window.print(); }, 150);
+        function emailReport() {
+            const clerk = document.getElementById('clerk-name-input').value || "Staff";
+            const total = document.getElementById('header-total-sales').innerText;
+            const subject = encodeURIComponent(`Shift Audit Report - ${storeProfile.name} - ${storeProfile.number}`);
+            const body = encodeURIComponent(`Shift Audit Summary:\nStore: ${storeProfile.name}\nShift: ${shiftState.name}\nClerk: ${clerk}\nTotal Sales: ${total}\nTimestamp: ${new Date().toLocaleString()}`);
+            window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
         }
     </script>
 </body>
