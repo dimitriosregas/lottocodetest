@@ -110,7 +110,7 @@
             <div class="flex flex-wrap gap-2 mb-4">
                 <button onclick="toggleScanner()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-2 rounded font-medium shadow-sm transition flex items-center">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                    Toggle Scanner
+                    Rapid Scan
                 </button>
                 <button onclick="openEndShiftModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded font-medium shadow-sm transition">
                     End Shift Report
@@ -552,27 +552,38 @@
             } catch(e) {}
 
             const status = document.getElementById('scanner-status');
-            status.innerHTML = `Scanned: <strong class="text-white">${decodedText}</strong>`;
             
-            // Standard lotto barcode parsing logic (example)
-            // You will need to adjust substring indexes based on your state's barcode format
-            if(decodedText.length > 10) {
-                // Assuming last 3 digits are the ticket number
+            // Standard lotto barcode parsing logic
+            if(decodedText.length >= 10) {
                 const ticketNum = decodedText.substring(decodedText.length - 3);
-                status.innerHTML += `<br>Ticket #: <strong class="text-emerald-400">${ticketNum}</strong>`;
                 
-                // Prompt user for which box this goes to
-                const boxNum = prompt(`Barcode read. Ticket #${ticketNum}.\nWhich Box (1-${storeProfile.count}) should this end ticket go to?`);
-                
-                if(boxNum && boxNum >= 1 && boxNum <= storeProfile.count) {
-                    const inputEl = document.getElementById(`end-${boxNum}`);
+                // Auto-match Game ID from barcode to a Box
+                let matchedBox = null;
+                for(let i = 1; i <= storeProfile.count; i++) {
+                    const gameName = dispensers[i].gameName || "";
+                    const gameIdMatch = gameName.match(/^(\d+)/); // Extracts Game ID if it's at the start of the name
+                    if(gameIdMatch) {
+                        const gameId = gameIdMatch[1];
+                        if(decodedText.startsWith(gameId)) {
+                            matchedBox = i;
+                            break;
+                        }
+                    }
+                }
+
+                if(matchedBox) {
+                    status.innerHTML = `Auto-Matched Box ${matchedBox} <br>Ticket #: <strong class="text-emerald-400">${ticketNum}</strong>`;
+                    const inputEl = document.getElementById(`end-${matchedBox}`);
                     if(inputEl) {
                         inputEl.value = ticketNum;
-                        updateDispenser(boxNum, 'endTicket', ticketNum);
-                        inputEl.focus();
+                        updateDispenser(matchedBox, 'endTicket', ticketNum);
+                        
+                        // Flash the box green to confirm visual success
                         inputEl.classList.add('ring-4', 'ring-emerald-500');
                         setTimeout(() => inputEl.classList.remove('ring-4', 'ring-emerald-500'), 1500);
                     }
+                } else {
+                    status.innerHTML = `Scanned: ${decodedText}<br><span class="text-amber-400">Could not auto-match game. Enter manually.</span>`;
                 }
             }
         }
