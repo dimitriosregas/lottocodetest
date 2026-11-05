@@ -1489,6 +1489,7 @@ function handleBarcodeString(raw) {
 // ==========================================
 // ==========================================
 // ==========================================
+// ==========================================
 // FULL SYSTEM BACKUP, RESTORE & HARD-OVERRIDE ENGINE
 // ==========================================
 
@@ -1503,6 +1504,22 @@ function indexToLetters(num) {
     n = Math.floor(n / 26) - 1;
   }
   return str;
+}
+
+function getDefaultRollCountForPrice(price) {
+  const p = Number(price);
+  if (!p || p <= 0) return 0;
+  // Standard pack sizes ($300 pack for $2+, 300 tickets for $1)
+  if (p === 1) return 300;
+  if (p === 2) return 150;
+  if (p === 3) return 100;
+  if (p === 5) return 60;
+  if (p === 10) return 30;
+  if (p === 20) return 15;
+  if (p === 25) return 12;
+  if (p === 30) return 10;
+  if (p === 50) return 10;
+  return Math.max(10, Math.round(300 / p));
 }
 
 function setBoxDisplayLabel(boxObj, labelStr) {
@@ -1584,7 +1601,7 @@ window.assignGameToBox = function(idx, gameNumInput) {
     box.gameNum = String(game.gameNum ?? game.number ?? game.id).trim();
     box.gameName = game.name || game.gameName || '';
     box.price = Number(game.price ?? game.amount ?? 0);
-    box.rollCount = Number(game.count ?? game.rollCount ?? 100);
+    box.rollCount = Number(game.count ?? game.rollCount ?? getDefaultRollCountForPrice(box.price));
     box.needsNewGameEntry = false;
     if (box.startTicket === '' || box.startTicket === undefined) box.startTicket = 0;
   } else if (cleanedNum === '') {
@@ -1614,85 +1631,7 @@ window.saveNewGameFromBox = function(idx) {
   const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
 
   if (!gameNum || !name || price <= 0) {
-    alert('Please enter the Game #, Ticket Name, and $ Amount.');
-    return;
-  }
-
-  const count = countInput > 0 ? countInput : Math.max(15, Math.round(300 / price));
-  const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
-  if (existingIdx >= 0) {
-    masterGames[existingIdx] = { gameNum, name, price, count };
-  } else {
-    masterGames.push({ gameNum, name, price, count });
-  }
-
-  boxes.forEach(b => {
-    if (String(b.gameNum).trim() === gameNum) {
-      b.gameName = name;
-      b.price = price;
-      b.rollCount = count;
-      b.needsNewGameEntry = false;
-      if (b.startTicket === '') b.startTicket = 0;
-    }
-  });
-
-  if (typeof saveGamesState === 'function') saveGamesState();
-  if (typeof saveBoxesState === 'function') saveBoxesState();
-  if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
-  window.renderDispenserGrid();
-};
-
-window.renderDispenserGrid = function() {
-  const grid = document.getElementById('dispenser-grid');
-  const title = document.getElementById('dispenser-section-title');
-  if (!grid || !Array.isArray(boxes)) return;
-
-  // Enforce 1 to 2 column layout directly on the grid element
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))';
-  grid.style.gap = '0.75rem';
-
-  if (title && boxes.length > 0) {
-    const firstLbl = getBoxDisplayLabel(boxes[0], 0);
-    const lastLbl = getBoxDisplayLabel(boxes[boxes.length - 1], boxes.length - 1);
-    title.textContent = `Dispenser Boxes (${firstLbl} - ${lastLbl})`;
-  }
-
-  let grandTotalSales = 0;
-
-  grid.innerHTML = boxes.map((box, idx) => {
-    const labelStr = getBoxDisplayLabel(box, idx);
-    setBoxDisplayLabel(box, labelStr);
-
-    const metrics = typeof calculateBoxMetrics === 'function'
-      ? calculateBoxMetrics(box)
-      : { ticketsSold: 0, salesAmount: 0, isError: false, errorMsg: '' };
-
-    grandTotalSales += Number(metrics.salesAmount || 0);
-    const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
-    const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
-    const isUnknownGame = box.gameNum && !(masterGames || []).some(g => String(g.gameNum ?? g.number ?? g.id).trim() === String(box.gameNum).trim());
-    const locked = typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false;
-
-    return `
-      <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-black uppercase text-slate-600">Box</span>
-              <input 
-                type="text" 
-                value="${labelStr}" 
-                onchange="window.updateBoxLabel(${idx}, this.value)"
-                onblur="if(this.value.trim().toUpperCase() !== '${labelStr}') window.updateBoxLabel(${idx}, this.value)"
-                onkeydown="if(event.key === 'Enter'){ this.blur(); }"
-                ${locked ? 'disabled' : ''}
-                title="Type A&B, 1&2, A, or 1 — following boxes auto-update"
-                class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90"
-              >
-            </div>
-            <div class="flex items-center gap-1">
-              ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
+    alert('Please enter the Game #, Ticket Name, and $ Amount.'); return; }    const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price); const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum); if (existingIdx >= 0) { masterGames[existingIdx] = { gameNum, name, price, count }; } else { masterGames.push({ gameNum, name, price, count }); }    boxes.forEach(b => { if (String(b.gameNum).trim() === gameNum) { b.gameName = name; b.price = price; b.rollCount = count; b.needsNewGameEntry = false; if (b.startTicket === '') b.startTicket = 0; } });    if (typeof saveGamesState === 'function') saveGamesState(); if (typeof saveBoxesState === 'function') saveBoxesState(); if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable(); window.renderDispenserGrid(); };  window.renderDispenserGrid = function() { const grid = document.getElementById('dispenser-grid'); const title = document.getElementById('dispenser-section-title'); if (!grid \vert{}\vert{} !Array.isArray(boxes)) return;    // Enforce 1 to 2 column layout grid.style.display = 'grid'; grid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'; grid.style.gap = '0.75rem';    if (title && boxes.length > 0) { const firstLbl = getBoxDisplayLabel(boxes[0], 0); const lastLbl = getBoxDisplayLabel(boxes[boxes.length - 1], boxes.length - 1); title.textContent = `Dispenser Boxes (${firstLbl} - ${lastLbl})`; }    let grandTotalSales = 0;    grid.innerHTML = boxes.map((box, idx) => { const labelStr = getBoxDisplayLabel(box, idx); setBoxDisplayLabel(box, labelStr);      const metrics = typeof calculateBoxMetrics === 'function' ? calculateBoxMetrics(box) : { ticketsSold: 0, salesAmount: 0, isError: false, errorMsg: '' };      grandTotalSales += Number(metrics.salesAmount \vert{}\vert{} 0); const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---'; const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0; const isUnknownGame = box.gameNum && !box.gameName && !(masterGames \vert{}\vert{} []).some(g => String(g.gameNum ?? g.number ?? g.id).trim() === String(box.gameNum).trim()); const locked = typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false;      return ` <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between"> <div> <div class="flex justify-between items-center mb-2"> <div class="flex items-center gap-1.5"> <span class="text-xs font-black uppercase text-slate-600">Box</span> <input type="text" value="${labelStr}" onchange="window.updateBoxLabel(${idx}, this.value)" onblur="if(this.value.trim().toUpperCase() !== '${labelStr}') window.updateBoxLabel(${idx}, this.value)" onkeydown="if(event.key === 'Enter'){ this.blur(); }" ${locked ? 'disabled' : ''} title="Type A&B, 1&2, A, or 1 — following boxes auto-update" class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90" > </div> <div class="flex items-center gap-1"> ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
               <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
               ${!locked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
             </div>
@@ -1707,7 +1646,7 @@ window.renderDispenserGrid = function() {
                 onchange="window.assignGameToBox(${idx}, this.value)"
                 onkeydown="if(event.key === 'Enter'){ this.blur(); }"
                 ${locked ? 'disabled' : ''}
-                placeholder="e.g. 401" 
+                placeholder="e.g. 1802" 
                 class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
               >
             </div>
@@ -1715,7 +1654,7 @@ window.renderDispenserGrid = function() {
               <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name (Database)</label>
               <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center select-none">
                 ${box.gameName 
-                  ? `<span>${box.gameName} ($${box.price})</span>` 
+                  ? `<span>${box.gameName}${box.price ? `($${box.price})` : ''}</span>` 
                   : (isUnknownGame 
                       ? '<span class="text-amber-700 font-bold">Not in table — Add below</span>' 
                       : '<span class="text-gray-400">Enter Game #</span>')}
@@ -1733,17 +1672,17 @@ window.renderDispenserGrid = function() {
                 </div>
                 <div class="col-span-2">
                   <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
-                  <input id="new-game-name-${idx}" type="text" placeholder="e.g. Jumbo Bucks" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
+                  <input id="new-game-name-${idx}" type="text" placeholder="e.g. 300x Jumbo" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
                 </div>
               </div>
               <div class="grid grid-cols-3 gap-1.5 items-end">
                 <div>
                   <label class="block text-[10px] font-bold text-amber-800">$ Amount</label>
-                  <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 5" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                  <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 30" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
                 </div>
                 <div>
                   <label class="block text-[10px] font-bold text-amber-800">Roll Count</label>
-                  <input id="new-game-count-${idx}" type="number" min="1" placeholder="e.g. 60" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                  <input id="new-game-count-${idx}" type="number" min="1" placeholder="Auto" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
                 </div>
                 <button onclick="window.saveNewGameFromBox(${idx})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs">Save Game</button>
               </div>
@@ -1793,39 +1732,44 @@ window.renderDispenserGrid = function() {
   if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
 };
 
-window.addEventListener('resize', () => {
-  const grid = document.getElementById('dispenser-grid');
-  if (grid) {
-    grid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))';
-  }
-});
-
 function buildFullBackupPayload(triggerType = 'manual') {
-  // Capture EVERY localStorage key so nothing can ever be left out
-  const allLocalStorage = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k !== AUTO_BACKUP_STORAGE_KEY) {
-      allLocalStorage[k] = localStorage.getItem(k);
-    }
-  }
+  // Also build a legacy-compatible "dispensers" object & "storeProfile" so backups work in both versions!
+  const dispensersMap = {};
+  (boxes || []).forEach((b, i) => {
+    const lbl = getBoxDisplayLabel(b, i);
+    dispensersMap[String(i + 1)] = {
+      id: lbl,
+      boxNumber: lbl,
+      gameNum: b.gameNum || '',
+      gameName: b.gameNum && b.gameName ? `${b.gameNum} - ${b.gameName}` : (b.gameName || ''),
+      price: b.price !== undefined && b.price !== 0 ? String(b.price) : '',
+      packNum: b.packNum || '',
+      rollCount: b.rollCount || 0,
+      startTicket: b.startTicket !== '' && b.startTicket !== undefined ? String(b.startTicket) : '',
+      endTicket: b.endTicket !== '' && b.endTicket !== undefined ? String(b.endTicket) : '',
+      rollovers: Array.isArray(b.rollovers) ? b.rollovers : []
+    };
+  });
 
   return {
-    version: '3.0',
+    version: '3.1',
     trigger: triggerType,
     exportedAt: new Date().toISOString(),
+    storeProfile: {
+      name: storeConfig?.name || '',
+      id: storeConfig?.number || '',
+      count: (boxes || []).length
+    },
     storeConfig: typeof storeConfig !== 'undefined' ? storeConfig : {},
     adminPin: typeof adminPin !== 'undefined' ? adminPin : '1234',
     isBoxSetupLocked: typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false,
     masterGames: typeof masterGames !== 'undefined' ? masterGames : [],
     boxes: (typeof boxes !== 'undefined' && Array.isArray(boxes)) ? boxes.map((b, i) => ({
       ...b,
-      boxNumber: getBoxDisplayLabel(b, i),
-      boxLabel: getBoxDisplayLabel(b, i),
-      label: getBoxDisplayLabel(b, i)
+      boxNumber: getBoxDisplayLabel(b, i)
     })) : [],
-    shiftHistory: typeof shiftHistory !== 'undefined' ? shiftHistory : [],
-    allLocalStorage: allLocalStorage
+    dispensers: dispensersMap,
+    shiftHistory: typeof shiftHistory !== 'undefined' ? shiftHistory : []
   };
 }
 
@@ -1848,108 +1792,99 @@ function exportFullBackup() {
   downloadBackupPayload(payload, 'Lottery_Backup');
 }
 
-function parseMaybeJSON(val) {
-  if (val === null || val === undefined) return null;
-  if (typeof val === 'object') return val;
-  if (typeof val === 'string') {
-    const trimmed = val.trim();
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      try { return JSON.parse(trimmed); } catch (e) { return null; }
+function parseCombinedGameString(rawGameNum, rawGameName) {
+  let gameNum = String(rawGameNum ?? '').trim();
+  let gameName = String(rawGameName ?? '').trim();
+
+  // Check if gameName is in the format "1802 - 300x Jumbo"
+  if (!gameNum && gameName.includes('-')) {
+    const match = gameName.match(/^(\d+)\s*-\s*(.+)$/);
+    if (match) {
+      gameNum = match[1].trim();
+      gameName = match[2].trim();
     }
+  } else if (gameNum && gameName.startsWith(`${gameNum} -`)) {
+    gameName = gameName.replace(new RegExp(`^${gameNum}\\s*-\\s*`), '').trim();
   }
-  return null;
+  return { gameNum, gameName };
 }
 
-// Recursively searches the entire backup JSON tree for arrays matching a condition
-function deepSearchArrays(node, visited = new Set()) {
-  const results = [];
-  const parsed = parseMaybeJSON(node) ?? node;
-  if (!parsed || typeof parsed !== 'object' || visited.has(parsed)) return results;
-  visited.add(parsed);
+function applyBackupData(data, carryOverEndToStart = false) {
+  if (!data || typeof data !== 'object') return;
 
-  if (Array.isArray(parsed)) {
-    results.push(parsed);
-    parsed.forEach(item => results.push(...deepSearchArrays(item, visited)));
-  } else {
-    for (const k of Object.keys(parsed)) {
-      results.push(...deepSearchArrays(parsed[k], visited));
-    }
-  }
-  return results;
-}
-
-function applyBackupData(rawInput, carryOverEndToStart = false) {
-  const data = parseMaybeJSON(rawInput) || {};
-
-  // 1. If the backup has raw localStorage dumps, restore those first
-  const lsDump = parseMaybeJSON(data.allLocalStorage) || parseMaybeJSON(data.localStorage) || parseMaybeJSON(data.rawStorage);
-  if (lsDump && typeof lsDump === 'object') {
-    for (const [k, v] of Object.entries(lsDump)) {
-      if (v !== null && v !== undefined && typeof STORAGE_KEYS !== 'undefined') {
-        const mappedKey = STORAGE_KEYS[k.toUpperCase()] || k;
-        localStorage.setItem(mappedKey, typeof v === 'string' ? v : JSON.stringify(v));
-      }
+  // 1. Restore Store Profile / Store Config (handles "storeProfile": { "name": "ReGas Xpress", "id": "122547", "count": 40 })
+  const importedStore = data.storeProfile || data.storeConfig || data.store || data.storeInfo;
+  if (importedStore && typeof importedStore === 'object') {
+    storeConfig = {
+      name: importedStore.name ?? importedStore.storeName ?? storeConfig?.name ?? '',
+      number: String(importedStore.id ?? importedStore.number ?? importedStore.storeNumber ?? storeConfig?.number ?? ''),
+      address: importedStore.address ?? importedStore.location ?? storeConfig?.address ?? '',
+      phone: importedStore.phone ?? importedStore.manager ?? storeConfig?.phone ?? ''
+    };
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.STORE) {
+      localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
     }
   }
 
-  // Collect every array anywhere inside the backup file
-  const allArrays = deepSearchArrays(data);
-
-  // 2. Find Master Games Array
-  let foundGames = data.masterGames || data.games || data.gameCatalog || data.catalog;
-  foundGames = parseMaybeJSON(foundGames);
-  if (!Array.isArray(foundGames) || foundGames.length === 0) {
-    foundGames = allArrays.find(arr => arr.length > 0 && arr[0] && typeof arr[0] === 'object' &&
-      !('startTicket' in arr[0]) && !('endTicket' in arr[0]) && !('boxNumber' in arr[0]) &&
-      ('gameNum' in arr[0] || 'gameNumber' in arr[0] || 'price' in arr[0] || 'ticketPrice' in arr[0] || 'packSize' in arr[0] || 'count' in arr[0])
-    );
+  // 2. Restore Admin PIN
+  const importedPin = data.adminPin ?? data.pin ?? data.admin?.pin;
+  if (importedPin !== undefined && importedPin !== null && String(importedPin).trim() !== '') {
+    adminPin = String(importedPin).trim();
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.PIN) {
+      localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
+    }
   }
 
-  if (Array.isArray(foundGames) && foundGames.length > 0) {
-    masterGames = foundGames.map(g => ({
-      gameNum: String(g.gameNum ?? g.gameNumber ?? g.number ?? g.gameId ?? g.id ?? g.code ?? '').trim(),
-      name: String(g.name ?? g.gameName ?? g.ticketName ?? g.title ?? 'Ticket').trim(),
-      price: Number(g.price ?? g.ticketPrice ?? g.amount ?? g.cost ?? g.value ?? 0),
-      count: Number(g.count ?? g.rollCount ?? g.packSize ?? g.totalTickets ?? g.ticketsPerRoll ?? 100)
+  // 3. Restore Master Games if present as an array
+  if (Array.isArray(data.masterGames) && data.masterGames.length > 0) {
+    masterGames = data.masterGames.map(g => ({
+      gameNum: String(g.gameNum ?? g.number ?? g.id ?? '').trim(),
+      name: String(g.name ?? g.gameName ?? '').trim(),
+      price: Number(g.price ?? 0),
+      count: Number(g.count ?? g.rollCount ?? getDefaultRollCountForPrice(g.price))
     })).filter(g => g.gameNum !== '');
+  }
 
-    if (typeof saveGamesState === 'function') saveGamesState();
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
-      localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
+  // 4. Extract Boxes from EITHER an Array ("boxes") OR an Object Map ("dispensers": { "1": {...}, "2": {...} })
+  let rawBoxesList = [];
+  if (Array.isArray(data.boxes) && data.boxes.length > 0) {
+    rawBoxesList = data.boxes;
+  } else if (data.dispensers && typeof data.dispensers === 'object') {
+    if (Array.isArray(data.dispensers)) {
+      rawBoxesList = data.dispensers;
+    } else {
+      // Sort keys numerically ("1", "2", ..., "40") so boxes stay in exact order
+      const sortedKeys = Object.keys(data.dispensers).sort((a, b) => Number(a) - Number(b));
+      rawBoxesList = sortedKeys.map(k => ({
+        ...data.dispensers[k],
+        _mapKey: k
+      }));
     }
   }
 
-  // 3. Find Boxes Array (checks direct keys, or deep searches any array of box-like objects)
-  let foundBoxes = data.boxes || data.dispenserBoxes || data.boxSetup || data.slots || data.dispensers || data.items;
-  foundBoxes = parseMaybeJSON(foundBoxes);
-  if (!Array.isArray(foundBoxes) || foundBoxes.length === 0) {
-    foundBoxes = allArrays.find(arr => arr.length > 0 && arr[0] && typeof arr[0] === 'object' && (
-      'boxNumber' in arr[0] || 'boxLabel' in arr[0] || 'boxNum' in arr[0] || 'startTicket' in arr[0] ||
-      'endTicket' in arr[0] || 'start' in arr[0] || 'end' in arr[0] || 'packNum' in arr[0] || 'slot' in arr[0]
-    ));
-  }
+  if (rawBoxesList.length > 0) {
+    boxes = rawBoxesList.map((b, i) => {
+      // Determine Box Label (uses boxNumber, id, or map key)
+      const rawLabel = b.boxNumber ?? b.boxLabel ?? b.label ?? b.id ?? b._mapKey ?? (i + 1);
+      const lbl = String(rawLabel).trim().toUpperCase();
 
-  if (Array.isArray(foundBoxes) && foundBoxes.length > 0) {
-    boxes = foundBoxes.map((b, i) => {
-      const rawLbl = b.boxNumber ?? b.boxLabel ?? b.label ?? b.boxNum ?? b.slot ?? b.box ?? b.id ?? (i + 1);
-      const lbl = String(rawLbl).trim().toUpperCase();
-
-      const rawGameNum = b.gameNum ?? b.gameNumber ?? b.gameId ?? b.gameCode ?? b.number ??
-        (typeof b.game === 'object' ? (b.game?.gameNum ?? b.game?.number ?? b.game?.id) : b.game) ?? '';
-      const gameNum = String(rawGameNum).trim();
+      // Split "1802 - 300x Jumbo" into gameNum="1802" and gameName="300x Jumbo"
+      const parsedGame = parseCombinedGameString(b.gameNum ?? b.gameNumber, b.gameName ?? b.name);
+      const gameNum = parsedGame.gameNum;
       const matchedGame = (masterGames || []).find(g => String(g.gameNum).trim() === gameNum);
 
-      const gameName = String(b.gameName ?? b.ticketName ?? b.name ?? b.title ?? b.game?.name ?? (matchedGame ? matchedGame.name : '')).trim();
-      const price = Number(b.price ?? b.ticketPrice ?? b.amount ?? b.cost ?? b.game?.price ?? (matchedGame ? matchedGame.price : 0));
-      const rollCount = Number(b.rollCount ?? b.count ?? b.packSize ?? b.maxTickets ?? b.game?.count ?? (matchedGame ? matchedGame.count : (price > 0 ? Math.max(15, Math.round(300 / price)) : 0)));
-      const packNum = String(b.packNum ?? b.packNumber ?? b.packId ?? b.pack ?? '').trim();
+      const gameName = parsedGame.gameName || (matchedGame ? matchedGame.name : '');
+      const price = Number(b.price ?? (matchedGame ? matchedGame.price : 0)) || 0;
+      const rollCount = Number(b.rollCount ?? b.count ?? (matchedGame ? matchedGame.count : getDefaultRollCountForPrice(price))) || 0;
+      const packNum = String(b.packNum ?? b.packNumber ?? b.pack ?? '').trim();
 
-      const rawStart = b.startTicket ?? b.startTkt ?? b.start ?? b.beginTicket ?? b.openTicket ?? '';
-      const rawEnd = b.endTicket ?? b.endTkt ?? b.end ?? b.closeTicket ?? b.closingTicket ?? '';
+      const rawStart = b.startTicket ?? b.start ?? '';
+      const rawEnd = b.endTicket ?? b.end ?? '';
 
-      const hasEnd = rawEnd !== '' && rawEnd !== null && rawEnd !== undefined;
       const hasStart = rawStart !== '' && rawStart !== null && rawStart !== undefined;
+      const hasEnd = rawEnd !== '' && rawEnd !== null && rawEnd !== undefined;
 
+      // If "Start From Last Backup" is chosen, move End Ticket into Start Ticket
       const finalStart = carryOverEndToStart
         ? (hasEnd ? Number(rawEnd) : (hasStart ? Number(rawStart) : ''))
         : (hasStart ? Number(rawStart) : '');
@@ -1958,7 +1893,7 @@ function applyBackupData(rawInput, carryOverEndToStart = false) {
         ? ''
         : (hasEnd ? Number(rawEnd) : '');
 
-      const boxObj = {
+      return {
         boxNumber: lbl,
         boxLabel: lbl,
         label: lbl,
@@ -1973,192 +1908,6 @@ function applyBackupData(rawInput, carryOverEndToStart = false) {
         needsNewGameEntry: false,
         rollovers: carryOverEndToStart ? [] : (Array.isArray(b.rollovers) ? b.rollovers : [])
       };
-      return boxObj;
     });
 
-    // Ensure any games attached to boxes are also added to masterGames
-    let catalogUpdated = false;
-    boxes.forEach(b => {
-      if (b.gameNum && !masterGames.some(g => String(g.gameNum).trim() === b.gameNum)) {
-        masterGames.push({
-          gameNum: b.gameNum,
-          name: b.gameName || `Game #${b.gameNum}`,
-          price: Number(b.price || 0),
-          count: Number(b.rollCount || (b.price > 0 ? Math.max(15, Math.round(300 / b.price)) : 100))
-        });
-        catalogUpdated = true;
-      }
-    });
-
-    if (catalogUpdated) {
-      if (typeof saveGamesState === 'function') saveGamesState();
-      if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
-        localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
-      }
-    }
-
-    if (typeof saveBoxesState === 'function') saveBoxesState();
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.BOXES) {
-      localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
-    }
-  }
-
-  // 4. Restore Store Info
-  const importedStore = parseMaybeJSON(data.storeConfig || data.store || data.storeInfo || data.settings);
-  if (importedStore && typeof importedStore === 'object') {
-    storeConfig = {
-      name: importedStore.name ?? importedStore.storeName ?? storeConfig?.name ?? '',
-      number: importedStore.number ?? importedStore.storeNumber ?? storeConfig?.number ?? '',
-      address: importedStore.address ?? importedStore.location ?? storeConfig?.address ?? '',
-      phone: importedStore.phone ?? importedStore.manager ?? storeConfig?.phone ?? ''
-    };
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.STORE) {
-      localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
-    }
-  }
-
-  // 5. Restore Admin PIN
-  const importedPin = data.adminPin ?? data.pin ?? data.admin?.pin;
-  if (importedPin !== undefined && importedPin !== null && String(importedPin).trim() !== '') {
-    adminPin = String(importedPin).trim();
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.PIN) {
-      localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
-    }
-  }
-
-  // 6. Refresh all views
-  if (typeof syncStoreInputsAndHeader === 'function') syncStoreInputsAndHeader();
-  if (typeof syncLockUI === 'function') syncLockUI();
-  if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
-  window.renderDispenserGrid();
-  if (typeof renderHistoryLog === 'function') renderHistoryLog();
-}
-
-function importFullBackup(event) {
-  const file = event?.target?.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data || typeof data !== 'object') {
-        alert('Invalid backup file format.');
-        return;
-      }
-
-      const startNextShift = confirm(
-        'How would you like to restore the Box Setup?\n\n' +
-        '• Click OK to START FROM LAST BACKUP (moves old End Ticket #s into Start Ticket #s for the new shift).\n' +
-        '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s as saved).'
-      );
-
-      applyBackupData(data, startNextShift);
-      const sampleLabels = (boxes || []).slice(0, 4).map((b, i) => getBoxDisplayLabel(b, i)).join(', ');
-      alert(
-        `Backup Imported!\n` +
-        `• Boxes Restored: ${boxes.length} (${sampleLabels}${boxes.length > 4 ? '...' : ''})\n` +
-        `• Master Games Restored: ${masterGames.length}`
-      );
-    } catch (err) {
-      console.error('Backup Import Error:', err);
-      alert('Could not read the backup file. Please make sure it is a valid JSON backup.');
-    } finally {
-      event.target.value = '';
-    }
-  };
-  reader.readAsText(file);
-}
-
-window.importFullBackup = importFullBackup;
-window.importBackup = importFullBackup;
-window.exportFullBackup = exportFullBackup;
-window.exportBackup = exportFullBackup;
-window.downloadBackup = exportFullBackup;
-
-function runNightlyAutoBackup(forceDownload = true) {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const payload = buildFullBackupPayload('auto-11pm');
-  localStorage.setItem(AUTO_BACKUP_STORAGE_KEY, JSON.stringify(payload));
-  localStorage.setItem(AUTO_BACKUP_LAST_DATE_KEY, todayStr);
-  if (forceDownload) {
-    downloadBackupPayload(payload, 'AutoBackup_11PM');
-  }
-}
-
-function restoreFromLastAutoBackup() {
-  const raw = localStorage.getItem(AUTO_BACKUP_STORAGE_KEY);
-  if (!raw) {
-    alert('No automatic 11:00 PM backup snapshot was found on this device yet.');
-    return;
-  }
-  try {
-    const data = JSON.parse(raw);
-    const savedTime = data.exportedAt ? new Date(data.exportedAt).toLocaleString() : 'Unknown Date';
-    if (!confirm(`Restore data from the last automatic backup saved on ${savedTime}?`)) return;
-
-    const startNextShift = confirm(
-      'Click OK to START FROM LAST BACKUP (moves End Ticket #s into Start Ticket #s).\n' +
-      'Click Cancel to restore the exact Start and End Ticket #s as saved.'
-    );
-    applyBackupData(data, startNextShift);
-    alert(`Restored from ${savedTime} auto-backup!`);
-  } catch (e) {
-    alert('Failed to read the internal auto-backup snapshot.');
-  }
-}
-
-function injectBackupToolbarIfMissing() {
-  // Hijack any existing file inputs on the page so Admin panel Import buttons also use the new importer
-  document.querySelectorAll('input[type="file"]').forEach(inp => {
-    const oc = (inp.getAttribute('onchange') || '').toLowerCase();
-    if (oc.includes('import') || oc.includes('backup') || oc.includes('restore')) {
-      inp.onchange = importFullBackup;
-    }
-  });
-
-  if (document.getElementById('backup-restore-toolbar')) return;
-  const target = document.getElementById('dispenser-section-title')?.parentElement || document.querySelector('main') || document.body;
-  if (!target) return;
-
-  const bar = document.createElement('div');
-  bar.id = 'backup-restore-toolbar';
-  bar.className = 'my-2 p-2.5 bg-slate-100 border border-slate-300 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs no-print';
-  bar.innerHTML = `
-    <div class="font-bold text-slate-700">
-      <span>System Backup & Restore</span>
-      <span class="ml-2 text-[11px] font-normal text-emerald-700">(Auto-Backup Active: 11:00 PM Daily)</span>
-    </div>
-    <div class="flex flex-wrap items-center gap-1.5">
-      <button onclick="exportFullBackup()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-2.5 py-1.5 rounded-lg">Export Backup</button>
-      <label class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2.5 py-1.5 rounded-lg cursor-pointer">
-        Import Backup File
-        <input type="file" accept=".json,application/json" onchange="importFullBackup(event)" class="hidden">
-      </label>
-      <button onclick="restoreFromLastAutoBackup()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1.5 rounded-lg">Start From Last 11PM Backup</button>
-    </div>
-  `;
-  target.prepend(bar);
-}
-
-function initNightly11PMAutoBackup() {
-  injectBackupToolbarIfMissing();
-  window.renderDispenserGrid();
-  setInterval(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const lastRunDate = localStorage.getItem(AUTO_BACKUP_LAST_DATE_KEY);
-    if (now.getHours() === 23 && now.getMinutes() >= 0 && lastRunDate !== todayStr) {
-      runNightlyAutoBackup(true);
-    }
-  }, 30000);
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initNightly11PMAutoBackup);
-} else {
-  setTimeout(initNightly11PMAutoBackup, 50);
-}
-</script>
-</body>
-</html>
+    // Automatically
