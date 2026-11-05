@@ -878,40 +878,26 @@
       };
     }
 
-function updateBoxLabel(idx, newVal) {
-  const cleaned = newVal.trim().toUpperCase();
-  if (!cleaned) {
+function addBox() {
+  if (isBoxSetupLocked) return;
+  boxes.push({
+    boxNumber: String(boxes.length + 1),
+    gameNum: '',
+    gameName: '',
+    price: 0,
+    rollCount: 0,
+    packNum: '',
+    startTicket: '',
+    endTicket: '',
+    rollovers: []
+  });
+  if (boxes.length > 1) {
+    const prevIdx = boxes.length - 2;
+    updateBoxLabel(prevIdx, String(boxes[prevIdx].boxNumber));
+  } else {
+    saveBoxesState();
     renderDispenserGrid();
-    return;
   }
-  boxes[idx].boxNumber = cleaned;
-
-  // Check if the label ends with '&' (e.g., "1&", "A&") or is a standard number/letter
-  const hasAmp = cleaned.endsWith('&');
-  const core = hasAmp ? cleaned.slice(0, -1).trim() : cleaned;
-
-  if (/^\d+$/.test(core)) {
-    // Cascade sequential numbers (e.g., 5 -> 6, 7, 8...)
-    let currentNum = parseInt(core, 10);
-    for (let i = idx + 1; i < boxes.length; i++) {
-      currentNum++;
-      boxes[i].boxNumber = String(currentNum);
-    }
-  } else if (/^[A-Z]$/.test(core)) {
-    // Cascade sequential letters (e.g., A -> B, C, D...)
-    let currentCode = core.charCodeAt(0);
-    for (let i = idx + 1; i < boxes.length; i++) {
-      currentCode++;
-      if (currentCode <= 90) { // Up to 'Z'
-        boxes[i].boxNumber = String.fromCharCode(currentCode);
-      } else {
-        boxes[i].boxNumber = 'Z+' + (currentCode - 90);
-      }
-    }
-  }
-
-  saveBoxesState();
-  renderDispenserGrid();
 }
 
 function assignGameToBox(idx, gameNumInput) {
