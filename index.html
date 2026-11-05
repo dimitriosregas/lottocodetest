@@ -1488,31 +1488,344 @@ function handleBarcodeString(raw) {
 </html>
 // ==========================================
 // ==========================================
-// FULL SYSTEM BACKUP, RESTORE & 11PM AUTO-BACKUP
+// ==========================================
+// FULL SYSTEM BACKUP, RESTORE & HARD-OVERRIDE ENGINE
 // ==========================================
 
 const AUTO_BACKUP_STORAGE_KEY = 'lottery_pro_auto_backup_snapshot';
 const AUTO_BACKUP_LAST_DATE_KEY = 'lottery_pro_auto_backup_last_date';
 
+function indexToLetters(num) {
+  let str = '';
+  let n = num;
+  while (n >= 0) {
+    str = String.fromCharCode((n % 26) + 65) + str;
+    n = Math.floor(n / 26) - 1;
+  }
+  return str;
+}
+
+function setBoxDisplayLabel(boxObj, labelStr) {
+  if (!boxObj) return;
+  const val = String(labelStr).trim().toUpperCase();
+  boxObj.boxNumber = val;
+  boxObj.boxLabel = val;
+  boxObj.label = val;
+  boxObj.boxNum = val;
+}
+
+function getBoxDisplayLabel(boxObj, fallbackIdx) {
+  if (!boxObj) return String(fallbackIdx + 1);
+  const raw = boxObj.boxNumber ?? boxObj.boxLabel ?? boxObj.label ?? boxObj.boxNum ?? boxObj.slot ?? boxObj.id ?? (fallbackIdx + 1);
+  return String(raw).trim().toUpperCase();
+}
+
+window.updateBoxLabel = function(idx, newVal) {
+  const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!cleaned) {
+    window.renderDispenserGrid();
+    return;
+  }
+  setBoxDisplayLabel(boxes[idx], cleaned);
+
+  // 1. Paired Letters with & (e.g. "A&B" -> "C&D", "E&F"...)
+  const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
+  // 2. Paired Numbers with & (e.g. "1&2" -> "3&4", "5&6"...)
+  const numPairMatch = cleaned.match(/^(\d+)&(\d+)$/);
+  // 3. Single Number (e.g. "1" -> "2", "3", "4"...)
+  const singleNumMatch = cleaned.match(/^(\d+)&?$/);
+  // 4. Single Letter (e.g. "A" -> "B", "C", "D"...)
+  const singleLetterMatch = cleaned.match(/^([A-Z])&?$/);
+
+  if (letterPairMatch) {
+    let secondLetterIdx = letterPairMatch[2].charCodeAt(0) - 65;
+    for (let i = idx + 1; i < boxes.length; i++) {
+      const nextFirst = secondLetterIdx + 1;
+      const nextSecond = secondLetterIdx + 2;
+      setBoxDisplayLabel(boxes[i], `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`);
+      secondLetterIdx = nextSecond;
+    }
+  } else if (numPairMatch) {
+    let lastNum = parseInt(numPairMatch[2], 10);
+    for (let i = idx + 1; i < boxes.length; i++) {
+      const nextFirst = lastNum + 1;
+      const nextSecond = lastNum + 2;
+      setBoxDisplayLabel(boxes[i], `${nextFirst}&${nextSecond}`);
+      lastNum = nextSecond;
+    }
+  } else if (singleNumMatch) {
+    let currentNum = parseInt(singleNumMatch[1], 10);
+    for (let i = idx + 1; i < boxes.length; i++) {
+      currentNum++;
+      setBoxDisplayLabel(boxes[i], String(currentNum));
+    }
+  } else if (singleLetterMatch) {
+    let currentIdx = singleLetterMatch[1].charCodeAt(0) - 65;
+    for (let i = idx + 1; i < boxes.length; i++) {
+      currentIdx++;
+      setBoxDisplayLabel(boxes[i], indexToLetters(currentIdx));
+    }
+  }
+
+  if (typeof saveBoxesState === 'function') saveBoxesState();
+  if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.BOXES) {
+    localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
+  }
+  window.renderDispenserGrid();
+};
+
+window.assignGameToBox = function(idx, gameNumInput) {
+  const box = boxes[idx];
+  if (!box) return;
+  const cleanedNum = String(gameNumInput || '').trim();
+  const game = (masterGames || []).find(g => String(g.gameNum ?? g.number ?? g.id).trim() === cleanedNum);
+
+  if (game) {
+    box.gameNum = String(game.gameNum ?? game.number ?? game.id).trim();
+    box.gameName = game.name || game.gameName || '';
+    box.price = Number(game.price ?? game.amount ?? 0);
+    box.rollCount = Number(game.count ?? game.rollCount ?? 100);
+    box.needsNewGameEntry = false;
+    if (box.startTicket === '' || box.startTicket === undefined) box.startTicket = 0;
+  } else if (cleanedNum === '') {
+    box.gameNum = '';
+    box.gameName = '';
+    box.price = 0;
+    box.rollCount = 0;
+    box.needsNewGameEntry = false;
+  } else {
+    box.gameNum = cleanedNum;
+    box.gameName = '';
+    box.price = 0;
+    box.rollCount = 0;
+    box.needsNewGameEntry = true;
+  }
+  if (typeof saveBoxesState === 'function') saveBoxesState();
+  window.renderDispenserGrid();
+};
+
+window.saveNewGameFromBox = function(idx) {
+  const box = boxes[idx];
+  if (!box) return;
+
+  const gameNum = (document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
+  const name = (document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
+  const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
+  const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
+
+  if (!gameNum || !name || price <= 0) {
+    alert('Please enter the Game #, Ticket Name, and $ Amount.');
+    return;
+  }
+
+  const count = countInput > 0 ? countInput : Math.max(15, Math.round(300 / price));
+  const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
+  if (existingIdx >= 0) {
+    masterGames[existingIdx] = { gameNum, name, price, count };
+  } else {
+    masterGames.push({ gameNum, name, price, count });
+  }
+
+  boxes.forEach(b => {
+    if (String(b.gameNum).trim() === gameNum) {
+      b.gameName = name;
+      b.price = price;
+      b.rollCount = count;
+      b.needsNewGameEntry = false;
+      if (b.startTicket === '') b.startTicket = 0;
+    }
+  });
+
+  if (typeof saveGamesState === 'function') saveGamesState();
+  if (typeof saveBoxesState === 'function') saveBoxesState();
+  if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
+  window.renderDispenserGrid();
+};
+
+window.renderDispenserGrid = function() {
+  const grid = document.getElementById('dispenser-grid');
+  const title = document.getElementById('dispenser-section-title');
+  if (!grid || !Array.isArray(boxes)) return;
+
+  // Enforce 1 to 2 column layout directly on the grid element
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))';
+  grid.style.gap = '0.75rem';
+
+  if (title && boxes.length > 0) {
+    const firstLbl = getBoxDisplayLabel(boxes[0], 0);
+    const lastLbl = getBoxDisplayLabel(boxes[boxes.length - 1], boxes.length - 1);
+    title.textContent = `Dispenser Boxes (${firstLbl} - ${lastLbl})`;
+  }
+
+  let grandTotalSales = 0;
+
+  grid.innerHTML = boxes.map((box, idx) => {
+    const labelStr = getBoxDisplayLabel(box, idx);
+    setBoxDisplayLabel(box, labelStr);
+
+    const metrics = typeof calculateBoxMetrics === 'function'
+      ? calculateBoxMetrics(box)
+      : { ticketsSold: 0, salesAmount: 0, isError: false, errorMsg: '' };
+
+    grandTotalSales += Number(metrics.salesAmount || 0);
+    const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
+    const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
+    const isUnknownGame = box.gameNum && !(masterGames || []).some(g => String(g.gameNum ?? g.number ?? g.id).trim() === String(box.gameNum).trim());
+    const locked = typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false;
+
+    return `
+      <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-black uppercase text-slate-600">Box</span>
+              <input 
+                type="text" 
+                value="${labelStr}" 
+                onchange="window.updateBoxLabel(${idx}, this.value)"
+                onblur="if(this.value.trim().toUpperCase() !== '${labelStr}') window.updateBoxLabel(${idx}, this.value)"
+                onkeydown="if(event.key === 'Enter'){ this.blur(); }"
+                ${locked ? 'disabled' : ''}
+                title="Type A&B, 1&2, A, or 1 — following boxes auto-update"
+                class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90"
+              >
+            </div>
+            <div class="flex items-center gap-1">
+              ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
+              <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
+              ${!locked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 mb-2">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
+              <input 
+                type="text" 
+                value="${box.gameNum || ''}" 
+                onchange="window.assignGameToBox(${idx}, this.value)"
+                onkeydown="if(event.key === 'Enter'){ this.blur(); }"
+                ${locked ? 'disabled' : ''}
+                placeholder="e.g. 401" 
+                class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
+              >
+            </div>
+            <div class="col-span-2">
+              <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name (Database)</label>
+              <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center select-none">
+                ${box.gameName 
+                  ? `<span>${box.gameName} ($${box.price})</span>` 
+                  : (isUnknownGame 
+                      ? '<span class="text-amber-700 font-bold">Not in table — Add below</span>' 
+                      : '<span class="text-gray-400">Enter Game #</span>')}
+              </div>
+            </div>
+          </div>
+
+          ${isUnknownGame ? `
+            <div class="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-xs">
+              <div class="font-bold text-amber-900 mb-1">Game #${box.gameNum} not found. Add to database:</div>
+              <div class="grid grid-cols-3 gap-1.5 mb-1.5">
+                <div>
+                  <label class="block text-[10px] font-bold text-amber-800">Game #</label>
+                  <input id="new-game-num-${idx}" type="text" value="${box.gameNum}" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
+                  <input id="new-game-name-${idx}" type="text" placeholder="e.g. Jumbo Bucks" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5 items-end">
+                <div>
+                  <label class="block text-[10px] font-bold text-amber-800">$ Amount</label>
+                  <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 5" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-amber-800">Roll Count</label>
+                  <input id="new-game-count-${idx}" type="number" min="1" placeholder="e.g. 60" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                </div>
+                <button onclick="window.saveNewGameFromBox(${idx})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs">Save Game</button>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
+            <div>
+              <label class="block text-gray-500 font-semibold">Pack #</label>
+              <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${locked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
+            </div>
+            <div>
+              <label class="block text-gray-500 font-semibold">Roll Max #</label>
+              <div class="p-1 font-mono text-xs bg-gray-100 border rounded text-gray-600 select-none">${maxTicketStr} (${box.rollCount || 0})</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5 mb-2">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
+              <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${locked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
+              <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
+            </div>
+          </div>
+
+          ${metrics.isError ? `<p class="text-[11px] text-red-600 font-semibold mb-1">${metrics.errorMsg}</p>` : ''}
+        </div>
+
+        <div class="pt-2 border-t flex items-center justify-between text-xs">
+          <div>
+            <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
+            <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${Number(metrics.salesAmount || 0).toFixed(2)}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll${rollBadgeCount > 1 ? 's' : ''}</button>` : ''}
+            <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const salesEl = document.getElementById('action-bar-sales');
+  if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
+};
+
+window.addEventListener('resize', () => {
+  const grid = document.getElementById('dispenser-grid');
+  if (grid) {
+    grid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))';
+  }
+});
+
 function buildFullBackupPayload(triggerType = 'manual') {
+  // Capture EVERY localStorage key so nothing can ever be left out
+  const allLocalStorage = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k !== AUTO_BACKUP_STORAGE_KEY) {
+      allLocalStorage[k] = localStorage.getItem(k);
+    }
+  }
+
   return {
-    version: '2.2',
+    version: '3.0',
     trigger: triggerType,
     exportedAt: new Date().toISOString(),
     storeConfig: typeof storeConfig !== 'undefined' ? storeConfig : {},
     adminPin: typeof adminPin !== 'undefined' ? adminPin : '1234',
     isBoxSetupLocked: typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false,
     masterGames: typeof masterGames !== 'undefined' ? masterGames : [],
-    boxes: typeof boxes !== 'undefined' ? boxes : [],
+    boxes: (typeof boxes !== 'undefined' && Array.isArray(boxes)) ? boxes.map((b, i) => ({
+      ...b,
+      boxNumber: getBoxDisplayLabel(b, i),
+      boxLabel: getBoxDisplayLabel(b, i),
+      label: getBoxDisplayLabel(b, i)
+    })) : [],
     shiftHistory: typeof shiftHistory !== 'undefined' ? shiftHistory : [],
-    rawStorage: {
-      store: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.STORE) : null,
-      pin: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.PIN) : null,
-      lock: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.LOCK) : null,
-      games: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.GAMES) : null,
-      boxes: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.BOXES) : null,
-      history: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.HISTORY) : null
-    }
+    allLocalStorage: allLocalStorage
   };
 }
 
@@ -1536,105 +1849,64 @@ function exportFullBackup() {
 }
 
 function parseMaybeJSON(val) {
-  if (!val) return null;
+  if (val === null || val === undefined) return null;
   if (typeof val === 'object') return val;
   if (typeof val === 'string') {
-    try { return JSON.parse(val); } catch (e) { return null; }
+    const trimmed = val.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try { return JSON.parse(trimmed); } catch (e) { return null; }
+    }
   }
   return null;
 }
 
-function findArrayInBackup(obj, preferredKeys, validatorFn) {
-  if (!obj || typeof obj !== 'object') return null;
+// Recursively searches the entire backup JSON tree for arrays matching a condition
+function deepSearchArrays(node, visited = new Set()) {
+  const results = [];
+  const parsed = parseMaybeJSON(node) ?? node;
+  if (!parsed || typeof parsed !== 'object' || visited.has(parsed)) return results;
+  visited.add(parsed);
 
-  const sources = [
-    obj,
-    parseMaybeJSON(obj.rawStorage),
-    parseMaybeJSON(obj.data),
-    parseMaybeJSON(obj.state),
-    parseMaybeJSON(obj.localStorage)
-  ].filter(Boolean);
-
-  for (const src of sources) {
-    for (const k of preferredKeys) {
-      if (!k) continue;
-      const candidate = parseMaybeJSON(src[k]);
-      if (Array.isArray(candidate) && candidate.length > 0 && (!validatorFn || validatorFn(candidate[0]))) {
-        return candidate;
-      }
+  if (Array.isArray(parsed)) {
+    results.push(parsed);
+    parsed.forEach(item => results.push(...deepSearchArrays(item, visited)));
+  } else {
+    for (const k of Object.keys(parsed)) {
+      results.push(...deepSearchArrays(parsed[k], visited));
     }
   }
-
-  for (const src of sources) {
-    for (const key of Object.keys(src)) {
-      const candidate = parseMaybeJSON(src[key]);
-      if (Array.isArray(candidate) && candidate.length > 0 && validatorFn && validatorFn(candidate[0])) {
-        return candidate;
-      }
-    }
-  }
-  return null;
+  return results;
 }
 
 function applyBackupData(rawInput, carryOverEndToStart = false) {
   const data = parseMaybeJSON(rawInput) || {};
-  const rawStoreObj = parseMaybeJSON(data.rawStorage) || parseMaybeJSON(data.localStorage) || {};
 
-  // 1. Restore Store Information
-  let importedStore = parseMaybeJSON(data.storeConfig || data.store || data.storeInfo || data.settings || rawStoreObj.store);
-  if (!importedStore) {
-    for (const k of Object.keys(data)) {
-      if (k.toLowerCase().includes('store')) {
-        const parsed = parseMaybeJSON(data[k]);
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          importedStore = parsed;
-          break;
-        }
+  // 1. If the backup has raw localStorage dumps, restore those first
+  const lsDump = parseMaybeJSON(data.allLocalStorage) || parseMaybeJSON(data.localStorage) || parseMaybeJSON(data.rawStorage);
+  if (lsDump && typeof lsDump === 'object') {
+    for (const [k, v] of Object.entries(lsDump)) {
+      if (v !== null && v !== undefined && typeof STORAGE_KEYS !== 'undefined') {
+        const mappedKey = STORAGE_KEYS[k.toUpperCase()] || k;
+        localStorage.setItem(mappedKey, typeof v === 'string' ? v : JSON.stringify(v));
       }
     }
   }
-  if (importedStore && typeof importedStore === 'object') {
-    storeConfig = {
-      name: importedStore.name ?? importedStore.storeName ?? importedStore.title ?? storeConfig?.name ?? '',
-      number: importedStore.number ?? importedStore.storeNumber ?? importedStore.storeId ?? importedStore.id ?? storeConfig?.number ?? '',
-      address: importedStore.address ?? importedStore.location ?? importedStore.street ?? storeConfig?.address ?? '',
-      phone: importedStore.phone ?? importedStore.manager ?? importedStore.contact ?? storeConfig?.phone ?? ''
-    };
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.STORE) {
-      localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
-    }
+
+  // Collect every array anywhere inside the backup file
+  const allArrays = deepSearchArrays(data);
+
+  // 2. Find Master Games Array
+  let foundGames = data.masterGames || data.games || data.gameCatalog || data.catalog;
+  foundGames = parseMaybeJSON(foundGames);
+  if (!Array.isArray(foundGames) || foundGames.length === 0) {
+    foundGames = allArrays.find(arr => arr.length > 0 && arr[0] && typeof arr[0] === 'object' &&
+      !('startTicket' in arr[0]) && !('endTicket' in arr[0]) && !('boxNumber' in arr[0]) &&
+      ('gameNum' in arr[0] || 'gameNumber' in arr[0] || 'price' in arr[0] || 'ticketPrice' in arr[0] || 'packSize' in arr[0] || 'count' in arr[0])
+    );
   }
 
-  // 2. Restore Admin PIN
-  const importedPin = data.adminPin ?? data.pin ?? data.admin?.pin ?? data.settings?.pin ?? rawStoreObj.pin;
-  if (importedPin !== undefined && importedPin !== null && String(importedPin).trim() !== '') {
-    adminPin = String(importedPin).trim();
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.PIN) {
-      localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
-    }
-  }
-
-  // 3. Restore Box Lock State
-  const importedLock = data.isBoxSetupLocked !== undefined
-    ? data.isBoxSetupLocked
-    : (rawStoreObj.lock !== null && rawStoreObj.lock !== undefined ? rawStoreObj.lock === 'true' : undefined);
-  if (importedLock !== undefined) {
-    isBoxSetupLocked = Boolean(importedLock);
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.LOCK) {
-      localStorage.setItem(STORAGE_KEYS.LOCK, String(isBoxSetupLocked));
-    }
-  }
-
-  // 4. Restore Master Game Catalog
-  const importedGames = findArrayInBackup(
-    data,
-    ['masterGames', 'games', 'gameList', 'catalog', 'gameCatalog', 'tickets', (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.GAMES : '')],
-    item => item && typeof item === 'object' && !('boxNumber' in item) && !('startTicket' in item) &&
-            ('price' in item || 'cost' in item || 'amount' in item || 'ticketPrice' in item || 'count' in item || 'rollCount' in item || 'packSize' in item)
-  );
-
-  if (Array.isArray(importedGames)) {
-    masterGames = importedGames.map(g => ({
+  if (Array.isArray(foundGames) && foundGames.length > 0) {
+    masterGames = foundGames.map(g => ({
       gameNum: String(g.gameNum ?? g.gameNumber ?? g.number ?? g.gameId ?? g.id ?? g.code ?? '').trim(),
       name: String(g.name ?? g.gameName ?? g.ticketName ?? g.title ?? 'Ticket').trim(),
       price: Number(g.price ?? g.ticketPrice ?? g.amount ?? g.cost ?? g.value ?? 0),
@@ -1642,49 +1914,30 @@ function applyBackupData(rawInput, carryOverEndToStart = false) {
     })).filter(g => g.gameNum !== '');
 
     if (typeof saveGamesState === 'function') saveGamesState();
-    else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
       localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
     }
   }
 
-  // 5. Restore Shift History
-  const importedHistory = findArrayInBackup(
-    data,
-    ['shiftHistory', 'history', 'logs', 'shifts', 'shiftLogs', (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.HISTORY : '')],
-    item => item && typeof item === 'object' && ('timestamp' in item || 'date' in item || 'boxSnapshot' in item || 'totalSales' in item)
-  );
-
-  if (Array.isArray(importedHistory)) {
-    shiftHistory = importedHistory;
-    if (typeof saveHistoryState === 'function') saveHistoryState();
-    else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.HISTORY) {
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(shiftHistory));
-    }
+  // 3. Find Boxes Array (checks direct keys, or deep searches any array of box-like objects)
+  let foundBoxes = data.boxes || data.dispenserBoxes || data.boxSetup || data.slots || data.dispensers || data.items;
+  foundBoxes = parseMaybeJSON(foundBoxes);
+  if (!Array.isArray(foundBoxes) || foundBoxes.length === 0) {
+    foundBoxes = allArrays.find(arr => arr.length > 0 && arr[0] && typeof arr[0] === 'object' && (
+      'boxNumber' in arr[0] || 'boxLabel' in arr[0] || 'boxNum' in arr[0] || 'startTicket' in arr[0] ||
+      'endTicket' in arr[0] || 'start' in arr[0] || 'end' in arr[0] || 'packNum' in arr[0] || 'slot' in arr[0]
+    ));
   }
 
-  // 6. Restore Dispenser Boxes
-  let importedBoxes = findArrayInBackup(
-    data,
-    ['boxes', 'dispenserBoxes', 'boxSetup', 'boxList', 'dispensers', 'slots', (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.BOXES : '')],
-    item => item && typeof item === 'object' && (
-      'boxNumber' in item || 'boxNum' in item || 'boxLabel' in item || 'boxId' in item ||
-      'startTicket' in item || 'endTicket' in item || 'start' in item || 'packNum' in item || 'gameNum' in item
-    )
-  );
+  if (Array.isArray(foundBoxes) && foundBoxes.length > 0) {
+    boxes = foundBoxes.map((b, i) => {
+      const rawLbl = b.boxNumber ?? b.boxLabel ?? b.label ?? b.boxNum ?? b.slot ?? b.box ?? b.id ?? (i + 1);
+      const lbl = String(rawLbl).trim().toUpperCase();
 
-  if (!Array.isArray(importedBoxes) && Array.isArray(shiftHistory) && shiftHistory.length > 0) {
-    const latest = shiftHistory[0];
-    importedBoxes = latest.boxSnapshot || latest.boxes || latest.dispenserBoxes || latest.items || null;
-  }
-
-  if (Array.isArray(importedBoxes) && importedBoxes.length > 0) {
-    boxes = importedBoxes.map((b, i) => {
-      const rawBoxLabel = b.boxNumber ?? b.boxNum ?? b.boxLabel ?? b.label ?? b.slot ?? b.box ?? b.id ?? (i + 1);
-      const boxNumber = String(rawBoxLabel).trim().toUpperCase();
-
-      const rawGameNum = b.gameNum ?? b.gameNumber ?? b.gameId ?? b.gameCode ?? b.number ?? (typeof b.game === 'string' || typeof b.game === 'number' ? b.game : b.game?.gameNum) ?? '';
+      const rawGameNum = b.gameNum ?? b.gameNumber ?? b.gameId ?? b.gameCode ?? b.number ??
+        (typeof b.game === 'object' ? (b.game?.gameNum ?? b.game?.number ?? b.game?.id) : b.game) ?? '';
       const gameNum = String(rawGameNum).trim();
-      const matchedGame = masterGames.find(g => String(g.gameNum).trim() === gameNum);
+      const matchedGame = (masterGames || []).find(g => String(g.gameNum).trim() === gameNum);
 
       const gameName = String(b.gameName ?? b.ticketName ?? b.name ?? b.title ?? b.game?.name ?? (matchedGame ? matchedGame.name : '')).trim();
       const price = Number(b.price ?? b.ticketPrice ?? b.amount ?? b.cost ?? b.game?.price ?? (matchedGame ? matchedGame.price : 0));
@@ -1705,8 +1958,11 @@ function applyBackupData(rawInput, carryOverEndToStart = false) {
         ? ''
         : (hasEnd ? Number(rawEnd) : '');
 
-      return {
-        boxNumber: boxNumber,
+      const boxObj = {
+        boxNumber: lbl,
+        boxLabel: lbl,
+        label: lbl,
+        boxNum: lbl,
         gameNum: gameNum,
         gameName: gameName,
         price: price,
@@ -1717,10 +1973,11 @@ function applyBackupData(rawInput, carryOverEndToStart = false) {
         needsNewGameEntry: false,
         rollovers: carryOverEndToStart ? [] : (Array.isArray(b.rollovers) ? b.rollovers : [])
       };
+      return boxObj;
     });
 
-    // Register any games from imported boxes into masterGames automatically
-    let updatedCatalog = false;
+    // Ensure any games attached to boxes are also added to masterGames
+    let catalogUpdated = false;
     boxes.forEach(b => {
       if (b.gameNum && !masterGames.some(g => String(g.gameNum).trim() === b.gameNum)) {
         masterGames.push({
@@ -1729,28 +1986,51 @@ function applyBackupData(rawInput, carryOverEndToStart = false) {
           price: Number(b.price || 0),
           count: Number(b.rollCount || (b.price > 0 ? Math.max(15, Math.round(300 / b.price)) : 100))
         });
-        updatedCatalog = true;
+        catalogUpdated = true;
       }
     });
 
-    if (updatedCatalog) {
+    if (catalogUpdated) {
       if (typeof saveGamesState === 'function') saveGamesState();
-      else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
+      if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
         localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
       }
     }
 
     if (typeof saveBoxesState === 'function') saveBoxesState();
-    else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.BOXES) {
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.BOXES) {
       localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
     }
   }
 
-  // 7. Refresh all UI views
+  // 4. Restore Store Info
+  const importedStore = parseMaybeJSON(data.storeConfig || data.store || data.storeInfo || data.settings);
+  if (importedStore && typeof importedStore === 'object') {
+    storeConfig = {
+      name: importedStore.name ?? importedStore.storeName ?? storeConfig?.name ?? '',
+      number: importedStore.number ?? importedStore.storeNumber ?? storeConfig?.number ?? '',
+      address: importedStore.address ?? importedStore.location ?? storeConfig?.address ?? '',
+      phone: importedStore.phone ?? importedStore.manager ?? storeConfig?.phone ?? ''
+    };
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.STORE) {
+      localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
+    }
+  }
+
+  // 5. Restore Admin PIN
+  const importedPin = data.adminPin ?? data.pin ?? data.admin?.pin;
+  if (importedPin !== undefined && importedPin !== null && String(importedPin).trim() !== '') {
+    adminPin = String(importedPin).trim();
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.PIN) {
+      localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
+    }
+  }
+
+  // 6. Refresh all views
   if (typeof syncStoreInputsAndHeader === 'function') syncStoreInputsAndHeader();
   if (typeof syncLockUI === 'function') syncLockUI();
   if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
-  if (typeof renderDispenserGrid === 'function') renderDispenserGrid();
+  window.renderDispenserGrid();
   if (typeof renderHistoryLog === 'function') renderHistoryLog();
 }
 
@@ -1770,11 +2050,16 @@ function importFullBackup(event) {
       const startNextShift = confirm(
         'How would you like to restore the Box Setup?\n\n' +
         '• Click OK to START FROM LAST BACKUP (moves old End Ticket #s into Start Ticket #s for the new shift).\n' +
-        '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s exactly as saved).'
+        '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s as saved).'
       );
 
       applyBackupData(data, startNextShift);
-      alert(`Backup imported!\n• Boxes loaded: ${boxes.length}\n• Master Games loaded: ${masterGames.length}`);
+      const sampleLabels = (boxes || []).slice(0, 4).map((b, i) => getBoxDisplayLabel(b, i)).join(', ');
+      alert(
+        `Backup Imported!\n` +
+        `• Boxes Restored: ${boxes.length} (${sampleLabels}${boxes.length > 4 ? '...' : ''})\n` +
+        `• Master Games Restored: ${masterGames.length}`
+      );
     } catch (err) {
       console.error('Backup Import Error:', err);
       alert('Could not read the backup file. Please make sure it is a valid JSON backup.');
@@ -1785,7 +2070,6 @@ function importFullBackup(event) {
   reader.readAsText(file);
 }
 
-// Safely attach to window without causing duplicate const declaration errors
 window.importFullBackup = importFullBackup;
 window.importBackup = importFullBackup;
 window.exportFullBackup = exportFullBackup;
@@ -1818,13 +2102,21 @@ function restoreFromLastAutoBackup() {
       'Click Cancel to restore the exact Start and End Ticket #s as saved.'
     );
     applyBackupData(data, startNextShift);
-    alert(`Restored from ${savedTime} auto-backup!\n• Boxes loaded: ${boxes.length}\n• Master Games loaded: ${masterGames.length}`);
+    alert(`Restored from ${savedTime} auto-backup!`);
   } catch (e) {
     alert('Failed to read the internal auto-backup snapshot.');
   }
 }
 
 function injectBackupToolbarIfMissing() {
+  // Hijack any existing file inputs on the page so Admin panel Import buttons also use the new importer
+  document.querySelectorAll('input[type="file"]').forEach(inp => {
+    const oc = (inp.getAttribute('onchange') || '').toLowerCase();
+    if (oc.includes('import') || oc.includes('backup') || oc.includes('restore')) {
+      inp.onchange = importFullBackup;
+    }
+  });
+
   if (document.getElementById('backup-restore-toolbar')) return;
   const target = document.getElementById('dispenser-section-title')?.parentElement || document.querySelector('main') || document.body;
   if (!target) return;
@@ -1851,6 +2143,7 @@ function injectBackupToolbarIfMissing() {
 
 function initNightly11PMAutoBackup() {
   injectBackupToolbarIfMissing();
+  window.renderDispenserGrid();
   setInterval(() => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
@@ -1864,7 +2157,7 @@ function initNightly11PMAutoBackup() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initNightly11PMAutoBackup);
 } else {
-  initNightly11PMAutoBackup();
+  setTimeout(initNightly11PMAutoBackup, 50);
 }
 </script>
 </body>
