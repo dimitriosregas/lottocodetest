@@ -1487,6 +1487,7 @@ function handleBarcodeString(raw) {
 </body>
 </html>
 // ==========================================
+// ==========================================
 // FULL SYSTEM BACKUP, RESTORE & 11PM AUTO-BACKUP
 // ==========================================
 
@@ -1495,7 +1496,7 @@ const AUTO_BACKUP_LAST_DATE_KEY = 'lottery_pro_auto_backup_last_date';
 
 function buildFullBackupPayload(triggerType = 'manual') {
   return {
-    version: '2.1',
+    version: '2.2',
     trigger: triggerType,
     exportedAt: new Date().toISOString(),
     storeConfig: typeof storeConfig !== 'undefined' ? storeConfig : {},
@@ -1505,12 +1506,12 @@ function buildFullBackupPayload(triggerType = 'manual') {
     boxes: typeof boxes !== 'undefined' ? boxes : [],
     shiftHistory: typeof shiftHistory !== 'undefined' ? shiftHistory : [],
     rawStorage: {
-      store: localStorage.getItem(STORAGE_KEYS.STORE),
-      pin: localStorage.getItem(STORAGE_KEYS.PIN),
-      lock: localStorage.getItem(STORAGE_KEYS.LOCK),
-      games: localStorage.getItem(STORAGE_KEYS.GAMES),
-      boxes: localStorage.getItem(STORAGE_KEYS.BOXES),
-      history: localStorage.getItem(STORAGE_KEYS.HISTORY)
+      store: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.STORE) : null,
+      pin: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.PIN) : null,
+      lock: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.LOCK) : null,
+      games: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.GAMES) : null,
+      boxes: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.BOXES) : null,
+      history: typeof STORAGE_KEYS !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.HISTORY) : null
     }
   };
 }
@@ -1534,115 +1535,215 @@ function exportFullBackup() {
   downloadBackupPayload(payload, 'Lottery_Backup');
 }
 
-// Keep aliases in case existing HTML buttons use older function names
-const exportBackup = exportFullBackup;
-const downloadBackup = exportFullBackup;
+function parseMaybeJSON(val) {
+  if (!val) return null;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch (e) { return null; }
+  }
+  return null;
+}
 
-function applyBackupData(data, carryOverEndToStart = false) {
+function findArrayInBackup(obj, preferredKeys, validatorFn) {
+  if (!obj || typeof obj !== 'object') return null;
+
+  const sources = [
+    obj,
+    parseMaybeJSON(obj.rawStorage),
+    parseMaybeJSON(obj.data),
+    parseMaybeJSON(obj.state),
+    parseMaybeJSON(obj.localStorage)
+  ].filter(Boolean);
+
+  for (const src of sources) {
+    for (const k of preferredKeys) {
+      if (!k) continue;
+      const candidate = parseMaybeJSON(src[k]);
+      if (Array.isArray(candidate) && candidate.length > 0 && (!validatorFn || validatorFn(candidate[0]))) {
+        return candidate;
+      }
+    }
+  }
+
+  for (const src of sources) {
+    for (const key of Object.keys(src)) {
+      const candidate = parseMaybeJSON(src[key]);
+      if (Array.isArray(candidate) && candidate.length > 0 && validatorFn && validatorFn(candidate[0])) {
+        return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+function applyBackupData(rawInput, carryOverEndToStart = false) {
+  const data = parseMaybeJSON(rawInput) || {};
+  const rawStoreObj = parseMaybeJSON(data.rawStorage) || parseMaybeJSON(data.localStorage) || {};
+
   // 1. Restore Store Information
-  const importedStore = data.storeConfig || data.store || data.storeInfo || (data.rawStorage?.store ? JSON.parse(data.rawStorage.store) : null);
+  let importedStore = parseMaybeJSON(data.storeConfig || data.store || data.storeInfo || data.settings || rawStoreObj.store);
+  if (!importedStore) {
+    for (const k of Object.keys(data)) {
+      if (k.toLowerCase().includes('store')) {
+        const parsed = parseMaybeJSON(data[k]);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          importedStore = parsed;
+          break;
+        }
+      }
+    }
+  }
   if (importedStore && typeof importedStore === 'object') {
     storeConfig = {
-      name: importedStore.name || importedStore.storeName || storeConfig.name || '',
-      number: importedStore.number || importedStore.storeNumber || importedStore.id || storeConfig.number || '',
-      address: importedStore.address || importedStore.location || storeConfig.address || '',
-      phone: importedStore.phone || importedStore.manager || storeConfig.phone || ''
+      name: importedStore.name ?? importedStore.storeName ?? importedStore.title ?? storeConfig?.name ?? '',
+      number: importedStore.number ?? importedStore.storeNumber ?? importedStore.storeId ?? importedStore.id ?? storeConfig?.number ?? '',
+      address: importedStore.address ?? importedStore.location ?? importedStore.street ?? storeConfig?.address ?? '',
+      phone: importedStore.phone ?? importedStore.manager ?? importedStore.contact ?? storeConfig?.phone ?? ''
     };
-    localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.STORE) {
+      localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
+    }
   }
 
   // 2. Restore Admin PIN
-  const importedPin = data.adminPin || data.pin || data.admin?.pin || data.rawStorage?.pin;
+  const importedPin = data.adminPin ?? data.pin ?? data.admin?.pin ?? data.settings?.pin ?? rawStoreObj.pin;
   if (importedPin !== undefined && importedPin !== null && String(importedPin).trim() !== '') {
     adminPin = String(importedPin).trim();
-    localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.PIN) {
+      localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
+    }
   }
 
   // 3. Restore Box Lock State
   const importedLock = data.isBoxSetupLocked !== undefined
     ? data.isBoxSetupLocked
-    : (data.rawStorage?.lock !== null && data.rawStorage?.lock !== undefined ? data.rawStorage.lock === 'true' : undefined);
+    : (rawStoreObj.lock !== null && rawStoreObj.lock !== undefined ? rawStoreObj.lock === 'true' : undefined);
   if (importedLock !== undefined) {
     isBoxSetupLocked = Boolean(importedLock);
-    localStorage.setItem(STORAGE_KEYS.LOCK, String(isBoxSetupLocked));
+    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.LOCK) {
+      localStorage.setItem(STORAGE_KEYS.LOCK, String(isBoxSetupLocked));
+    }
   }
 
   // 4. Restore Master Game Catalog
-  const importedGames = data.masterGames || data.games || data.gameList || data.catalog || (data.rawStorage?.games ? JSON.parse(data.rawStorage.games) : null);
+  const importedGames = findArrayInBackup(
+    data,
+    ['masterGames', 'games', 'gameList', 'catalog', 'gameCatalog', 'tickets', (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.GAMES : '')],
+    item => item && typeof item === 'object' && !('boxNumber' in item) && !('startTicket' in item) &&
+            ('price' in item || 'cost' in item || 'amount' in item || 'ticketPrice' in item || 'count' in item || 'rollCount' in item || 'packSize' in item)
+  );
+
   if (Array.isArray(importedGames)) {
     masterGames = importedGames.map(g => ({
-      gameNum: String(g.gameNum ?? g.number ?? g.id ?? '').trim(),
-      name: String(g.name ?? g.gameName ?? g.title ?? 'Ticket').trim(),
-      price: Number(g.price ?? g.amount ?? g.cost ?? 0),
-      count: Number(g.count ?? g.rollCount ?? g.packSize ?? g.totalTickets ?? 100)
+      gameNum: String(g.gameNum ?? g.gameNumber ?? g.number ?? g.gameId ?? g.id ?? g.code ?? '').trim(),
+      name: String(g.name ?? g.gameName ?? g.ticketName ?? g.title ?? 'Ticket').trim(),
+      price: Number(g.price ?? g.ticketPrice ?? g.amount ?? g.cost ?? g.value ?? 0),
+      count: Number(g.count ?? g.rollCount ?? g.packSize ?? g.totalTickets ?? g.ticketsPerRoll ?? 100)
     })).filter(g => g.gameNum !== '');
+
     if (typeof saveGamesState === 'function') saveGamesState();
-    else localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
+    else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
+      localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
+    }
   }
 
   // 5. Restore Shift History
-  const importedHistory = data.shiftHistory || data.history || data.logs || data.shifts || (data.rawStorage?.history ? JSON.parse(data.rawStorage.history) : null);
+  const importedHistory = findArrayInBackup(
+    data,
+    ['shiftHistory', 'history', 'logs', 'shifts', 'shiftLogs', (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.HISTORY : '')],
+    item => item && typeof item === 'object' && ('timestamp' in item || 'date' in item || 'boxSnapshot' in item || 'totalSales' in item)
+  );
+
   if (Array.isArray(importedHistory)) {
     shiftHistory = importedHistory;
     if (typeof saveHistoryState === 'function') saveHistoryState();
-    else localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(shiftHistory));
+    else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.HISTORY) {
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(shiftHistory));
+    }
   }
 
-  // 6. Restore Box Setup (or pull from most recent shift snapshot if boxes array wasn't top-level)
-  let importedBoxes = data.boxes || data.dispenserBoxes || data.boxSetup || (data.rawStorage?.boxes ? JSON.parse(data.rawStorage.boxes) : null);
-  if (!Array.isArray(importedBoxes) && Array.isArray(shiftHistory) && shiftHistory.length > 0 && Array.isArray(shiftHistory[0].boxSnapshot)) {
-    importedBoxes = shiftHistory[0].boxSnapshot;
+  // 6. Restore Dispenser Boxes
+  let importedBoxes = findArrayInBackup(
+    data,
+    ['boxes', 'dispenserBoxes', 'boxSetup', 'boxList', 'dispensers', 'slots', (typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.BOXES : '')],
+    item => item && typeof item === 'object' && (
+      'boxNumber' in item || 'boxNum' in item || 'boxLabel' in item || 'boxId' in item ||
+      'startTicket' in item || 'endTicket' in item || 'start' in item || 'packNum' in item || 'gameNum' in item
+    )
+  );
+
+  if (!Array.isArray(importedBoxes) && Array.isArray(shiftHistory) && shiftHistory.length > 0) {
+    const latest = shiftHistory[0];
+    importedBoxes = latest.boxSnapshot || latest.boxes || latest.dispenserBoxes || latest.items || null;
   }
 
   if (Array.isArray(importedBoxes) && importedBoxes.length > 0) {
     boxes = importedBoxes.map((b, i) => {
-      const gameNum = String(b.gameNum ?? b.gameNumber ?? b.game ?? '').trim();
-      const matchedGame = masterGames.find(g => g.gameNum === gameNum);
+      const rawBoxLabel = b.boxNumber ?? b.boxNum ?? b.boxLabel ?? b.label ?? b.slot ?? b.box ?? b.id ?? (i + 1);
+      const boxNumber = String(rawBoxLabel).trim().toUpperCase();
 
-      const rawStart = b.startTicket ?? b.start ?? b.beginTicket ?? '';
-      const rawEnd = b.endTicket ?? b.end ?? b.closeTicket ?? '';
+      const rawGameNum = b.gameNum ?? b.gameNumber ?? b.gameId ?? b.gameCode ?? b.number ?? (typeof b.game === 'string' || typeof b.game === 'number' ? b.game : b.game?.gameNum) ?? '';
+      const gameNum = String(rawGameNum).trim();
+      const matchedGame = masterGames.find(g => String(g.gameNum).trim() === gameNum);
+
+      const gameName = String(b.gameName ?? b.ticketName ?? b.name ?? b.title ?? b.game?.name ?? (matchedGame ? matchedGame.name : '')).trim();
+      const price = Number(b.price ?? b.ticketPrice ?? b.amount ?? b.cost ?? b.game?.price ?? (matchedGame ? matchedGame.price : 0));
+      const rollCount = Number(b.rollCount ?? b.count ?? b.packSize ?? b.maxTickets ?? b.game?.count ?? (matchedGame ? matchedGame.count : (price > 0 ? Math.max(15, Math.round(300 / price)) : 0)));
+      const packNum = String(b.packNum ?? b.packNumber ?? b.packId ?? b.pack ?? '').trim();
+
+      const rawStart = b.startTicket ?? b.startTkt ?? b.start ?? b.beginTicket ?? b.openTicket ?? '';
+      const rawEnd = b.endTicket ?? b.endTkt ?? b.end ?? b.closeTicket ?? b.closingTicket ?? '';
+
+      const hasEnd = rawEnd !== '' && rawEnd !== null && rawEnd !== undefined;
+      const hasStart = rawStart !== '' && rawStart !== null && rawStart !== undefined;
 
       const finalStart = carryOverEndToStart
-        ? (rawEnd !== '' && rawEnd !== null && rawEnd !== undefined ? Number(rawEnd) : (rawStart !== '' ? Number(rawStart) : ''))
-        : (rawStart !== '' && rawStart !== null && rawStart !== undefined ? Number(rawStart) : '');
+        ? (hasEnd ? Number(rawEnd) : (hasStart ? Number(rawStart) : ''))
+        : (hasStart ? Number(rawStart) : '');
 
       const finalEnd = carryOverEndToStart
         ? ''
-        : (rawEnd !== '' && rawEnd !== null && rawEnd !== undefined ? Number(rawEnd) : '');
+        : (hasEnd ? Number(rawEnd) : '');
 
       return {
-        boxNumber: String(b.boxNumber ?? b.boxLabel ?? b.label ?? b.id ?? (i + 1)).toUpperCase(),
+        boxNumber: boxNumber,
         gameNum: gameNum,
-        gameName: b.gameName || b.name || (matchedGame ? matchedGame.name : ''),
-        price: Number(b.price ?? (matchedGame ? matchedGame.price : 0)),
-        rollCount: Number(b.rollCount ?? b.count ?? (matchedGame ? matchedGame.count : 0)),
-        packNum: String(b.packNum ?? b.packNumber ?? b.pack ?? ''),
+        gameName: gameName,
+        price: price,
+        rollCount: rollCount,
+        packNum: packNum,
         startTicket: finalStart,
         endTicket: finalEnd,
+        needsNewGameEntry: false,
         rollovers: carryOverEndToStart ? [] : (Array.isArray(b.rollovers) ? b.rollovers : [])
       };
     });
 
-    // Auto-add any games from boxes that aren't in masterGames yet
-    let addedMissingGames = false;
+    // Register any games from imported boxes into masterGames automatically
+    let updatedCatalog = false;
     boxes.forEach(b => {
-      if (b.gameNum && b.gameName && b.price > 0 && !masterGames.some(g => g.gameNum === b.gameNum)) {
+      if (b.gameNum && !masterGames.some(g => String(g.gameNum).trim() === b.gameNum)) {
         masterGames.push({
           gameNum: b.gameNum,
-          name: b.gameName,
-          price: Number(b.price),
-          count: Number(b.rollCount || Math.max(15, Math.round(300 / Number(b.price))))
+          name: b.gameName || `Game #${b.gameNum}`,
+          price: Number(b.price || 0),
+          count: Number(b.rollCount || (b.price > 0 ? Math.max(15, Math.round(300 / b.price)) : 100))
         });
-        addedMissingGames = true;
+        updatedCatalog = true;
       }
     });
-    if (addedMissingGames) {
+
+    if (updatedCatalog) {
       if (typeof saveGamesState === 'function') saveGamesState();
-      else localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
+      else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.GAMES) {
+        localStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(masterGames));
+      }
     }
 
     if (typeof saveBoxesState === 'function') saveBoxesState();
-    else localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
+    else if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.BOXES) {
+      localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
+    }
   }
 
   // 7. Refresh all UI views
@@ -1668,12 +1769,12 @@ function importFullBackup(event) {
 
       const startNextShift = confirm(
         'How would you like to restore the Box Setup?\n\n' +
-        '• Click OK to START FROM LAST BACKUP (carries old End Ticket #s into Start Ticket #s for the new shift).\n' +
-        '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s as saved).'
+        '• Click OK to START FROM LAST BACKUP (moves old End Ticket #s into Start Ticket #s for the new shift).\n' +
+        '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s exactly as saved).'
       );
 
       applyBackupData(data, startNextShift);
-      alert('Backup imported! Store Info, Admin PIN, Game Catalog, Box Setup, and History have been restored.');
+      alert(`Backup imported!\n• Boxes loaded: ${boxes.length}\n• Master Games loaded: ${masterGames.length}`);
     } catch (err) {
       console.error('Backup Import Error:', err);
       alert('Could not read the backup file. Please make sure it is a valid JSON backup.');
@@ -1684,7 +1785,12 @@ function importFullBackup(event) {
   reader.readAsText(file);
 }
 
-const importBackup = importFullBackup;
+// Safely attach to window without causing duplicate const declaration errors
+window.importFullBackup = importFullBackup;
+window.importBackup = importFullBackup;
+window.exportFullBackup = exportFullBackup;
+window.exportBackup = exportFullBackup;
+window.downloadBackup = exportFullBackup;
 
 function runNightlyAutoBackup(forceDownload = true) {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -1712,7 +1818,7 @@ function restoreFromLastAutoBackup() {
       'Click Cancel to restore the exact Start and End Ticket #s as saved.'
     );
     applyBackupData(data, startNextShift);
-    alert(`Restored from ${savedTime} auto-backup!`);
+    alert(`Restored from ${savedTime} auto-backup!\n• Boxes loaded: ${boxes.length}\n• Master Games loaded: ${masterGames.length}`);
   } catch (e) {
     alert('Failed to read the internal auto-backup snapshot.');
   }
@@ -1737,4 +1843,29 @@ function injectBackupToolbarIfMissing() {
         Import Backup File
         <input type="file" accept=".json,application/json" onchange="importFullBackup(event)" class="hidden">
       </label>
-      <button onclick="restoreFromLastAutoBackup()" class="bg-amber-
+      <button onclick="restoreFromLastAutoBackup()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1.5 rounded-lg">Start From Last 11PM Backup</button>
+    </div>
+  `;
+  target.prepend(bar);
+}
+
+function initNightly11PMAutoBackup() {
+  injectBackupToolbarIfMissing();
+  setInterval(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const lastRunDate = localStorage.getItem(AUTO_BACKUP_LAST_DATE_KEY);
+    if (now.getHours() === 23 && now.getMinutes() >= 0 && lastRunDate !== todayStr) {
+      runNightlyAutoBackup(true);
+    }
+  }, 30000);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNightly11PMAutoBackup);
+} else {
+  initNightly11PMAutoBackup();
+}
+</script>
+</body>
+</html>
