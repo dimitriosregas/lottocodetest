@@ -727,22 +727,42 @@
             updateBoxSetupStatus();
             renderBoxes();
         }
-        function saveStoreProfile(e) {
-            e.preventDefault();
-            storeProfile = {
-                name: document.getElementById('store-name-input').value,
-                number: document.getElementById('store-num-input').value,
-                address: document.getElementById('store-address-input').value,
-                email: document.getElementById('store-email-input').value,
-                password: document.getElementById('store-password-input').value
-            };
+        
             localStorage.setItem('lotto_store_profile', JSON.stringify(storeProfile));
             updateStoreHeader();
             setStoreEditing(false);
             closeStoreDrawer();
             alert("Store profile updated successfully!");
         }
+function saveStoreProfile(e) {
+    e.preventDefault();
+    const pass1 = document.getElementById('store-password-input').value;
+    const pass2 = document.getElementById('store-password-confirm-input').value;
+    
+    if (pass1 !== pass2) {
+        alert("Passwords do not match! Please verify and try again.");
+        return;
+    }
 
+    storeProfile.name = document.getElementById('store-name-input').value;
+    storeProfile.number = document.getElementById('store-num-input').value;
+    storeProfile.address = document.getElementById('store-address-input').value;
+    storeProfile.email = document.getElementById('store-email-input').value;
+    storeProfile.password = pass1;
+    
+    const idx = storesList.findIndex(s => s.id === storeProfile.id);
+    if(idx >= 0) storesList[idx] = storeProfile;
+    else storesList.push(storeProfile);
+
+    localStorage.setItem('lotto_store_profile', JSON.stringify(storeProfile));
+    localStorage.setItem('lotto_stores_list', JSON.stringify(storesList));
+    
+    updateStoreHeader();
+    setStoreEditing(false);
+    closeStoreDrawer();
+    alert("Store profile and credentials updated successfully!");
+}
+...
         function importDataJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
