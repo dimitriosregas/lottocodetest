@@ -878,105 +878,250 @@
       };
     }
 
-    function renderDispenserGrid() {
-      const grid = document.getElementById('dispenser-grid');
-      const title = document.getElementById('dispenser-section-title');
-      if (!grid) return;
+function updateBoxLabel(idx, newVal) {
+  const cleaned = newVal.trim().toUpperCase();
+  if (!cleaned) {
+    renderDispenserGrid();
+    return;
+  }
+  boxes[idx].boxNumber = cleaned;
 
-      if (title) {
-        title.textContent = `Dispenser Boxes (1 - ${boxes.length})`;
+  // Check if the label ends with '&' (e.g., "1&", "A&") or is a standard number/letter
+  const hasAmp = cleaned.endsWith('&');
+  const core = hasAmp ? cleaned.slice(0, -1).trim() : cleaned;
+
+  if (/^\d+$/.test(core)) {
+    // Cascade sequential numbers (e.g., 5 -> 6, 7, 8...)
+    let currentNum = parseInt(core, 10);
+    for (let i = idx + 1; i < boxes.length; i++) {
+      currentNum++;
+      boxes[i].boxNumber = String(currentNum);
+    }
+  } else if (/^[A-Z]$/.test(core)) {
+    // Cascade sequential letters (e.g., A -> B, C, D...)
+    let currentCode = core.charCodeAt(0);
+    for (let i = idx + 1; i < boxes.length; i++) {
+      currentCode++;
+      if (currentCode <= 90) { // Up to 'Z'
+        boxes[i].boxNumber = String.fromCharCode(currentCode);
+      } else {
+        boxes[i].boxNumber = 'Z+' + (currentCode - 90);
       }
+    }
+  }
 
-      let grandTotalSales = 0;
+  saveBoxesState();
+  renderDispenserGrid();
+}
 
-      grid.innerHTML = boxes.map((box, idx) => {
-        const metrics = calculateBoxMetrics(box);
-        grandTotalSales += metrics.salesAmount;
-        const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
-        const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
-const gameOptions = `<option value="">-- Unassigned --</option>` + masterGames.map(g =>
-          `<option value="${g.gameNum}" ${box.gameNum === g.gameNum ? 'selected' : ''}>#${g.gameNum} ${g.name} ($${g.price})</option>`
-        ).join('');
+function assignGameToBox(idx, gameNumInput) {
+  const box = boxes[idx];
+  if (!box) return;
+  const cleanedNum = gameNumInput.trim();
+  const game = masterGames.find(g => g.gameNum === cleanedNum);
 
-        return `
-          <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Box ${box.boxNumber}</span>
-                <div class="flex items-center gap-1">
-                  ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
-                  <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
-                  ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
-                </div>
-              </div>
+  if (game) {
+    box.gameNum = game.gameNum;
+    box.gameName = game.name;
+    box.price = Number(game.price);
+    box.rollCount = Number(game.count);
+    box.needsNewGameEntry = false;
+    if (box.startTicket === '') box.startTicket = 0;
+  } else if (cleanedNum === '') {
+    box.gameNum = '';
+    box.gameName = '';
+    box.price = 0;
+    box.rollCount = 0;
+    box.needsNewGameEntry = false;
+  } else {
+    // Game # is not in the database — prompt inline creation inside the box
+    box.gameNum = cleanedNum;
+    box.gameName = '';
+    box.price = 0;
+    box.rollCount = 0;
+    box.needsNewGameEntry = true;
+  }
+  saveBoxesState();
+  renderDispenserGrid();
+}
 
-              <div class="mb-2">
-                <select onchange="assignGameToBox(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-full border rounded p-1.5 text-xs font-semibold bg-slate-50 disabled:opacity-75">
-                  ${gameOptions}
-                </select>
-              </div>
+function saveNewGameFromBox(idx) {
+  const box = boxes[idx];
+  if (!box) return;
 
-              <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
-                <div>
-                  <label class="block text-gray-500 font-semibold">Pack #</label>
-                  <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
-                </div>
-                <div>
-                  <label class="block text-gray-500 font-semibold">Roll Max #</label>
-                  <div class="p-1 font-mono text-xs bg-gray-50 border rounded text-gray-600">${maxTicketStr} (${box.rollCount || 0})</div>
-                </div>
-              </div>
+  const gameNum = (document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
+  const name = (document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
+  const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
+  const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
 
-              <div class="grid grid-cols-2 gap-1.5 mb-2">
-                <div>
-                  <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
-                  <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
-                </div>
-                <div>
-                  <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
-                  <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
-                </div>
-              </div>
-              ${metrics.isError ? `<p class="text-[11px] text-red-600 font-semibold mb-1">${metrics.errorMsg}</p>` : ''}
+  if (!gameNum || !name || price <= 0) {
+    alert('Please enter the Game #, Ticket Name, and $ Amount.');
+    return;
+  }
+
+  // Default roll count based on price if left blank (e.g., $300 pack standard) or 100
+  const count = countInput > 0 ? countInput : Math.max(15, Math.round(300 / price));
+
+  const existingIdx = masterGames.findIndex(g => g.gameNum === gameNum);
+  if (existingIdx >= 0) {
+    masterGames[existingIdx] = { gameNum, name, price, count };
+  } else {
+    masterGames.push({ gameNum, name, price, count });
+  }
+
+  // Update any box using this Game #
+  boxes.forEach(b => {
+    if (b.gameNum === gameNum) {
+      b.gameName = name;
+      b.price = price;
+      b.rollCount = count;
+      b.needsNewGameEntry = false;
+      if (b.startTicket === '') b.startTicket = 0;
+    }
+  });
+
+  saveGamesState();
+  saveBoxesState();
+  if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
+  renderDispenserGrid();
+}
+
+function renderDispenserGrid() {
+  const grid = document.getElementById('dispenser-grid');
+  const title = document.getElementById('dispenser-section-title');
+  if (!grid) return;
+
+  if (title && boxes.length > 0) {
+    title.textContent = `Dispenser Boxes (${boxes[0].boxNumber} - ${boxes[boxes.length - 1].boxNumber})`;
+  }
+
+  let grandTotalSales = 0;
+
+  grid.innerHTML = boxes.map((box, idx) => {
+    const metrics = calculateBoxMetrics(box);
+    grandTotalSales += metrics.salesAmount;
+    const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
+    const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
+    const isUnknownGame = box.gameNum && !masterGames.some(g => g.gameNum === box.gameNum);
+
+    return `
+      <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
+        <div>
+          <!-- Top Bar: Editable Box Number/Letter/& + Price Badge + Scan -->
+          <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-black uppercase text-slate-600">Box</span>
+              <input 
+                type="text" 
+                value="${box.boxNumber}" 
+                onchange="updateBoxLabel(${idx}, this.value)"
+                ${isBoxSetupLocked ? 'disabled' : ''}
+                title="Change to number, letter, or add & (following boxes auto-update)"
+                class="w-14 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90"
+              >
             </div>
+            <div class="flex items-center gap-1">
+              ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
+              <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
+              ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
+            </div>
+          </div>
 
-            <div class="pt-2 border-t flex items-center justify-between text-xs">
-              <div>
-                <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
-                <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${metrics.salesAmount.toFixed(2)}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll${rollBadgeCount > 1 ? 's' : ''}</button>` : ''}
-                <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
+          <!-- Game # Input + Non-Editable Database Game Name Display -->
+          <div class="grid grid-cols-3 gap-1.5 mb-2">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
+              <input 
+                type="text" 
+                value="${box.gameNum || ''}" 
+                onchange="assignGameToBox(${idx}, this.value)"
+                ${isBoxSetupLocked ? 'disabled' : ''}
+                placeholder="e.g. 401" 
+                class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
+              >
+            </div>
+            <div class="col-span-2">
+              <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name (Database)</label>
+              <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center select-none">
+                ${box.gameName 
+                  ? `<span>${box.gameName} ($${box.price})</span>` 
+                  : (isUnknownGame 
+                      ? '<span class="text-amber-700 font-bold">Not in table — Add below</span>' 
+                      : '<span class="text-gray-400">Enter Game #</span>')}
               </div>
             </div>
           </div>
-        `;
-      }).join('');
 
-      const salesEl = document.getElementById('action-bar-sales');
-      if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
-    }
+          <!-- Inline Prompt if Game # is NOT in the Database -->
+          ${isUnknownGame ? `
+            <div class="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-xs">
+              <div class="font-bold text-amber-900 mb-1">Game #${box.gameNum} not found. Add to database:</div>
+              <div class="grid grid-cols-3 gap-1.5 mb-1.5">
+                <div>
+                  <label class="block text-[10px] font-bold text-amber-800">Game #</label>
+                  <input id="new-game-num-${idx}" type="text" value="${box.gameNum}" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
+                  <input id="new-game-name-${idx}" type="text" placeholder="e.g. Jumbo Bucks" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5 items-end">
+                <div>
+                  <label class="block text-[10px] font-bold text-amber-800">$ Amount</label>
+                  <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 5" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-amber-800">Roll Count</label>
+                  <input id="new-game-count-${idx}" type="number" min="1" placeholder="e.g. 60" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                </div>
+                <button onclick="saveNewGameFromBox(${idx})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs">Save Game</button>
+              </div>
+            </div>
+          ` : ''}
 
-    function assignGameToBox(idx, gameNum) {
-      const box = boxes[idx];
-      if (!box) return;
-      const game = masterGames.find(g => g.gameNum === gameNum);
-      if (game) {
-        box.gameNum = game.gameNum;
-        box.gameName = game.name;
-        box.price = Number(game.price);
-        box.rollCount = Number(game.count);
-        if (box.startTicket === '') box.startTicket = 0;
-      } else {
-        box.gameNum = '';
-        box.gameName = '';
-        box.price = 0;
-        box.rollCount = 0;
-      }
-      saveBoxesState();
-      renderDispenserGrid();
-    }
+          <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
+            <div>
+              <label class="block text-gray-500 font-semibold">Pack #</label>
+              <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
+            </div>
+            <div>
+              <label class="block text-gray-500 font-semibold">Roll Max #</label>
+              <div class="p-1 font-mono text-xs bg-gray-100 border rounded text-gray-600 select-none">${maxTicketStr} (${box.rollCount || 0})</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5 mb-2">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
+              <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
+              <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
+            </div>
+          </div>
+
+          ${metrics.isError ? `<p class="text-[11px] text-red-600 font-semibold mb-1">${metrics.errorMsg}</p>` : ''}
+        </div>
+
+        <div class="pt-2 border-t flex items-center justify-between text-xs">
+          <div>
+            <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
+            <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${metrics.salesAmount.toFixed(2)}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll${rollBadgeCount > 1 ? 's' : ''}</button>` : ''}
+            <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const salesEl = document.getElementById('action-bar-sales');
+  if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
+}
 
     function updateBoxField(idx, field, val) {
       if (!boxes[idx]) return;
