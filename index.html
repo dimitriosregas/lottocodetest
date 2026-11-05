@@ -15,6 +15,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
+    /* Locked strictly to 1 column on mobile, 2 columns on tablet/desktop */
     .box-grid {
       display: grid;
       grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -23,21 +24,6 @@
     @media (min-width: 640px) {
       .box-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-    @media (min-width: 768px) {
-      .box-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
-    @media (min-width: 1024px) {
-      .box-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-    }
-    @media (min-width: 1280px) {
-      .box-grid {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
       }
     }
     @media print {
@@ -79,13 +65,14 @@
       <div class="flex items-center gap-2">
         <h1 class="text-lg font-bold tracking-wide">Project Lotto</h1>
         <span id="header-shift-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">Shift A</span>
+        <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700 hidden sm:inline">Auto-Backup: 11:00 PM</span>
       </div>
       <p id="store-subtitle" class="text-xs text-slate-400">Loading store profile...</p>
     </div>
     <div class="flex items-center space-x-2">
       <span id="live-datetime" class="text-xs text-slate-300 hidden sm:inline mr-2"></span>
       <button onclick="openStoreDrawer()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-2 rounded font-medium border border-slate-700 transition">
-        Store Setup
+        Store Setup & Backup
       </button>
       <button onclick="openAdminModal()" class="bg-amber-600 hover:bg-amber-500 text-xs px-3 py-2 rounded font-medium transition">
         Master Admin
@@ -110,6 +97,16 @@
         </button>
         <button onclick="runValidation()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium border border-slate-300 transition">
           Validate Boxes
+        </button>
+        <label class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-semibold border border-blue-200 cursor-pointer transition">
+          Import Backup
+          <input type="file" class="hidden" accept=".json,application/json" onchange="importDataJSON(event)">
+        </label>
+        <button onclick="exportDataJSON()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition">
+          Export Backup
+        </button>
+        <button onclick="restoreFromLastAutoBackup()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition">
+          Restore 11PM Auto-Backup
         </button>
       </div>
       <div class="flex items-center gap-4">
@@ -158,7 +155,7 @@
           <button id="store-edit-button" type="button" onclick="enableStoreEditing()" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg text-sm font-semibold border border-blue-200">
             Edit Store Details
           </button>
-            <div>
+          <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Retailer / Store Name</label>
             <input type="text" id="store-name-input" class="w-full border rounded-lg p-2 text-sm border-gray-300 disabled:bg-gray-100 disabled:text-gray-600" required disabled>
           </div>
@@ -205,21 +202,23 @@
         </div>
 
         <div class="pt-4 mt-4 border-t border-gray-200">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Device Data Transfer</h3>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Device Data Transfer (Auto-Backup 11PM)</h3>
           <div class="flex flex-col gap-2">
             <button type="button" onclick="exportDataJSON()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-xs font-semibold transition">
               Export Store Backup (.json)
             </button>
             <label class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-lg text-xs font-semibold border border-blue-200 flex items-center justify-center gap-2 cursor-pointer transition m-0">
               Import Store Backup (.json)
-              <input type="file" class="hidden" accept=".json" onchange="importDataJSON(event)">
+              <input type="file" class="hidden" accept=".json,application/json" onchange="importDataJSON(event)">
             </label>
+            <button type="button" onclick="restoreFromLastAutoBackup()" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-xs font-semibold transition">
+              Restore Last 11:00 PM Auto-Backup
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
-
   <!-- Master Admin Modal -->
   <div id="admin-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-4xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
@@ -312,7 +311,8 @@
       </div>
     </div>
   </div>
-    <!-- Shift Reconciliation Modal -->
+
+  <!-- Shift Reconciliation Modal -->
   <div id="reconcile-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-4 pb-2 border-b">
@@ -446,6 +446,8 @@
     const STORAGE_KEY_BOXES   = 'lotto_dispenser_boxes_v1';
     const STORAGE_KEY_LOCKED  = 'lotto_box_setup_locked_v1';
     const STORAGE_KEY_SHIFT   = 'lotto_current_shift_meta_v1';
+    const AUTO_BACKUP_STORAGE_KEY   = 'lottery_pro_auto_backup_snapshot';
+    const AUTO_BACKUP_LAST_DATE_KEY = 'lottery_pro_auto_backup_last_date';
 
     const DEFAULT_PROFILE = {
       name: 'Regas Retail Store',
@@ -461,7 +463,7 @@
       { gameNum: '405', name: 'Crossword Cash', price: 3, count: 100 },
       { gameNum: '410', name: 'Jumbo Bucks', price: 5, count: 60 },
       { gameNum: '415', name: 'Mega Multiplier', price: 5, count: 60 },
-      { gameNum: '420', name: ' Platinum Jackpot', price: 10, count: 30 },
+      { gameNum: '420', name: 'Platinum Jackpot', price: 10, count: 30 },
       { gameNum: '425', name: 'Gold Rush $10', price: 10, count: 30 },
       { gameNum: '430', name: 'Extreme Millions', price: 20, count: 15 },
       { gameNum: '435', name: 'VIP Club $25', price: 25, count: 12 },
@@ -478,6 +480,21 @@
     let sigCtx = null;
     let isDrawingSig = false;
 
+    function getDefaultRollCountForPrice(price) {
+      const p = Number(price);
+      if (!p || p <= 0) return 0;
+      if (p === 1) return 300;
+      if (p === 2) return 150;
+      if (p === 3) return 100;
+      if (p === 5) return 60;
+      if (p === 10) return 30;
+      if (p === 20) return 15;
+      if (p === 25) return 12;
+      if (p === 30) return 10;
+      if (p === 50) return 10;
+      return Math.max(10, Math.round(300 / p));
+    }
+
     function initApp() {
       loadState();
       updateClock();
@@ -486,6 +503,7 @@
       renderBoxSetupControls();
       renderDispenserGrid();
       initSignaturePad();
+      initNightly11PMAutoBackup();
     }
 
     function updateClock() {
@@ -535,17 +553,17 @@
         if (savedBoxes) {
           boxes = JSON.parse(savedBoxes);
         } else {
-          boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(i + 1));
+          boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
           saveBoxesState();
         }
       } catch (e) {
-        boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(i + 1));
+        boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
       }
     }
 
     function createEmptyBox(boxNumber) {
       return {
-        boxNumber: boxNumber,
+        boxNumber: String(boxNumber),
         gameNum: '',
         gameName: '',
         price: 0,
@@ -577,7 +595,7 @@
     function renderStoreHeader() {
       const sub = document.getElementById('store-subtitle');
       if (sub) {
-        sub.textContent = `${storeProfile.name} (#${storeProfile.number}) • ${storeProfile.address}`;
+        sub.textContent = `${storeProfile.name} (#${storeProfile.number}) • ${storeProfile.address || ''}`;
       }
     }
 
@@ -600,6 +618,7 @@
       document.getElementById('store-password-input').value = storeProfile.password || '';
       document.getElementById('store-password-confirm-input').value = storeProfile.password || '';
     }
+
     function enableStoreEditing() {
       const pwd = prompt('Enter Admin / Manager Password to edit Store Profile:', '');
       if (pwd === null) return;
@@ -645,7 +664,6 @@
       disableStoreEditingFields();
       alert('Store profile saved.');
     }
-
     function renderBoxSetupControls() {
       const statusEl = document.getElementById('box-setup-status');
       const lockBtn = document.getElementById('complete-box-setup');
@@ -657,7 +675,7 @@
         lockBtn.classList.add('hidden');
         unlockBtn.classList.remove('hidden');
       } else {
-        statusEl.textContent = 'Box setup is UNLOCKED. You can assign games, edit starting tickets, or add/remove boxes.';
+        statusEl.textContent = 'Box setup is UNLOCKED. You can change Box numbers/letters, assign games, or edit starting tickets.';
         lockBtn.classList.remove('hidden');
         unlockBtn.classList.add('hidden');
       }
@@ -684,49 +702,263 @@
       renderDispenserGrid();
     }
 
-    function exportDataJSON() {
-      const payload = {
+    function buildBackupPayload(triggerType = 'manual') {
+      const dispensersMap = {};
+      boxes.forEach((b, i) => {
+        const lbl = String(b.boxNumber ?? (i + 1)).trim().toUpperCase();
+        dispensersMap[String(i + 1)] = {
+          id: lbl,
+          boxNumber: lbl,
+          gameNum: b.gameNum || '',
+          gameName: b.gameNum && b.gameName ? `${b.gameNum} - ${b.gameName}` : (b.gameName || ''),
+          price: b.price ? String(b.price) : '',
+          packNum: b.packNum || '',
+          rollCount: b.rollCount || 0,
+          startTicket: b.startTicket !== '' && b.startTicket !== null && b.startTicket !== undefined ? String(b.startTicket) : '',
+          endTicket: b.endTicket !== '' && b.endTicket !== null && b.endTicket !== undefined ? String(b.endTicket) : '',
+          rollovers: Array.isArray(b.rollovers) ? b.rollovers : []
+        };
+      });
+
+      return {
+        version: '3.2',
+        trigger: triggerType,
         exportedAt: new Date().toISOString(),
-        storeProfile,
-        masterGames,
-        boxes,
-        isBoxSetupLocked
+        storeProfile: {
+          ...storeProfile,
+          id: storeProfile.number || storeProfile.id || '',
+          count: boxes.length
+        },
+        masterGames: masterGames,
+        boxes: boxes,
+        dispensers: dispensersMap,
+        isBoxSetupLocked: isBoxSetupLocked
       };
+    }
+
+    function downloadBackupFile(payload, prefix = 'project-lotto-backup') {
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const storeSlug = (storeProfile.name || storeProfile.number || 'store').replace(/[^a-z0-9]/gi, '_');
       a.href = url;
-      a.download = `project-lotto-backup-${storeProfile.number || 'store'}.json`;
+      a.download = `${prefix}-${storeSlug}-${dateStr}.json`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
+    function exportDataJSON() {
+      const payload = buildBackupPayload('manual');
+      downloadBackupFile(payload, 'project-lotto-backup');
+    }
+
+    function parseCombinedGameField(rawGameNum, rawGameName) {
+      let gameNum = String(rawGameNum ?? '').trim();
+      let gameName = String(rawGameName ?? '').trim();
+
+      if (!gameNum && gameName.includes('-')) {
+        const match = gameName.match(/^(\d+)\s*-\s*(.+)$/);
+        if (match) {
+          gameNum = match[1].trim();
+          gameName = match[2].trim();
+        }
+      } else if (gameNum && gameName.startsWith(`${gameNum} -`)) {
+        gameName = gameName.replace(new RegExp(`^${gameNum}\\s*-\\s*`), '').trim();
+      }
+      return { gameNum, gameName };
+    }
+
+    function applyImportedBackup(data, carryOverEndToStart = false) {
+      if (!data || typeof data !== 'object') return;
+
+      // 1. Restore Store Profile & Admin Info
+      const prof = data.storeProfile || data.storeConfig || data.store;
+      if (prof && typeof prof === 'object') {
+        storeProfile = {
+          name: prof.name ?? storeProfile.name ?? DEFAULT_PROFILE.name,
+          number: String(prof.number ?? prof.id ?? storeProfile.number ?? DEFAULT_PROFILE.number),
+          address: prof.address ?? storeProfile.address ?? DEFAULT_PROFILE.address,
+          email: prof.email ?? storeProfile.email ?? DEFAULT_PROFILE.email,
+          password: prof.password ?? data.adminPin ?? storeProfile.password ?? DEFAULT_PROFILE.password
+        };
+        saveProfileState();
+      }
+
+      // 2. Restore Lock State
+      if (typeof data.isBoxSetupLocked === 'boolean') {
+        isBoxSetupLocked = data.isBoxSetupLocked;
+        saveLockedState();
+      }
+
+      // 3. Restore Master Games if present
+      if (Array.isArray(data.masterGames) && data.masterGames.length > 0) {
+        masterGames = data.masterGames.map(g => ({
+          gameNum: String(g.gameNum ?? g.number ?? g.id ?? '').trim(),
+          name: String(g.name ?? g.gameName ?? '').trim(),
+          price: Number(g.price ?? 0),
+          count: Number(g.count ?? g.rollCount ?? getDefaultRollCountForPrice(g.price))
+        })).filter(g => g.gameNum !== '');
+      }
+
+      // 4. Restore Boxes from either "boxes" Array OR "dispensers" Object Map
+      let rawList = [];
+      if (Array.isArray(data.boxes) && data.boxes.length > 0) {
+        rawList = data.boxes;
+      } else if (data.dispensers && typeof data.dispensers === 'object') {
+        if (Array.isArray(data.dispensers)) {
+          rawList = data.dispensers;
+        } else {
+          const sortedKeys = Object.keys(data.dispensers).sort((a, b) => Number(a) - Number(b));
+          rawList = sortedKeys.map(k => ({
+            ...data.dispensers[k],
+            _mapKey: k
+          }));
+        }
+      }
+
+      if (rawList.length > 0) {
+        boxes = rawList.map((b, i) => {
+          const rawLabel = b.boxNumber ?? b.boxLabel ?? b.label ?? b.id ?? b._mapKey ?? (i + 1);
+          const boxNumber = String(rawLabel).trim().toUpperCase();
+
+          const parsed = parseCombinedGameField(b.gameNum ?? b.gameNumber, b.gameName ?? b.name);
+          const gameNum = parsed.gameNum;
+          const matchedGame = masterGames.find(g => String(g.gameNum).trim() === gameNum);
+
+          const gameName = parsed.gameName || (matchedGame ? matchedGame.name : '');
+          const price = Number(b.price ?? (matchedGame ? matchedGame.price : 0)) || 0;
+          const rollCount = Number(b.rollCount ?? b.count ?? (matchedGame ? matchedGame.count : getDefaultRollCountForPrice(price))) || 0;
+          const packNum = String(b.packNum ?? b.packNumber ?? b.pack ?? '').trim();
+
+          const rawStart = b.startTicket ?? b.start ?? '';
+          const rawEnd = b.endTicket ?? b.end ?? '';
+          const hasStart = rawStart !== '' && rawStart !== null && rawStart !== undefined;
+          const hasEnd = rawEnd !== '' && rawEnd !== null && rawEnd !== undefined;
+
+          const finalStart = carryOverEndToStart
+            ? (hasEnd ? Number(rawEnd) : (hasStart ? Number(rawStart) : ''))
+            : (hasStart ? Number(rawStart) : '');
+
+          const finalEnd = carryOverEndToStart
+            ? ''
+            : (hasEnd ? Number(rawEnd) : '');
+
+          return {
+            boxNumber: boxNumber,
+            gameNum: gameNum,
+            gameName: gameName,
+            price: price,
+            rollCount: rollCount,
+            packNum: packNum,
+            startTicket: finalStart,
+            endTicket: finalEnd,
+            rollsReplaced: carryOverEndToStart ? 0 : (Number(b.rollsReplaced) || 0),
+            rollovers: carryOverEndToStart ? [] : (Array.isArray(b.rollovers) ? b.rollovers : [])
+          };
+        });
+
+        // Add any games from imported boxes into masterGames database automatically
+        boxes.forEach(b => {
+          if (b.gameNum && b.gameName) {
+            const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === b.gameNum);
+            const entry = {
+              gameNum: b.gameNum,
+              name: b.gameName,
+              price: Number(b.price || 0),
+              count: Number(b.rollCount || getDefaultRollCountForPrice(b.price))
+            };
+            if (existingIdx >= 0) {
+              masterGames[existingIdx] = entry;
+            } else {
+              masterGames.push(entry);
+            }
+          }
+        });
+
+        saveGamesState();
+        saveBoxesState();
+      }
+
+      renderStoreHeader();
+      populateStoreForm();
+      renderBoxSetupControls();
+      renderAdminGamesTable();
+      renderDispenserGrid();
+    }
+
     function importDataJSON(event) {
-      const file = event.target.files[0];
+      const file = event?.target?.files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
           const data = JSON.parse(e.target.result);
-          if (data.storeProfile) storeProfile = data.storeProfile;
-          if (Array.isArray(data.masterGames)) masterGames = data.masterGames;
-          if (Array.isArray(data.boxes)) boxes = data.boxes;
-          if (typeof data.isBoxSetupLocked === 'boolean') isBoxSetupLocked = data.isBoxSetupLocked;
-          saveProfileState();
-          saveGamesState();
-          saveBoxesState();
-          saveLockedState();
-          renderStoreHeader();
-          renderBoxSetupControls();
-          renderDispenserGrid();
-          alert('Store backup imported successfully!');
+          const startNextShift = confirm(
+            'How would you like to restore this backup?\n\n' +
+            '• Click OK to START FROM LAST BACKUP (moves old End Ticket #s into Start Ticket #s and clears End Ticket #s for the new shift).\n' +
+            '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s exactly as saved).'
+          );
+          applyImportedBackup(data, startNextShift);
+          alert(
+            `Store backup imported!\n` +
+            `• Store: ${storeProfile.name} (#${storeProfile.number})\n` +
+            `• Boxes Loaded: ${boxes.length}\n` +
+            `• Master Games in Database: ${masterGames.length}`
+          );
         } catch (err) {
+          console.error('Backup import error:', err);
           alert('Invalid backup JSON file.');
+        } finally {
+          event.target.value = '';
         }
       };
       reader.readAsText(file);
     }
 
+    function runNightlyAutoBackup(forceDownload = true) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const payload = buildBackupPayload('auto-11pm');
+      localStorage.setItem(AUTO_BACKUP_STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(AUTO_BACKUP_LAST_DATE_KEY, todayStr);
+      if (forceDownload) {
+        downloadBackupFile(payload, 'AutoBackup-11PM');
+      }
+    }
+
+    function restoreFromLastAutoBackup() {
+      const raw = localStorage.getItem(AUTO_BACKUP_STORAGE_KEY);
+      if (!raw) {
+        alert('No automatic 11:00 PM backup snapshot was found on this device yet.');
+        return;
+      }
+      try {
+        const data = JSON.parse(raw);
+        const savedTime = data.exportedAt ? new Date(data.exportedAt).toLocaleString() : 'Unknown Date';
+        if (!confirm(`Restore data from the last automatic backup saved on ${savedTime}?`)) return;
+        const startNextShift = confirm(
+          'Click OK to START FROM LAST BACKUP (moves End Ticket #s into Start Ticket #s).\n' +
+          'Click Cancel to restore the exact Start and End Ticket #s as saved.'
+        );
+        applyImportedBackup(data, startNextShift);
+        alert(`Restored from ${savedTime} auto-backup!`);
+      } catch (e) {
+        alert('Failed to read the internal auto-backup snapshot.');
+      }
+    }
+
+    function initNightly11PMAutoBackup() {
+      setInterval(() => {
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        const lastRunDate = localStorage.getItem(AUTO_BACKUP_LAST_DATE_KEY);
+        if (now.getHours() === 23 && now.getMinutes() >= 0 && lastRunDate !== todayStr) {
+          runNightlyAutoBackup(true);
+        }
+      }, 30000);
+    }
     function openAdminModal() {
       const pwd = prompt('Enter Admin Password to open Master Games Database:', '');
       if (pwd === null) return;
@@ -761,8 +993,9 @@
           </tr>
         `;
       }).join('');
-    }  
-     function populateAdminGameEdit(idx) {
+    }
+
+    function populateAdminGameEdit(idx) {
       const g = masterGames[idx];
       if (!g) return;
       document.getElementById('admin-game-num').value = g.gameNum;
@@ -877,238 +1110,264 @@
         errorMsg: ''
       };
     }
-
-function addBox() {
-  if (isBoxSetupLocked) return;
-  boxes.push({
-    boxNumber: String(boxes.length + 1),
-    gameNum: '',
-    gameName: '',
-    price: 0,
-    rollCount: 0,
-    packNum: '',
-    startTicket: '',
-    endTicket: '',
-    rollovers: []
-  });
-  if (boxes.length > 1) {
-    const prevIdx = boxes.length - 2;
-    updateBoxLabel(prevIdx, String(boxes[prevIdx].boxNumber));
-  } else {
-    saveBoxesState();
-    renderDispenserGrid();
-  }
-}
-
-function assignGameToBox(idx, gameNumInput) {
-  const box = boxes[idx];
-  if (!box) return;
-  const cleanedNum = gameNumInput.trim();
-  const game = masterGames.find(g => g.gameNum === cleanedNum);
-
-  if (game) {
-    box.gameNum = game.gameNum;
-    box.gameName = game.name;
-    box.price = Number(game.price);
-    box.rollCount = Number(game.count);
-    box.needsNewGameEntry = false;
-    if (box.startTicket === '') box.startTicket = 0;
-  } else if (cleanedNum === '') {
-    box.gameNum = '';
-    box.gameName = '';
-    box.price = 0;
-    box.rollCount = 0;
-    box.needsNewGameEntry = false;
-  } else {
-    // Game # is not in the database — prompt inline creation inside the box
-    box.gameNum = cleanedNum;
-    box.gameName = '';
-    box.price = 0;
-    box.rollCount = 0;
-    box.needsNewGameEntry = true;
-  }
-  saveBoxesState();
-  renderDispenserGrid();
-}
-
-function saveNewGameFromBox(idx) {
-  const box = boxes[idx];
-  if (!box) return;
-
-  const gameNum = (document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
-  const name = (document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
-  const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
-  const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
-
-  if (!gameNum || !name || price <= 0) {
-    alert('Please enter the Game #, Ticket Name, and $ Amount.');
-    return;
-  }
-
-  // Default roll count based on price if left blank (e.g., $300 pack standard) or 100
-  const count = countInput > 0 ? countInput : Math.max(15, Math.round(300 / price));
-
-  const existingIdx = masterGames.findIndex(g => g.gameNum === gameNum);
-  if (existingIdx >= 0) {
-    masterGames[existingIdx] = { gameNum, name, price, count };
-  } else {
-    masterGames.push({ gameNum, name, price, count });
-  }
-
-  // Update any box using this Game #
-  boxes.forEach(b => {
-    if (b.gameNum === gameNum) {
-      b.gameName = name;
-      b.price = price;
-      b.rollCount = count;
-      b.needsNewGameEntry = false;
-      if (b.startTicket === '') b.startTicket = 0;
+    function indexToLetters(num) {
+      let str = '';
+      let n = num;
+      while (n >= 0) {
+        str = String.fromCharCode((n % 26) + 65) + str;
+        n = Math.floor(n / 26) - 1;
+      }
+      return str;
     }
-  });
 
-  saveGamesState();
-  saveBoxesState();
-  if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
-  renderDispenserGrid();
-}
+    function updateBoxLabel(idx, newVal) {
+      const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
+      if (!cleaned) {
+        renderDispenserGrid();
+        return;
+      }
+      boxes[idx].boxNumber = cleaned;
 
-function renderDispenserGrid() {
-  const grid = document.getElementById('dispenser-grid');
-  const title = document.getElementById('dispenser-section-title');
-  if (!grid) return;
+      const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
+      const numPairMatch = cleaned.match(/^(\d+)&(\d+)$/);
+      const singleNumMatch = cleaned.match(/^(\d+)&?$/);
+      const singleLetterMatch = cleaned.match(/^([A-Z])&?$/);
 
-  if (title && boxes.length > 0) {
-    title.textContent = `Dispenser Boxes (${boxes[0].boxNumber} - ${boxes[boxes.length - 1].boxNumber})`;
-  }
+      if (letterPairMatch) {
+        let secondLetterIdx = letterPairMatch[2].charCodeAt(0) - 65;
+        for (let i = idx + 1; i < boxes.length; i++) {
+          const nextFirst = secondLetterIdx + 1;
+          const nextSecond = secondLetterIdx + 2;
+          boxes[i].boxNumber = `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`;
+          secondLetterIdx = nextSecond;
+        }
+      } else if (numPairMatch) {
+        let lastNum = parseInt(numPairMatch[2], 10);
+        for (let i = idx + 1; i < boxes.length; i++) {
+          const nextFirst = lastNum + 1;
+          const nextSecond = lastNum + 2;
+          boxes[i].boxNumber = `${nextFirst}&${nextSecond}`;
+          lastNum = nextSecond;
+        }
+      } else if (singleNumMatch) {
+        let currentNum = parseInt(singleNumMatch[1], 10);
+        for (let i = idx + 1; i < boxes.length; i++) {
+          currentNum++;
+          boxes[i].boxNumber = String(currentNum);
+        }
+      } else if (singleLetterMatch) {
+        let currentIdx = singleLetterMatch[1].charCodeAt(0) - 65;
+        for (let i = idx + 1; i < boxes.length; i++) {
+          currentIdx++;
+          boxes[i].boxNumber = indexToLetters(currentIdx);
+        }
+      }
 
-  let grandTotalSales = 0;
+      saveBoxesState();
+      renderDispenserGrid();
+    }
 
-  grid.innerHTML = boxes.map((box, idx) => {
-    const metrics = calculateBoxMetrics(box);
-    grandTotalSales += metrics.salesAmount;
-    const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
-    const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
-    const isUnknownGame = box.gameNum && !masterGames.some(g => g.gameNum === box.gameNum);
+    function assignGameToBox(idx, gameNumInput) {
+      const box = boxes[idx];
+      if (!box) return;
+      const cleanedNum = String(gameNumInput || '').trim();
+      const game = masterGames.find(g => String(g.gameNum).trim() === cleanedNum);
 
-    return `
-      <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
-        <div>
-          <!-- Top Bar: Editable Box Number/Letter/& + Price Badge + Scan -->
-          <div class="flex justify-between items-center mb-2">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-black uppercase text-slate-600">Box</span>
-              <input 
-                type="text" 
-                value="${box.boxNumber}" 
-                onchange="updateBoxLabel(${idx}, this.value)"
-                ${isBoxSetupLocked ? 'disabled' : ''}
-                title="Change to number, letter, or add & (following boxes auto-update)"
-                class="w-14 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90"
-              >
-            </div>
-            <div class="flex items-center gap-1">
-              ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
-              <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
-              ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
-            </div>
-          </div>
+      if (game) {
+        box.gameNum = game.gameNum;
+        box.gameName = game.name;
+        box.price = Number(game.price);
+        box.rollCount = Number(game.count);
+        box.needsNewGameEntry = false;
+        if (box.startTicket === '' || box.startTicket === undefined) box.startTicket = 0;
+      } else if (cleanedNum === '') {
+        box.gameNum = '';
+        box.gameName = '';
+        box.price = 0;
+        box.rollCount = 0;
+        box.needsNewGameEntry = false;
+      } else {
+        box.gameNum = cleanedNum;
+        box.gameName = '';
+        box.price = 0;
+        box.rollCount = 0;
+        box.needsNewGameEntry = true;
+      }
+      saveBoxesState();
+      renderDispenserGrid();
+    }
 
-          <!-- Game # Input + Non-Editable Database Game Name Display -->
-          <div class="grid grid-cols-3 gap-1.5 mb-2">
+    function saveNewGameFromBox(idx) {
+      const box = boxes[idx];
+      if (!box) return;
+
+      const gameNum = (document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
+      const name = (document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
+      const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
+      const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
+
+      if (!gameNum || !name || price <= 0) {
+        alert('Please enter the Game #, Ticket Name, and $ Amount.');
+        return;
+      }
+
+      const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price);
+      const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
+      if (existingIdx >= 0) {
+        masterGames[existingIdx] = { gameNum, name, price, count };
+      } else {
+        masterGames.push({ gameNum, name, price, count });
+      }
+
+      boxes.forEach(b => {
+        if (String(b.gameNum).trim() === gameNum) {
+          b.gameName = name;
+          b.price = price;
+          b.rollCount = count;
+          b.needsNewGameEntry = false;
+          if (b.startTicket === '') b.startTicket = 0;
+        }
+      });
+
+      saveGamesState();
+      saveBoxesState();
+      if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
+      renderDispenserGrid();
+    }
+
+    function renderDispenserGrid() {
+      const grid = document.getElementById('dispenser-grid');
+      const title = document.getElementById('dispenser-section-title');
+      if (!grid) return;
+
+      if (title && boxes.length > 0) {
+        title.textContent = `Dispenser Boxes (${boxes[0].boxNumber} - ${boxes[boxes.length - 1].boxNumber})`;
+      }
+
+      let grandTotalSales = 0;
+
+      grid.innerHTML = boxes.map((box, idx) => {
+        const metrics = calculateBoxMetrics(box);
+        grandTotalSales += metrics.salesAmount;
+        const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
+        const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
+        const isUnknownGame = box.gameNum && !box.gameName && !masterGames.some(g => String(g.gameNum).trim() === String(box.gameNum).trim());
+
+        return `
+          <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
             <div>
-              <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
-              <input 
-                type="text" 
-                value="${box.gameNum || ''}" 
-                onchange="assignGameToBox(${idx}, this.value)"
-                ${isBoxSetupLocked ? 'disabled' : ''}
-                placeholder="e.g. 401" 
-                class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
-              >
-            </div>
-            <div class="col-span-2">
-              <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name (Database)</label>
-              <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center select-none">
-                ${box.gameName 
-                  ? `<span>${box.gameName} ($${box.price})</span>` 
-                  : (isUnknownGame 
-                      ? '<span class="text-amber-700 font-bold">Not in table — Add below</span>' 
-                      : '<span class="text-gray-400">Enter Game #</span>')}
+              <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-black uppercase text-slate-600">Box</span>
+                  <input 
+                    type="text" 
+                    value="${box.boxNumber}" 
+                    onchange="updateBoxLabel(${idx}, this.value)"
+                    ${isBoxSetupLocked ? 'disabled' : ''}
+                    title="Type A&B, 1&2, A, or 1 — following boxes auto-update"
+                    class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90"
+                  >
+                </div>
+                <div class="flex items-center gap-1">
+                  ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
+                  <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
+                  ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
+                </div>
               </div>
-            </div>
-          </div>
 
-          <!-- Inline Prompt if Game # is NOT in the Database -->
-          ${isUnknownGame ? `
-            <div class="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-xs">
-              <div class="font-bold text-amber-900 mb-1">Game #${box.gameNum} not found. Add to database:</div>
-              <div class="grid grid-cols-3 gap-1.5 mb-1.5">
+              <div class="grid grid-cols-3 gap-1.5 mb-2">
                 <div>
-                  <label class="block text-[10px] font-bold text-amber-800">Game #</label>
-                  <input id="new-game-num-${idx}" type="text" value="${box.gameNum}" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                  <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
+                  <input 
+                    type="text" 
+                    value="${box.gameNum || ''}" 
+                    onchange="assignGameToBox(${idx}, this.value)"
+                    ${isBoxSetupLocked ? 'disabled' : ''}
+                    placeholder="e.g. 1802" 
+                    class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
+                  >
                 </div>
                 <div class="col-span-2">
-                  <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
-                  <input id="new-game-name-${idx}" type="text" placeholder="e.g. Jumbo Bucks" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
+                  <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name (Database)</label>
+                  <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center select-none">
+                    ${box.gameName 
+                      ? `<span>${box.gameName} ${box.price ? `($${box.price})` : ''}</span>` 
+                      : (isUnknownGame 
+                          ? '<span class="text-amber-700 font-bold">Not in table — Add below</span>' 
+                          : '<span class="text-gray-400">Enter Game #</span>')}
+                  </div>
                 </div>
               </div>
-              <div class="grid grid-cols-3 gap-1.5 items-end">
+
+              ${isUnknownGame ? `
+                <div class="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-xs">
+                  <div class="font-bold text-amber-900 mb-1">Game #${box.gameNum} not found. Add to database:</div>
+                  <div class="grid grid-cols-3 gap-1.5 mb-1.5">
+                    <div>
+                      <label class="block text-[10px] font-bold text-amber-800">Game #</label>
+                      <input id="new-game-num-${idx}" type="text" value="${box.gameNum}" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                    </div>
+                    <div class="col-span-2">
+                      <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
+                      <input id="new-game-name-${idx}" type="text" placeholder="e.g. 300x Jumbo" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1.5 items-end">
+                    <div>
+                      <label class="block text-[10px] font-bold text-amber-800">$ Amount</label>
+                      <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 30" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                    </div>
+                    <div>
+                      <label class="block text-[10px] font-bold text-amber-800">Roll Count</label>
+                      <input id="new-game-count-${idx}" type="number" min="1" placeholder="Auto" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                    </div>
+                    <button onclick="saveNewGameFromBox(${idx})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs">Save Game</button>
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
                 <div>
-                  <label class="block text-[10px] font-bold text-amber-800">$ Amount</label>
-                  <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 5" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                  <label class="block text-gray-500 font-semibold">Pack #</label>
+                  <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
                 </div>
                 <div>
-                  <label class="block text-[10px] font-bold text-amber-800">Roll Count</label>
-                  <input id="new-game-count-${idx}" type="number" min="1" placeholder="e.g. 60" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
+                  <label class="block text-gray-500 font-semibold">Roll Max #</label>
+                  <div class="p-1 font-mono text-xs bg-gray-100 border rounded text-gray-600 select-none">${maxTicketStr} (${box.rollCount || 0})</div>
                 </div>
-                <button onclick="saveNewGameFromBox(${idx})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs">Save Game</button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-1.5 mb-2">
+                <div>
+                  <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
+                  <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
+                </div>
+                <div>
+                  <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
+                  <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
+                </div>
+              </div>
+
+              ${metrics.isError ? `<p class="text-[11px] text-red-600 font-semibold mb-1">${metrics.errorMsg}</p>` : ''}
+            </div>
+
+            <div class="pt-2 border-t flex items-center justify-between text-xs">
+              <div>
+                <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
+                <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${metrics.salesAmount.toFixed(2)}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll${rollBadgeCount > 1 ? 's' : ''}</button>` : ''}
+                <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
               </div>
             </div>
-          ` : ''}
-
-          <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
-            <div>
-              <label class="block text-gray-500 font-semibold">Pack #</label>
-              <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
-            </div>
-            <div>
-              <label class="block text-gray-500 font-semibold">Roll Max #</label>
-              <div class="p-1 font-mono text-xs bg-gray-100 border rounded text-gray-600 select-none">${maxTicketStr} (${box.rollCount || 0})</div>
-            </div>
           </div>
+        `;
+      }).join('');
 
-          <div class="grid grid-cols-2 gap-1.5 mb-2">
-            <div>
-              <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
-              <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
-            </div>
-            <div>
-              <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
-              <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
-            </div>
-          </div>
-
-          ${metrics.isError ? `<p class="text-[11px] text-red-600 font-semibold mb-1">${metrics.errorMsg}</p>` : ''}
-        </div>
-
-        <div class="pt-2 border-t flex items-center justify-between text-xs">
-          <div>
-            <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
-            <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${metrics.salesAmount.toFixed(2)}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll${rollBadgeCount > 1 ? 's' : ''}</button>` : ''}
-            <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  const salesEl = document.getElementById('action-bar-sales');
-  if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
-}
-
+      const salesEl = document.getElementById('action-bar-sales');
+      if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
+    }
     function updateBoxField(idx, field, val) {
       if (!boxes[idx]) return;
       boxes[idx][field] = val === '' ? '' : (field === 'packNum' ? val.trim() : Number(val));
@@ -1147,7 +1406,7 @@ function renderDispenserGrid() {
       if (isBoxSetupLocked) return;
       if (!confirm(`Remove Box ${boxes[idx].boxNumber}?`)) return;
       boxes.splice(idx, 1);
-      boxes.forEach((b, i) => { b.boxNumber = i + 1; });
+      boxes.forEach((b, i) => { b.boxNumber = String(i + 1); });
       saveBoxesState();
       renderDispenserGrid();
     }
@@ -1167,7 +1426,7 @@ function renderDispenserGrid() {
       }
       const maxTicket = Math.max(0, Number(box.rollCount) - 1);
       const start = Number(box.startTicket) || 0;
-      const soldOnOldPack = Math.max(0, ( maxTicket + 1 ) - start);
+      const soldOnOldPack = Math.max(0, (maxTicket + 1) - start);
 
       if (!confirm(`Finish current pack in Box ${box.boxNumber} (${soldOnOldPack} tickets sold from #${start} to end of roll #${maxTicket}) and load a new pack starting at #000?`)) {
         return;
@@ -1213,7 +1472,6 @@ function renderDispenserGrid() {
     function closeRollHistoryModal() {
       document.getElementById('roll-history-modal').classList.add('hidden');
     }
-
     function openRapidEntryModal() {
       const list = document.getElementById('rapid-entry-list');
       list.innerHTML = boxes.map((b, idx) => `
@@ -1405,7 +1663,8 @@ function renderDispenserGrid() {
       const raw = document.getElementById('manual-barcode-input').value.trim();
       if (raw) handleBarcodeString(raw);
     }
-function handleBarcodeString(raw) {
+
+    function handleBarcodeString(raw) {
       const digits = raw.replace(/\D/g, '');
       if (digits.length < 6) {
         alert('Barcode too short to parse Game and Ticket number.');
@@ -1417,7 +1676,7 @@ function handleBarcodeString(raw) {
 
       let targetIdx = activeScannerBoxIndex;
       if (targetIdx === null) {
-        targetIdx = boxes.findIndex(b => b.gameNum === gameNum);
+        targetIdx = boxes.findIndex(b => String(b.gameNum).trim() === gameNum);
       }
       if (targetIdx === -1 || targetIdx === null) {
         alert(`No box assigned to Game #${gameNum}. Assign it to a box first.`);
@@ -1486,428 +1745,3 @@ function handleBarcodeString(raw) {
   </script>
 </body>
 </html>
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// FULL SYSTEM BACKUP, RESTORE & HARD-OVERRIDE ENGINE
-// ==========================================
-
-const AUTO_BACKUP_STORAGE_KEY = 'lottery_pro_auto_backup_snapshot';
-const AUTO_BACKUP_LAST_DATE_KEY = 'lottery_pro_auto_backup_last_date';
-
-function indexToLetters(num) {
-  let str = '';
-  let n = num;
-  while (n >= 0) {
-    str = String.fromCharCode((n % 26) + 65) + str;
-    n = Math.floor(n / 26) - 1;
-  }
-  return str;
-}
-
-function getDefaultRollCountForPrice(price) {
-  const p = Number(price);
-  if (!p || p <= 0) return 0;
-  // Standard pack sizes ($300 pack for $2+, 300 tickets for $1)
-  if (p === 1) return 300;
-  if (p === 2) return 150;
-  if (p === 3) return 100;
-  if (p === 5) return 60;
-  if (p === 10) return 30;
-  if (p === 20) return 15;
-  if (p === 25) return 12;
-  if (p === 30) return 10;
-  if (p === 50) return 10;
-  return Math.max(10, Math.round(300 / p));
-}
-
-function setBoxDisplayLabel(boxObj, labelStr) {
-  if (!boxObj) return;
-  const val = String(labelStr).trim().toUpperCase();
-  boxObj.boxNumber = val;
-  boxObj.boxLabel = val;
-  boxObj.label = val;
-  boxObj.boxNum = val;
-}
-
-function getBoxDisplayLabel(boxObj, fallbackIdx) {
-  if (!boxObj) return String(fallbackIdx + 1);
-  const raw = boxObj.boxNumber ?? boxObj.boxLabel ?? boxObj.label ?? boxObj.boxNum ?? boxObj.slot ?? boxObj.id ?? (fallbackIdx + 1);
-  return String(raw).trim().toUpperCase();
-}
-
-window.updateBoxLabel = function(idx, newVal) {
-  const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
-  if (!cleaned) {
-    window.renderDispenserGrid();
-    return;
-  }
-  setBoxDisplayLabel(boxes[idx], cleaned);
-
-  // 1. Paired Letters with & (e.g. "A&B" -> "C&D", "E&F"...)
-  const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
-  // 2. Paired Numbers with & (e.g. "1&2" -> "3&4", "5&6"...)
-  const numPairMatch = cleaned.match(/^(\d+)&(\d+)$/);
-  // 3. Single Number (e.g. "1" -> "2", "3", "4"...)
-  const singleNumMatch = cleaned.match(/^(\d+)&?$/);
-  // 4. Single Letter (e.g. "A" -> "B", "C", "D"...)
-  const singleLetterMatch = cleaned.match(/^([A-Z])&?$/);
-
-  if (letterPairMatch) {
-    let secondLetterIdx = letterPairMatch[2].charCodeAt(0) - 65;
-    for (let i = idx + 1; i < boxes.length; i++) {
-      const nextFirst = secondLetterIdx + 1;
-      const nextSecond = secondLetterIdx + 2;
-      setBoxDisplayLabel(boxes[i], `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`);
-      secondLetterIdx = nextSecond;
-    }
-  } else if (numPairMatch) {
-    let lastNum = parseInt(numPairMatch[2], 10);
-    for (let i = idx + 1; i < boxes.length; i++) {
-      const nextFirst = lastNum + 1;
-      const nextSecond = lastNum + 2;
-      setBoxDisplayLabel(boxes[i], `${nextFirst}&${nextSecond}`);
-      lastNum = nextSecond;
-    }
-  } else if (singleNumMatch) {
-    let currentNum = parseInt(singleNumMatch[1], 10);
-    for (let i = idx + 1; i < boxes.length; i++) {
-      currentNum++;
-      setBoxDisplayLabel(boxes[i], String(currentNum));
-    }
-  } else if (singleLetterMatch) {
-    let currentIdx = singleLetterMatch[1].charCodeAt(0) - 65;
-    for (let i = idx + 1; i < boxes.length; i++) {
-      currentIdx++;
-      setBoxDisplayLabel(boxes[i], indexToLetters(currentIdx));
-    }
-  }
-
-  if (typeof saveBoxesState === 'function') saveBoxesState();
-  if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.BOXES) {
-    localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
-  }
-  window.renderDispenserGrid();
-};
-
-window.assignGameToBox = function(idx, gameNumInput) {
-  const box = boxes[idx];
-  if (!box) return;
-  const cleanedNum = String(gameNumInput || '').trim();
-  const game = (masterGames || []).find(g => String(g.gameNum ?? g.number ?? g.id).trim() === cleanedNum);
-
-  if (game) {
-    box.gameNum = String(game.gameNum ?? game.number ?? game.id).trim();
-    box.gameName = game.name || game.gameName || '';
-    box.price = Number(game.price ?? game.amount ?? 0);
-    box.rollCount = Number(game.count ?? game.rollCount ?? getDefaultRollCountForPrice(box.price));
-    box.needsNewGameEntry = false;
-    if (box.startTicket === '' || box.startTicket === undefined) box.startTicket = 0;
-  } else if (cleanedNum === '') {
-    box.gameNum = '';
-    box.gameName = '';
-    box.price = 0;
-    box.rollCount = 0;
-    box.needsNewGameEntry = false;
-  } else {
-    box.gameNum = cleanedNum;
-    box.gameName = '';
-    box.price = 0;
-    box.rollCount = 0;
-    box.needsNewGameEntry = true;
-  }
-  if (typeof saveBoxesState === 'function') saveBoxesState();
-  window.renderDispenserGrid();
-};
-
-window.saveNewGameFromBox = function(idx) {
-  const box = boxes[idx];
-  if (!box) return;
-
-  const gameNum = (document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
-  const name = (document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
-  const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
-  const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
-
-  if (!gameNum || !name || price <= 0) {
-    alert('Please enter the Game #, Ticket Name, and $ Amount.'); return; }    const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price); const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum); if (existingIdx >= 0) { masterGames[existingIdx] = { gameNum, name, price, count }; } else { masterGames.push({ gameNum, name, price, count }); }    boxes.forEach(b => { if (String(b.gameNum).trim() === gameNum) { b.gameName = name; b.price = price; b.rollCount = count; b.needsNewGameEntry = false; if (b.startTicket === '') b.startTicket = 0; } });    if (typeof saveGamesState === 'function') saveGamesState(); if (typeof saveBoxesState === 'function') saveBoxesState(); if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable(); window.renderDispenserGrid(); };  window.renderDispenserGrid = function() { const grid = document.getElementById('dispenser-grid'); const title = document.getElementById('dispenser-section-title'); if (!grid \vert{}\vert{} !Array.isArray(boxes)) return;    // Enforce 1 to 2 column layout grid.style.display = 'grid'; grid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(1, minmax(0, 1fr))'; grid.style.gap = '0.75rem';    if (title && boxes.length > 0) { const firstLbl = getBoxDisplayLabel(boxes[0], 0); const lastLbl = getBoxDisplayLabel(boxes[boxes.length - 1], boxes.length - 1); title.textContent = `Dispenser Boxes (${firstLbl} - ${lastLbl})`; }    let grandTotalSales = 0;    grid.innerHTML = boxes.map((box, idx) => { const labelStr = getBoxDisplayLabel(box, idx); setBoxDisplayLabel(box, labelStr);      const metrics = typeof calculateBoxMetrics === 'function' ? calculateBoxMetrics(box) : { ticketsSold: 0, salesAmount: 0, isError: false, errorMsg: '' };      grandTotalSales += Number(metrics.salesAmount \vert{}\vert{} 0); const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---'; const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0; const isUnknownGame = box.gameNum && !box.gameName && !(masterGames \vert{}\vert{} []).some(g => String(g.gameNum ?? g.number ?? g.id).trim() === String(box.gameNum).trim()); const locked = typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false;      return ` <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between"> <div> <div class="flex justify-between items-center mb-2"> <div class="flex items-center gap-1.5"> <span class="text-xs font-black uppercase text-slate-600">Box</span> <input type="text" value="${labelStr}" onchange="window.updateBoxLabel(${idx}, this.value)" onblur="if(this.value.trim().toUpperCase() !== '${labelStr}') window.updateBoxLabel(${idx}, this.value)" onkeydown="if(event.key === 'Enter'){ this.blur(); }" ${locked ? 'disabled' : ''} title="Type A&B, 1&2, A, or 1 — following boxes auto-update" class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90" > </div> <div class="flex items-center gap-1"> ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
-              <button onclick="initScanner(${idx})" title="Scan Ticket Barcode" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
-              ${!locked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-1.5 mb-2">
-            <div>
-              <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
-              <input 
-                type="text" 
-                value="${box.gameNum || ''}" 
-                onchange="window.assignGameToBox(${idx}, this.value)"
-                onkeydown="if(event.key === 'Enter'){ this.blur(); }"
-                ${locked ? 'disabled' : ''}
-                placeholder="e.g. 1802" 
-                class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
-              >
-            </div>
-            <div class="col-span-2">
-              <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name (Database)</label>
-              <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center select-none">
-                ${box.gameName 
-                  ? `<span>${box.gameName}${box.price ? `($${box.price})` : ''}</span>` 
-                  : (isUnknownGame 
-                      ? '<span class="text-amber-700 font-bold">Not in table — Add below</span>' 
-                      : '<span class="text-gray-400">Enter Game #</span>')}
-              </div>
-            </div>
-          </div>
-
-          ${isUnknownGame ? `
-            <div class="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-xs">
-              <div class="font-bold text-amber-900 mb-1">Game #${box.gameNum} not found. Add to database:</div>
-              <div class="grid grid-cols-3 gap-1.5 mb-1.5">
-                <div>
-                  <label class="block text-[10px] font-bold text-amber-800">Game #</label>
-                  <input id="new-game-num-${idx}" type="text" value="${box.gameNum}" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
-                </div>
-                <div class="col-span-2">
-                  <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
-                  <input id="new-game-name-${idx}" type="text" placeholder="e.g. 300x Jumbo" class="w-full border border-amber-300 rounded p-1 text-xs bg-white">
-                </div>
-              </div>
-              <div class="grid grid-cols-3 gap-1.5 items-end">
-                <div>
-                  <label class="block text-[10px] font-bold text-amber-800">$ Amount</label>
-                  <input id="new-game-price-${idx}" type="number" min="1" step="1" placeholder="e.g. 30" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-bold text-amber-800">Roll Count</label>
-                  <input id="new-game-count-${idx}" type="number" min="1" placeholder="Auto" class="w-full border border-amber-300 rounded p-1 font-mono text-xs bg-white">
-                </div>
-                <button onclick="window.saveNewGameFromBox(${idx})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs">Save Game</button>
-              </div>
-            </div>
-          ` : ''}
-
-          <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
-            <div>
-              <label class="block text-gray-500 font-semibold">Pack #</label>
-              <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${locked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
-            </div>
-            <div>
-              <label class="block text-gray-500 font-semibold">Roll Max #</label>
-              <div class="p-1 font-mono text-xs bg-gray-100 border rounded text-gray-600 select-none">${maxTicketStr} (${box.rollCount || 0})</div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-1.5 mb-2">
-            <div>
-              <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
-              <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${locked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
-            </div>
-            <div>
-              <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
-              <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
-            </div>
-          </div>
-
-          ${metrics.isError ? `<p class="text-[11px] text-red-600 font-semibold mb-1">${metrics.errorMsg}</p>` : ''}
-        </div>
-
-        <div class="pt-2 border-t flex items-center justify-between text-xs">
-          <div>
-            <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
-            <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${Number(metrics.salesAmount || 0).toFixed(2)}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll${rollBadgeCount > 1 ? 's' : ''}</button>` : ''}
-            <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  const salesEl = document.getElementById('action-bar-sales');
-  if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
-};
-
-function buildFullBackupPayload(triggerType = 'manual') {
-  // Also build a legacy-compatible "dispensers" object & "storeProfile" so backups work in both versions!
-  const dispensersMap = {};
-  (boxes || []).forEach((b, i) => {
-    const lbl = getBoxDisplayLabel(b, i);
-    dispensersMap[String(i + 1)] = {
-      id: lbl,
-      boxNumber: lbl,
-      gameNum: b.gameNum || '',
-      gameName: b.gameNum && b.gameName ? `${b.gameNum} - ${b.gameName}` : (b.gameName || ''),
-      price: b.price !== undefined && b.price !== 0 ? String(b.price) : '',
-      packNum: b.packNum || '',
-      rollCount: b.rollCount || 0,
-      startTicket: b.startTicket !== '' && b.startTicket !== undefined ? String(b.startTicket) : '',
-      endTicket: b.endTicket !== '' && b.endTicket !== undefined ? String(b.endTicket) : '',
-      rollovers: Array.isArray(b.rollovers) ? b.rollovers : []
-    };
-  });
-
-  return {
-    version: '3.1',
-    trigger: triggerType,
-    exportedAt: new Date().toISOString(),
-    storeProfile: {
-      name: storeConfig?.name || '',
-      id: storeConfig?.number || '',
-      count: (boxes || []).length
-    },
-    storeConfig: typeof storeConfig !== 'undefined' ? storeConfig : {},
-    adminPin: typeof adminPin !== 'undefined' ? adminPin : '1234',
-    isBoxSetupLocked: typeof isBoxSetupLocked !== 'undefined' ? isBoxSetupLocked : false,
-    masterGames: typeof masterGames !== 'undefined' ? masterGames : [],
-    boxes: (typeof boxes !== 'undefined' && Array.isArray(boxes)) ? boxes.map((b, i) => ({
-      ...b,
-      boxNumber: getBoxDisplayLabel(b, i)
-    })) : [],
-    dispensers: dispensersMap,
-    shiftHistory: typeof shiftHistory !== 'undefined' ? shiftHistory : []
-  };
-}
-
-function downloadBackupPayload(payload, prefix = 'Lottery_Backup') {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const storeSlug = ((typeof storeConfig !== 'undefined' && storeConfig?.name) ? storeConfig.name : 'Store').replace(/[^a-z0-9]/gi, '_');
-  a.href = url;
-  a.download = `${prefix}_${storeSlug}_${dateStr}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function exportFullBackup() {
-  const payload = buildFullBackupPayload('manual');
-  downloadBackupPayload(payload, 'Lottery_Backup');
-}
-
-function parseCombinedGameString(rawGameNum, rawGameName) {
-  let gameNum = String(rawGameNum ?? '').trim();
-  let gameName = String(rawGameName ?? '').trim();
-
-  // Check if gameName is in the format "1802 - 300x Jumbo"
-  if (!gameNum && gameName.includes('-')) {
-    const match = gameName.match(/^(\d+)\s*-\s*(.+)$/);
-    if (match) {
-      gameNum = match[1].trim();
-      gameName = match[2].trim();
-    }
-  } else if (gameNum && gameName.startsWith(`${gameNum} -`)) {
-    gameName = gameName.replace(new RegExp(`^${gameNum}\\s*-\\s*`), '').trim();
-  }
-  return { gameNum, gameName };
-}
-
-function applyBackupData(data, carryOverEndToStart = false) {
-  if (!data || typeof data !== 'object') return;
-
-  // 1. Restore Store Profile / Store Config (handles "storeProfile": { "name": "ReGas Xpress", "id": "122547", "count": 40 })
-  const importedStore = data.storeProfile || data.storeConfig || data.store || data.storeInfo;
-  if (importedStore && typeof importedStore === 'object') {
-    storeConfig = {
-      name: importedStore.name ?? importedStore.storeName ?? storeConfig?.name ?? '',
-      number: String(importedStore.id ?? importedStore.number ?? importedStore.storeNumber ?? storeConfig?.number ?? ''),
-      address: importedStore.address ?? importedStore.location ?? storeConfig?.address ?? '',
-      phone: importedStore.phone ?? importedStore.manager ?? storeConfig?.phone ?? ''
-    };
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.STORE) {
-      localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeConfig));
-    }
-  }
-
-  // 2. Restore Admin PIN
-  const importedPin = data.adminPin ?? data.pin ?? data.admin?.pin;
-  if (importedPin !== undefined && importedPin !== null && String(importedPin).trim() !== '') {
-    adminPin = String(importedPin).trim();
-    if (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS.PIN) {
-      localStorage.setItem(STORAGE_KEYS.PIN, adminPin);
-    }
-  }
-
-  // 3. Restore Master Games if present as an array
-  if (Array.isArray(data.masterGames) && data.masterGames.length > 0) {
-    masterGames = data.masterGames.map(g => ({
-      gameNum: String(g.gameNum ?? g.number ?? g.id ?? '').trim(),
-      name: String(g.name ?? g.gameName ?? '').trim(),
-      price: Number(g.price ?? 0),
-      count: Number(g.count ?? g.rollCount ?? getDefaultRollCountForPrice(g.price))
-    })).filter(g => g.gameNum !== '');
-  }
-
-  // 4. Extract Boxes from EITHER an Array ("boxes") OR an Object Map ("dispensers": { "1": {...}, "2": {...} })
-  let rawBoxesList = [];
-  if (Array.isArray(data.boxes) && data.boxes.length > 0) {
-    rawBoxesList = data.boxes;
-  } else if (data.dispensers && typeof data.dispensers === 'object') {
-    if (Array.isArray(data.dispensers)) {
-      rawBoxesList = data.dispensers;
-    } else {
-      // Sort keys numerically ("1", "2", ..., "40") so boxes stay in exact order
-      const sortedKeys = Object.keys(data.dispensers).sort((a, b) => Number(a) - Number(b));
-      rawBoxesList = sortedKeys.map(k => ({
-        ...data.dispensers[k],
-        _mapKey: k
-      }));
-    }
-  }
-
-  if (rawBoxesList.length > 0) {
-    boxes = rawBoxesList.map((b, i) => {
-      // Determine Box Label (uses boxNumber, id, or map key)
-      const rawLabel = b.boxNumber ?? b.boxLabel ?? b.label ?? b.id ?? b._mapKey ?? (i + 1);
-      const lbl = String(rawLabel).trim().toUpperCase();
-
-      // Split "1802 - 300x Jumbo" into gameNum="1802" and gameName="300x Jumbo"
-      const parsedGame = parseCombinedGameString(b.gameNum ?? b.gameNumber, b.gameName ?? b.name);
-      const gameNum = parsedGame.gameNum;
-      const matchedGame = (masterGames || []).find(g => String(g.gameNum).trim() === gameNum);
-
-      const gameName = parsedGame.gameName || (matchedGame ? matchedGame.name : '');
-      const price = Number(b.price ?? (matchedGame ? matchedGame.price : 0)) || 0;
-      const rollCount = Number(b.rollCount ?? b.count ?? (matchedGame ? matchedGame.count : getDefaultRollCountForPrice(price))) || 0;
-      const packNum = String(b.packNum ?? b.packNumber ?? b.pack ?? '').trim();
-
-      const rawStart = b.startTicket ?? b.start ?? '';
-      const rawEnd = b.endTicket ?? b.end ?? '';
-
-      const hasStart = rawStart !== '' && rawStart !== null && rawStart !== undefined;
-      const hasEnd = rawEnd !== '' && rawEnd !== null && rawEnd !== undefined;
-
-      // If "Start From Last Backup" is chosen, move End Ticket into Start Ticket
-      const finalStart = carryOverEndToStart
-        ? (hasEnd ? Number(rawEnd) : (hasStart ? Number(rawStart) : ''))
-        : (hasStart ? Number(rawStart) : '');
-
-      const finalEnd = carryOverEndToStart
-        ? ''
-        : (hasEnd ? Number(rawEnd) : '');
-
-      return {
-        boxNumber: lbl,
-        boxLabel: lbl,
-        label: lbl,
-        boxNum: lbl,
-        gameNum: gameNum,
-        gameName: gameName,
-        price: price,
-        rollCount: rollCount,
-        packNum: packNum,
-        startTicket: finalStart,
-        endTicket: finalEnd,
-        needsNewGameEntry: false,
-        rollovers: carryOverEndToStart ? [] : (Array.isArray(b.rollovers) ? b.rollovers : [])
-      };
-    });
-
-    // Automatically
