@@ -1021,9 +1021,6 @@ function printRapidEntry() {
             sigCtx = sigCanvas.getContext('2d');
             sigCtx.strokeStyle = "#000";
             sigCtx.lineWidth = 2;
-            sigCanvas.onmousedown = startDraw;
-            sigCanvas.onmousemove = draw;
-            sigCanvas.onmouseup = stopDraw;
             sigCanvas.ontouchstart = (e) => startDraw(e.touches[0]);
             sigCanvas.ontouchmove = (e) => draw(e.touches[0]);
             sigCanvas.ontouchend = stopDraw;
