@@ -1176,41 +1176,33 @@
       renderAdminGamesTable();
       renderDispenserGrid();
     }
-    function calculateBoxMetrics(box) {
-      const price = Number(box.price) || 0;
-      const rollCount = Number(box.rollCount) || 0;
-      const hasStart = box.startTicket !== '' && box.startTicket !== null;
-      const hasEnd = box.endTicket !== '' && box.endTicket !== null;
+  function calculateBoxMetrics(box) {
+      if (!box) return { ticketsSold: 0, salesAmount: 0 };
+      
+      const start = box.startTicket !== '' && !isNaN(box.startTicket) ? Number(box.startTicket) : 0;
+      const end = box.endTicket !== '' && !isNaN(box.endTicket) ? Number(box.endTicket) : start;
+      const price = !isNaN(box.price) ? Number(box.price) : 0;
+      const rollCount = !isNaN(box.rollCount) && Number(box.rollCount) > 0 ? Number(box.rollCount) : 300; // default standard roll size if missing
 
-      let rolloverTickets = 0;
+      let ticketsSold = 0;
+
+      // Add up any archived rollovers from previous packs
       if (Array.isArray(box.rollovers)) {
-        box.rollovers.forEach(r => { rolloverTickets += Number(r.ticketsSold) || 0; });
+        box.rollovers.forEach(r => {
+          ticketsSold += Number(r.ticketsSold || 0);
+        });
       }
 
-      if (!box.gameNum || !hasStart || !hasEnd) {
-        return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: false, errorMsg: '' };
+      // Calculate current pack sales
+      if (end >= start) {
+        ticketsSold += (end - start);
+      } else {
+        // Rollover scenario occurred or wrapped around
+        ticketsSold += Math.max(0, (rollCount - start) + end + 1);
       }
 
-      const s = Number(box.startTicket);
-      const e = Number(box.endTicket);
-      const maxTicket = rollCount > 0 ? rollCount - 1 : 999;
-
-      if (s < 0 || e < 0 || s > maxTicket || e > maxTicket) {
-        return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: true, errorMsg: `Out of bounds (Max: ${maxTicket})` };
-      }
-
-      if (e < s) {
-        return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: true, errorMsg: 'End ticket is less than Start ticket (Use Roll Pack if new pack loaded)' };
-      }
-
-      const currentPackSold = e - s;
-      const totalSold = rolloverTickets + currentPackSold;
-      return {
-        ticketsSold: totalSold,
-        salesAmount: totalSold * price,
-        isError: false,
-        errorMsg: ''
-      };
+      const salesAmount = ticketsSold * price;
+      return { ticketsSold, salesAmount };
     }
 
     function setDispenserView(view) {
