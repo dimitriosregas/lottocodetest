@@ -1577,7 +1577,38 @@
         gtTickets += r.ticketsSold;
         gtSales += r.salesAmount;
       });
+function checkAutoRollover(idx, val) {
+      const box = boxes[idx];
+      if (!box || val === '') return;
+      const end = Number(val);
+      const start = Number(box.startTicket);
 
+      if (end < start) {
+        const maxTicket = Math.max(0, Number(box.rollCount) - 1);
+        if (maxTicket <= 0) {
+          alert(`Game #${box.gameNum} has no Roll Count set in Admin.`);
+          return;
+        }
+
+        if (confirm(`End ticket (${end}) is lower than Start ticket (${start}).\n\nDid you load a new pack? Click OK to auto-rollover the old pack.`)) {
+          const soldOnOldPack = Math.max(0, (maxTicket + 1) - start);
+          if (!Array.isArray(box.rollovers)) box.rollovers = [];
+          
+          box.rollovers.push({
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            startTicket: start,
+            endTicket: maxTicket,
+            ticketsSold: soldOnOldPack,
+            salesAmount: soldOnOldPack * Number(box.price)
+          });
+
+          box.startTicket = 0;
+          box.endTicket = end;
+          saveBoxesState();
+          renderDispenserGrid();
+        }
+      }
+    }
       const actionBarSales = document.getElementById('action-bar-sales');
       if (actionBarSales) actionBarSales.textContent = `$${gtSales.toFixed(2)}`;
 
