@@ -1594,13 +1594,14 @@
     }
 
     // Completely Fixed Remove Box Logic
-    function removeBox(idx) {
+ function removeBox(idx) {
       if (isBoxSetupLocked) {
-        alert('Unlock Box Layout in Store Setup first.');
+        alert('Unlock Box Setup first.');
         return;
       }
-      if (!confirm(`Are you sure you want to completely delete Box ${boxes[idx].boxNumber}?`)) return;
-      
+      const confirmation = prompt(`TYPE "DELETE" TO CONFIRM REMOVAL OF BOX ${boxes[idx].boxNumber}:`);
+      if (confirmation !== 'DELETE') return;
+
       boxes.splice(idx, 1);
       saveBoxesState();
       renderDispenserGrid();
