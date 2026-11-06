@@ -1213,33 +1213,60 @@
       renderAdminGamesTable();
       renderDispenserGrid();
     }
-  function calculateBoxMetrics(box) {
-      if (!box) return { ticketsSold: 0, salesAmount: 0 };
+function calculateBoxMetrics(box) {
+      if (!box) return { ticketsSold: 0, salesAmount: 0, isError: false, errorMsg: '' };
       
-      const start = box.startTicket !== '' && !isNaN(box.startTicket) ? Number(box.startTicket) : 0;
-      const end = box.endTicket !== '' && !isNaN(box.endTicket) ? Number(box.endTicket) : start;
+      const start = box.startTicket !== '' && box.startTicket !== null && !isNaN(box.startTicket) ? Number(box.startTicket) : 0;
+      const hasEnd = box.endTicket !== '' && box.endTicket !== null && box.endTicket !== undefined && !isNaN(box.endTicket);
+      const end = hasEnd ? Number(box.endTicket) : start;
       const price = !isNaN(box.price) ? Number(box.price) : 0;
-      const rollCount = !isNaN(box.rollCount) && Number(box.rollCount) > 0 ? Number(box.rollCount) : 300; // default standard roll size if missing
+      const rollCount = !isNaN(box.rollCount) && Number(box.rollCount) > 0 ? Number(box.rollCount) : (getDefaultRollCountForPrice(price) || 300);
 
-      let ticketsSold = 0;
+      let rolloverTickets = 0;
+      let rolloverSales = 0;
 
-      // Add up any archived rollovers from previous packs
+      // Add up archived rollovers (supports both same-game and new-game swaps)
       if (Array.isArray(box.rollovers)) {
         box.rollovers.forEach(r => {
-          ticketsSold += Number(r.ticketsSold || 0);
+          const rSold = Number(r.ticketsSold || 0);
+          const rPrice = r.price !== undefined ? Number(r.price) : price;
+          const rSales = r.salesAmount !== undefined ? Number(r.salesAmount) : (rSold * rPrice);
+          rolloverTickets += rSold;
+          rolloverSales += rSales;
         });
       }
 
-      // Calculate current pack sales
-      if (end >= start) {
-        ticketsSold += (end - start);
-      } else {
-        // Rollover scenario occurred or wrapped around
-        ticketsSold += Math.max(0, (rollCount - start) + end + 1);
+      let currentTickets = 0;
+      let isError = false;
+      let errorMsg = '';
+
+      if (hasEnd) {
+        if (end >= start) {
+          currentTickets = end - start;
+        } else {
+          // If end < start and hasn't been rolled into the sub-box yet, wrap calculation
+          currentTickets = Math.max(0, (rollCount - start) + end);
+        }
+        if (rollCount > 0 && end > rollCount) {
+          isError = true;
+          errorMsg = `End ticket (${end}) exceeds roll size (${rollCount})`;
+        }
       }
 
-      const salesAmount = ticketsSold * price;
-      return { ticketsSold, salesAmount };
+      const currentSales = currentTickets * price;
+      const ticketsSold = rolloverTickets + currentTickets;
+      const salesAmount = rolloverSales + currentSales;
+
+      return {
+        ticketsSold,
+        salesAmount,
+        currentTickets,
+        currentSales,
+        rolloverTickets,
+        rolloverSales,
+        isError,
+        errorMsg
+      };
     }
 
     function setDispenserView(view) {
@@ -1395,7 +1422,7 @@ function lettersToIndex(str) {
       renderAdminGamesTable(); renderDispenserGrid();
     }
 
-    function renderDispenserGrid() {
+function renderDispenserGrid() {
       const grid = document.getElementById('dispenser-grid');
       const title = document.getElementById('dispenser-section-title');
       if (!grid) return;
@@ -1428,6 +1455,7 @@ function lettersToIndex(str) {
                 ${boxes.map((box, idx) => {
                   const metrics = calculateBoxMetrics(box);
                   grandTotalSales += metrics.salesAmount;
+                  const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
                   return `
                     <tr class="hover:bg-slate-50 ${metrics.isError ? 'bg-red-50' : ''}">
                       <td class="p-2 text-center font-black">
@@ -1438,6 +1466,7 @@ function lettersToIndex(str) {
                       </td>
                       <td class="p-2 font-medium truncate max-w-[200px]">
                         ${box.gameName || '<span class="text-gray-400">Unassigned</span>'}
+                        ${rollBadgeCount > 0 ? `<div class="text-[10px] text-amber-700 font-bold">+${rollBadgeCount} prior pack(s) rolled</div>` : ''}
                       </td>
                       <td class="p-2 text-center font-bold text-emerald-700">
                         ${box.price > 0 ? `$${box.price}` : '-'}
@@ -1554,10 +1583,65 @@ function lettersToIndex(str) {
 
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
-      boxes[idx].endTicket = val === '' ? '' : Number(val);
+      const box = boxes[idx];
+      const newEnd = val === '' ? '' : Number(val);
+      const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
+      const rollCount = Number(box.rollCount) || 300;
+
+      // Check if roll wrapped/completed (End is lower than Start)
+      if (newEnd !== '' && newEnd < start) {
+        const confirmRollover = confirm(
+          `Rollover detected on Box ${box.boxNumber}!\n` +
+          `End ticket (${newEnd}) is lower than start ticket (${start}).\n\n` +
+          `Did you start a new pack on this box?`
+        );
+
+        if (confirmRollover) {
+          const oldPackSold = Math.max(0, (rollCount - start));
+          const oldPackSales = oldPackSold * Number(box.price || 0);
+
+          if (!Array.isArray(box.rollovers)) box.rollovers = [];
+          box.rollovers.push({
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            gameNum: box.gameNum,
+            gameName: box.gameName,
+            price: box.price,
+            startTicket: start,
+            endTicket: rollCount - 1,
+            ticketsSold: oldPackSold,
+            salesAmount: oldPackSales
+          });
+
+          const newGameNum = prompt("Enter New Game Number (or leave blank to keep same):", box.gameNum || "");
+          const newGameName = prompt("Enter New Game Name:", box.gameName || "");
+          const newStart = prompt("Enter Starting Ticket # for the new pack (usually 0 or 1):", "0");
+
+          if (newGameNum !== null && newGameNum.trim() !== "") {
+            box.gameNum = newGameNum.trim();
+            const matched = masterGames.find(g => String(g.gameNum).trim() === box.gameNum);
+            if (matched) {
+              box.gameName = matched.name;
+              box.price = Number(matched.price);
+              box.rollCount = Number(matched.count);
+            }
+          }
+          if (newGameName !== null && newGameName.trim() !== "") {
+            box.gameName = newGameName.trim();
+          }
+          box.startTicket = newStart !== null && newStart !== "" ? Number(newStart) : 0;
+          box.endTicket = newEnd;
+          box.rollsReplaced = (Number(box.rollsReplaced) || 0) + 1;
+
+          saveBoxesState();
+          renderDispenserGrid();
+          return;
+        }
+      }
+
+      box.endTicket = newEnd;
       saveBoxesState();
 
-      const m = calculateBoxMetrics(boxes[idx]);
+      const m = calculateBoxMetrics(box);
       const soldEl = document.getElementById(`box-sold-${idx}`);
       const salesEl = document.getElementById(`box-sales-${idx}`);
       if (soldEl) soldEl.textContent = m.ticketsSold;
