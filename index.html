@@ -1571,16 +1571,57 @@
       });
 function checkAutoRollover(idx, val) {
       const box = boxes[idx];
-      if (!box || val === '') return;
-      const end = Number(val);
-      const start = Number(box.startTicket);
+      if (!box) return;
+      
+      const start = Number(box.startTicket) || 0;
+      const end = Number(val) || 0;
+      const rollCount = Number(box.rollCount) || 300;
+      const price = Number(box.price) || 1;
 
+      // Check if a rollover occurred (end ticket is lower than start ticket)
       if (end < start) {
-        const maxTicket = Math.max(0, Number(box.rollCount) - 1);
-        if (maxTicket <= 0) {
-          alert(`Game #${box.gameNum} has no Roll Count set in Admin.`);
-          return;
+        const confirmRollover = confirm(`Rollover detected on Box ${box.boxNumber}! The end ticket (${end}) is lower than the start ticket (${start}). Did you start a new pack?`);
+        
+        if (confirmRollover) {
+          const newGameNum = prompt("Enter the New Game Number for this pack:", box.gameNum || "");
+          const newGameName = prompt("Enter the New Game Name for this pack:", box.gameName || "");
+          const newStart = prompt("Enter the Starting Ticket number for the new pack (usually 000 or 001):", "0");
+
+          if (newStart !== null) {
+            // Calculate tickets sold on the old pack up to the end of the roll
+            const oldPackSold = Math.max(0, (rollCount - start) + end + 1);
+            const oldPackSales = oldPackSold * price;
+
+            // Initialize rollovers array if it doesn't exist
+            if (!Array.isArray(box.rollovers)) {
+              box.rollovers = [];
+            }
+
+            // Archive the completed roll session
+            box.rollovers.push({
+              gameNum: box.gameNum,
+              gameName: box.gameName,
+              startTicket: start,
+              endTicket: rollCount, // completed to top of roll
+              ticketsSold: oldPackSold,
+              salesAmount: oldPackSales
+            });
+
+            // Update box to the new pack details
+            if (newGameNum !== null && newGameNum.trim() !== "") box.gameNum = newGameNum;
+            if (newGameName !== null && newGameName.trim() !== "") box.gameName = newGameName;
+            box.startTicket = Number(newStart) || 0;
+            box.endTicket = end; // current position on new pack
+
+            // Save and re-render the app
+            if (typeof saveState === 'function') saveState();
+            if (typeof render === 'function') render();
+            
+            alert("New pack successfully rolled over and archived!");
+          }
         }
+      }
+    }
 
         if (confirm(`End ticket (${end}) is lower than Start ticket (${start}).\n\nDid you load a new pack? Click OK to auto-rollover the old pack.`)) {
           const soldOnOldPack = Math.max(0, (maxTicket + 1) - start);
