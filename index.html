@@ -1422,6 +1422,81 @@ function lettersToIndex(str) {
       renderAdminGamesTable();
       renderDispenserGrid();
     }
+let currentDispenserView = 'list'; // Default is List View as requested
+
+    function setDispenserView(view) {
+      currentDispenserView = view;
+      const btnList = document.getElementById('btn-view-list');
+      const btnBox = document.getElementById('btn-view-box');
+      if (btnList && btnBox) {
+        if (view === 'list') {
+          btnList.className = 'px-3 py-1.5 rounded-md font-bold transition bg-slate-900 text-white';
+          btnBox.className = 'px-3 py-1.5 rounded-md font-bold transition text-slate-700 hover:text-slate-900';
+        } else {
+          btnBox.className = 'px-3 py-1.5 rounded-md font-bold transition bg-slate-900 text-white';
+          btnList.className = 'px-3 py-1.5 rounded-md font-bold transition text-slate-700 hover:text-slate-900';
+        }
+      }
+      renderDispenserGrid();
+    }
+
+    function openOcrModal() {
+      document.getElementById('ocr-modal').classList.remove('hidden');
+      document.getElementById('ocr-status-box').classList.add('hidden');
+      document.getElementById('ocr-preview-container').classList.add('hidden');
+      document.getElementById('ocr-raw-textarea').value = '';
+    }
+
+    function closeOcrModal() {
+      document.getElementById('ocr-modal').classList.add('hidden');
+    }
+
+    function handleOcrImageUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const imgPrev = document.getElementById('ocr-preview-img');
+        imgPrev.src = dataUrl;
+        document.getElementById('ocr-preview-container').classList.remove('hidden');
+        
+        const statusBox = document.getElementById('ocr-status-box');
+        statusBox.classList.remove('hidden');
+        statusBox.textContent = 'Image captured successfully! Review parsed numbers below and click Apply.';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function applyOcrExtractedData() {
+      const rawText = document.getElementById('ocr-raw-textarea').value.trim();
+      if (!rawText) {
+        alert('No data to apply. Please ensure numbers are present in the text box.');
+        return;
+      }
+
+      const lines = rawText.split('\n');
+      let matchedCount = 0;
+      
+      lines.forEach(line => {
+        const nums = line.match(/\d+/g);
+        if (nums && nums.length >= 2) {
+          const boxNumCandidate = nums[0];
+          const ticketCandidate = nums[nums.length - 1];
+          const targetBox = boxes.find(b => String(b.boxNumber) === String(boxNumCandidate));
+          if (targetBox) {
+            targetBox.endTicket = Number(ticketCandidate);
+            matchedCount++;
+          }
+        }
+      });
+
+      saveBoxesState();
+      renderDispenserGrid();
+      closeOcrModal();
+      alert(`OCR applied successfully! Updated ${matchedCount} box end tickets from photo data.`);
+    }
 
     function renderDispenserGrid() {
       const grid = document.getElementById('dispenser-grid');
@@ -1429,17 +1504,128 @@ function lettersToIndex(str) {
       if (!grid) return;
 
       if (title && boxes.length > 0) {
-        title.textContent = `Dispenser Boxes (${boxes[0].boxNumber} - ${boxes[boxes.length - 1].boxNumber})`;
+        title.textContent = `Dispenser Boxes (${boxes[0].boxNumber} - ${boxes[boxes.length - 1].boxNumber}) [${currentDispenserView.toUpperCase()} VIEW]`;
       }
 
       let grandTotalSales = 0;
 
-      grid.innerHTML = boxes.map((box, idx) => {
-        const metrics = calculateBoxMetrics(box);
-        grandTotalSales += metrics.salesAmount;
-        const maxTicketStr = box.rollCount > 0 ? String(box.rollCount - 1).padStart(3, '0') : '---';
-        const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
-        const isUnknownGame = box.gameNum && !box.gameName && !masterGames.some(g => String(g.gameNum).trim() === String(box.gameNum).trim());
+      if (currentDispenserView === 'list') {
+        // --- CLEAN LIST / TABLE VIEW (Default) ---
+        grid.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden';
+        grid.innerHTML = `
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-100 text-slate-700 uppercase font-bold border-b">
+                <tr>
+                  <th class="p-2.5 text-center w-16">Box #</th>
+                  <th class="p-2.5 text-center w-20">Game #</th>
+                  <th class="p-2.5">Game Name</th>
+                  <th class="p-2.5 text-center w-16">Price</th>
+                  <th class="p-2.5 text-center w-20">Start</th>
+                  <th class="p-2.5 text-center w-24 text-blue-700">End Ticket</th>
+                  <th class="p-2.5 text-center w-20">Sold</th>
+                  <th class="p-2.5 text-right">Total $</th>
+                  <th class="p-2.5 text-center w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                ${boxes.map((box, idx) => {
+                  const metrics = calculateBoxMetrics(box);
+                  grandTotalSales += metrics.salesAmount;
+                  return `
+                    <tr class="hover:bg-slate-50 ${metrics.isError ? 'bg-red-50' : ''}">
+                      <td class="p-2 text-center font-black">
+                        <input type="text" value="${box.boxNumber}" onchange="updateBoxLabel(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-12 text-center font-bold bg-slate-900 text-white rounded p-1 text-xs">
+                      </td>
+                      <td class="p-2 text-center font-mono font-bold">
+                        <input type="text" value="${box.gameNum || ''}" onchange="assignGameToBox(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Game" class="w-16 text-center font-mono font-bold border rounded p-1 bg-slate-50">
+                      </td>
+                      <td class="p-2 font-medium truncate max-w-[200px]">
+                        ${box.gameName || '<span class="text-gray-400">Unassigned</span>'}
+                      </td>
+                      <td class="p-2 text-center font-bold text-emerald-700">
+                        ${box.price > 0 ? `$${box.price}` : '-'}
+                      </td>
+                      <td class="p-2 text-center font-mono font-bold">
+                        <input type="number" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center font-mono border rounded p-1">
+                      </td>
+                      <td class="p-2 text-center font-mono">
+                        <input type="number" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-20 text-center font-mono font-bold border border-blue-400 bg-blue-50/50 rounded p-1">
+                      </td>
+                      <td class="p-2 text-center font-bold" id="box-sold-${idx}">${metrics.ticketsSold}</td>
+                      <td class="p-2 text-right font-mono font-black text-emerald-700" id="box-sales-${idx}">$${metrics.salesAmount.toFixed(2)}</td>
+                      <td class="p-2 text-center space-x-1">
+                        <button onclick="initScanner(${idx})" class="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-1 rounded font-semibold border border-blue-200">Scan</button>
+                        <button onclick="rollNewPackInBox(${idx})" class="text-[10px] bg-slate-800 text-white px-1.5 py-1 rounded font-semibold">Roll</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        // --- BOX CARD GRID VIEW ---
+        grid.className = 'box-grid';
+        grid.innerHTML = boxes.map((box, idx) => {
+          const metrics = calculateBoxMetrics(box);
+          grandTotalSales += metrics.salesAmount;
+
+          return `
+            <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black uppercase text-slate-600">Box</span>
+                    <input type="text" value="${box.boxNumber}" onchange="updateBoxLabel(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700">
+                  </div>
+                  <div class="flex items-center gap-1">
+                    ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
+                    <button onclick="initScanner(${idx})" class="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-1.5 mb-2">
+                  <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
+                    <input type="text" value="${box.gameNum || ''}" onchange="assignGameToBox(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="e.g. 1802" class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50">
+                  </div>
+                  <div class="col-span-2">
+                    <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name</label>
+                    <div class="w-full border rounded p-1.5 text-xs font-semibold bg-gray-100 text-slate-700 truncate h-[30px] flex items-center">
+                      ${box.gameName ? box.gameName : '<span class="text-gray-400">Enter Game #</span>'}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-1.5 mb-2">
+                  <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
+                    <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-full border rounded p-1.5 font-mono text-sm font-bold">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
+                    <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30">
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t flex items-center justify-between text-xs">
+                <div>
+                  <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
+                  <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${metrics.salesAmount.toFixed(2)}</span>
+                </div>
+                <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const salesEl = document.getElementById('action-bar-sales');
+      if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
+    }
 
         return `
           <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
