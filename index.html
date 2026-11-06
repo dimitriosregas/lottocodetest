@@ -2008,7 +2008,7 @@ function checkAutoRollover(idx, val) {
       `;
     }
 
-   function buildListPrintHTML() {
+ function buildListPrintHTML() {
       let gtTickets = 0, gtSales = 0;
       const rows = boxes.map(b => {
         const m = calculateBoxMetrics(b); gtTickets += m.ticketsSold; gtSales += m.salesAmount;
@@ -2062,62 +2062,6 @@ function checkAutoRollover(idx, val) {
         </div>
       `;
     }
-function buildListPrintHTML() {
-      if (!Array.isArray(boxes)) return '<p>No data available</p>';
-      
-      let rows = '';
-      let totalSold = 0;
-      let totalSales = 0;
-
-      boxes.forEach(b => {
-        const m = calculateBoxMetrics(b);
-        totalSold += m.ticketsSold;
-        totalSales += m.salesAmount;
-        rows += `
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.boxNumber}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.gameNum || ''}</td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${b.gameName || ''}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.price ? '$'+b.price : ''}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.startTicket}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.endTicket}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${m.ticketsSold}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: bold;">$${m.salesAmount.toFixed(2)}</td>
-          </tr>
-        `;
-      });
-
-      return `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #000;">
-          <h2 style="margin-bottom: 5px; text-align: center;">Project Lotto - Audit Report</h2>
-          <p style="text-align: center; font-size: 12px; color: #555; margin-top: 0;">Generated: ${new Date().toLocaleString()}</p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px;">
-            <thead>
-              <tr style="background-color: #f3f4f6;">
-                <th style="border: 1px solid #ddd; padding: 8px;">Box</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">Game #</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">Game Name</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">Price</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">Start</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">End</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">Sold</th>
-                <th style="border: 1px solid #ddd; padding: 8px;">Sales</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-            <tfoot>
-              <tr style="background-color: #f9fafb; font-weight: bold;">
-                <td colspan="6" style="border: 1px solid #ddd; padding: 8px; text-align: right;">Grand Totals:</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${totalSold}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$${totalSales.toFixed(2)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `;
-    }
 
     function printWorksheet() {
       const container = document.getElementById('print-container');
@@ -2141,11 +2085,11 @@ function buildListPrintHTML() {
       if (container) container.innerHTML = buildListPrintHTML() + extras;
       window.print();
     }
+
     window.addEventListener('DOMContentLoaded', initApp);
   </script>
   
   <!-- Print Container -->
-  <div id="print-container" style="display: none;"></div>
+  <div id="print-container"></div>
 </body>
 </html>
-  
