@@ -665,30 +665,7 @@
       } catch (e) {
         console.error('Error loading profile:', e);
       }
-
-      try {
-        const savedGames = localStorage.getItem(STORAGE_KEY_GAMES);
-        if (savedGames) {
-          const parsed = JSON.parse(savedGames);
-          const cleaned = sanitizeMasterGamesList(parsed);
-          masterGames = cleaned.length > 0 ? cleaned : JSON.parse(JSON.stringify(DEFAULT_GAMES));
-          saveGamesState();
-        } else {
-          masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
-          saveGamesState();
-        }
-      } catch (e) {
-        masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
-      }
-
-      try {
-        const savedLocked = localStorage.getItem(STORAGE_KEY_LOCKED);
-        isBoxSetupLocked = savedLocked === 'true';
-      } catch (e) {
-        isBoxSetupLocked = false;
-      }
-
-      try {
+try {
         const savedBoxes = localStorage.getItem(STORAGE_KEY_BOXES);
         if (savedBoxes) {
           const parsedBoxes = JSON.parse(savedBoxes);
@@ -699,15 +676,22 @@
               boxNumber: String(b.boxNumber ?? b.boxLabel ?? b.id ?? (i + 1)).trim().toUpperCase()
             }));
           } else {
-            boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
+            boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(i + 1));
           }
-          saveBoxesState();
         } else {
-          boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
-          saveBoxesState();
+          boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(i + 1));
         }
+        saveBoxesState();
       } catch (e) {
-        boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
+        boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(i + 1));
+        saveBoxesState();
+      }
+
+      try {
+        const savedLocked = localStorage.getItem(STORAGE_KEY_LOCKED);
+        isBoxSetupLocked = savedLocked === 'true';
+      } catch (e) {
+        isBoxSetupLocked = false;
       }
     }
 
