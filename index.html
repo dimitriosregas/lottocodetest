@@ -2090,6 +2090,62 @@ function checkAutoRollover(idx, val) {
         </div>
       `;
     }
+function buildListPrintHTML() {
+      if (!Array.isArray(boxes)) return '<p>No data available</p>';
+      
+      let rows = '';
+      let totalSold = 0;
+      let totalSales = 0;
+
+      boxes.forEach(b => {
+        const m = calculateBoxMetrics(b);
+        totalSold += m.ticketsSold;
+        totalSales += m.salesAmount;
+        rows += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.boxNumber}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.gameNum || ''}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${b.gameName || ''}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.price ? '$'+b.price : ''}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.startTicket}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${b.endTicket}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${m.ticketsSold}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: bold;">$${m.salesAmount.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      return `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #000;">
+          <h2 style="margin-bottom: 5px; text-align: center;">Project Lotto - Audit Report</h2>
+          <p style="text-align: center; font-size: 12px; color: #555; margin-top: 0;">Generated: ${new Date().toLocaleString()}</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Box</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Game #</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Game Name</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Price</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Start</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">End</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Sold</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Sales</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #f9fafb; font-weight: bold;">
+                <td colspan="6" style="border: 1px solid #ddd; padding: 8px; text-align: right;">Grand Totals:</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${totalSold}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$${totalSales.toFixed(2)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    }
 
     function printWorksheet() {
       const container = document.getElementById('print-container');
@@ -2105,31 +2161,14 @@ function checkAutoRollover(idx, val) {
         <div style="margin-top: 14px; font-family: Arial, sans-serif; font-size: 12px; border: 1px solid #000; padding: 10px;">
           <h3 style="margin:0 0 4px 0; font-size:13px;">Financial Reconciliation (${shiftType})</h3>
           <p style="margin: 2px 0;"><strong>Outgoing Cashier:</strong> ${outCashier} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Incoming Cashier:</strong> ${inCashier}</p>
-          <p style="margin: 2px 0;"><strong>Expected Net:</strong> ${document.getElementById('rec-expected-total')?.textContent} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>POS Actual:</strong> ${document.getElementById('rec-accounted-total')?.textContent}</p>
-          <p style="margin: 2px 0; font-weight:bold;">Variance: ${document.getElementById('rec-variance-display')?.textContent}</p>
+          <p style="margin: 2px 0;"><strong>Expected Net:</strong> ${document.getElementById('rec-expected-total')?.textContent || '$0.00'} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>POS Actual:</strong> ${document.getElementById('rec-accounted-total')?.textContent || '$0.00'}</p>
+          <p style="margin: 2px 0; font-weight:bold;">Variance: ${document.getElementById('rec-variance-display')?.textContent || '$0.00'}</p>
         </div>
       `;
       const container = document.getElementById('print-container');
       if (container) container.innerHTML = buildListPrintHTML() + extras;
       window.print();
     }
-function printFinalReport() {
-      const shiftType = document.getElementById('rec-shift-type')?.value || 'Shift Audit';
-      const outCashier = document.getElementById('rec-cashier-out')?.value || '-';
-      const inCashier = document.getElementById('rec-cashier-in')?.value || '-';
-      const extras = `
-        <div style="margin-top: 14px; font-family: Arial, sans-serif; font-size: 12px; border: 1px solid #000; padding: 10px;">
-          <h3 style="margin:0 0 4px 0; font-size:13px;">Financial Reconciliation (${shiftType})</h3>
-          <p style="margin: 2px 0;"><strong>Outgoing Cashier:</strong> ${outCashier} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Incoming Cashier:</strong> ${inCashier}</p>
-          <p style="margin: 2px 0;"><strong>Expected Net:</strong> ${document.getElementById('rec-expected-total')?.textContent} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>POS Actual:</strong> ${document.getElementById('rec-accounted-total')?.textContent}</p>
-          <p style="margin: 2px 0; font-weight:bold;">Variance: ${document.getElementById('rec-variance-display')?.textContent}</p>
-        </div>
-      `;
-      const container = document.getElementById('print-container');
-      if (container) container.innerHTML = buildListPrintHTML() + extras;
-      window.print();
-    }
-
     window.addEventListener('DOMContentLoaded', initApp);
   </script>
   
@@ -2137,4 +2176,4 @@ function printFinalReport() {
   <div id="print-container" style="display: none;"></div>
 </body>
 </html>
-   
+  
