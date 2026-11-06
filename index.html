@@ -1722,7 +1722,7 @@ let currentDispenserView = 'list'; // Default is List View as requested
       const salesEl = document.getElementById('action-bar-sales');
       if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
     }
-    function updateBoxField(idx, field, val) {
+   function updateBoxField(idx, field, val) {
       if (!boxes[idx]) return;
       boxes[idx][field] = val === '' ? '' : (field === 'packNum' ? val.trim() : Number(val));
       saveBoxesState();
@@ -1898,6 +1898,7 @@ let currentDispenserView = 'list'; // Default is List View as requested
         setTimeout(() => banner.classList.add('hidden'), 4000);
       }
     }
+
     function openReconcileModal() {
       updateReconcileMath();
       document.getElementById('reconcile-modal').classList.remove('hidden');
