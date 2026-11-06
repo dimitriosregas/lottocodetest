@@ -1293,8 +1293,7 @@
       closeOcrModal();
       alert(`OCR applied successfully! Updated ${matchedCount} box end tickets from photo data.`);
     }
-
-    function lettersToIndex(str) {
+function lettersToIndex(str) {
       let n = 0;
       const s = String(str).toUpperCase().trim();
       for (let i = 0; i < s.length; i++) { n = n * 26 + (s.charCodeAt(i) - 64); }
@@ -1306,11 +1305,6 @@
       while (n >= 0) { str = String.fromCharCode((n % 26) + 65) + str; n = Math.floor(n / 26) - 1; }
       return str;
     }
-
-  <!-- Print Container -->
-  <div id="print-container"></div>
-</body>
-</html>
 
     function assignGameToBox(idx, gameNumInput) {
       const box = boxes[idx];
@@ -1521,7 +1515,7 @@
       renderDispenserGrid();
     }
 
- function updateBoxEndTicketLive(idx, val) {
+    function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
       boxes[idx].endTicket = val === '' ? '' : Number(val);
       saveBoxesState();
@@ -1538,93 +1532,50 @@
         gtTickets += r.ticketsSold;
         gtSales += r.salesAmount;
       });
-function checkAutoRollover(idx, val) {
-      const box = boxes[idx];
-      if (!box) return;
-      
-      const start = Number(box.startTicket) || 0;
-      const end = Number(val) || 0;
-      const rollCount = Number(box.rollCount) || 300;
-      const price = Number(box.price) || 1;
 
-      // Check if a rollover occurred (end ticket is lower than start ticket)
-      if (end < start) {
-        const confirmRollover = confirm(`Rollover detected on Box ${box.boxNumber}! The end ticket (${end}) is lower than the start ticket (${start}). Did you start a new pack?`);
-        
-        if (confirmRollover) {
-          const newGameNum = prompt("Enter the New Game Number for this pack:", box.gameNum || "");
-          const newGameName = prompt("Enter the New Game Name for this pack:", box.gameName || "");
-          const newStart = prompt("Enter the Starting Ticket number for the new pack (usually 000 or 001):", "0");
-
-          if (newStart !== null) {
-            // Calculate tickets sold on the old pack up to the end of the roll
-            const oldPackSold = Math.max(0, (rollCount - start) + end + 1);
-            const oldPackSales = oldPackSold * price;
-
-            // Initialize rollovers array if it doesn't exist
-            if (!Array.isArray(box.rollovers)) {
-              box.rollovers = [];
-            }
-
-            // Archive the completed roll session
-            box.rollovers.push({
-              gameNum: box.gameNum,
-              gameName: box.gameName,
-              startTicket: start,
-              endTicket: rollCount, // completed to top of roll
-              ticketsSold: oldPackSold,
-              salesAmount: oldPackSales
-            });
-
-            // Update box to the new pack details
-            if (newGameNum !== null && newGameNum.trim() !== "") box.gameNum = newGameNum;
-            if (newGameName !== null && newGameName.trim() !== "") box.gameName = newGameName;
-            box.startTicket = Number(newStart) || 0;
-            box.endTicket = end; // current position on new pack
-
-            // Save and re-render the app
-            if (typeof saveState === 'function') saveState();
-            if (typeof render === 'function') render();
-            
-            alert("New pack successfully rolled over and archived!");
-          }
-        }
-      }
-    }
-
-        if (confirm(`End ticket (${end}) is lower than Start ticket (${start}).\n\nDid you load a new pack? Click OK to auto-rollover the old pack.`)) {
-          const soldOnOldPack = Math.max(0, (maxTicket + 1) - start);
-          if (!Array.isArray(box.rollovers)) box.rollovers = [];
-          
-          box.rollovers.push({
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            startTicket: start,
-            endTicket: maxTicket,
-            ticketsSold: soldOnOldPack,
-            salesAmount: soldOnOldPack * Number(box.price)
-          });
-
-          box.startTicket = 0;
-          box.endTicket = end;
-          saveBoxesState();
-          renderDispenserGrid();
-        }
-      }
-    }
       const actionBarSales = document.getElementById('action-bar-sales');
       if (actionBarSales) actionBarSales.textContent = `$${gtSales.toFixed(2)}`;
+    }
 
-      const listTotalSold = document.getElementById('list-total-sold');
-      const listTotalSales = document.getElementById('list-total-sales');
-      if (listTotalSold && listTotalSales) {
-        listTotalSold.textContent = gtTickets;
-        listTotalSales.textContent = `$${gtSales.toFixed(2)}`;
+    function updateBoxLabel(idx, newVal) {
+      if (!boxes[idx]) return;
+      const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
+      if (!cleaned) { renderDispenserGrid(); return; }
+      
+      boxes[idx].boxNumber = cleaned;
+
+      const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
+      const numPairMatch    = cleaned.match(/^(\d+)&(\d+)$/);
+      const singleNumMatch  = cleaned.match(/^(\d+)$/);
+      const singleLetMatch  = cleaned.match(/^([A-Z]+)$/);
+
+      if (letterPairMatch) {
+        let lastIdx = lettersToIndex(letterPairMatch[2]);
+        for (let i = idx + 1; i < boxes.length; i++) {
+          const nextFirst = lastIdx + 1; const nextSecond = lastIdx + 2;
+          boxes[i].boxNumber = `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`; lastIdx = nextSecond;
+        }
+      } else if (numPairMatch) {
+        let lastNum = parseInt(numPairMatch[2], 10);
+        for (let i = idx + 1; i < boxes.length; i++) {
+          const nextFirst = lastNum + 1; const nextSecond = lastNum + 2;
+          boxes[i].boxNumber = `${nextFirst}&${nextSecond}`; lastNum = nextSecond;
+        }
+      } else if (singleNumMatch) {
+        let currentNum = parseInt(singleNumMatch[1], 10);
+        for (let i = idx + 1; i < boxes.length; i++) { currentNum++; boxes[i].boxNumber = String(currentNum); }
+      } else if (singleLetMatch) {
+        let currentIdx = lettersToIndex(singleLetMatch[1]);
+        for (let i = idx + 1; i < boxes.length; i++) { currentIdx++; boxes[i].boxNumber = indexToLetters(currentIdx); }
       }
+
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function addBox() {
       if (isBoxSetupLocked) {
-        alert('Unlock Box Layout in Store Setup first.');
+        alert('Unlock Box Setup in Store Setup first.');
         return;
       }
       boxes.push(createEmptyBox(boxes.length + 1));
@@ -1637,8 +1588,7 @@ function checkAutoRollover(idx, val) {
       }
     }
 
-    // Completely Fixed Remove Box Logic
- function removeBox(idx) {
+    function removeBox(idx) {
       if (isBoxSetupLocked) {
         alert('Unlock Box Setup first.');
         return;
@@ -1949,63 +1899,7 @@ function checkAutoRollover(idx, val) {
       stopScanner();
     }
 
-    function buildCompactPrintHTML(reportTitle) {
-      let grandTotalDollars = 0;
-      const rowsHtml = boxes.map(b => {
-        const m = calculateBoxMetrics(b);
-        grandTotalDollars += m.salesAmount;
-        const hasEnd = b.endTicket !== '' && b.endTicket !== null && b.endTicket !== undefined;
-        const showTotal = hasEnd || (Array.isArray(b.rollovers) && b.rollovers.length > 0);
-        return `
-          <tr>
-            <td style="text-align:center; font-weight:700; width:9%; white-space:nowrap;">${b.boxNumber}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${b.gameNum ? b.gameNum : ''}</td>
-            <td style="text-align:left; width:36%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.gameName ? b.gameName : ''}</td>
-            <td style="text-align:center; font-weight:600; width:10%; white-space:nowrap;">${b.price ? `$${Number(b.price).toFixed(0)}` : ''}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${b.startTicket !== '' && b.startTicket !== null && b.startTicket !== undefined ? b.startTicket : ''}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${hasEnd ? b.endTicket : ''}</td>
-            <td style="text-align:right; font-family:monospace; font-weight:700; width:12%; white-space:nowrap;">${showTotal ? `$${m.salesAmount.toFixed(2)}` : ''}</td>
-          </tr>
-        `;
-      }).join('');
-
-      return `
-        <div style="font-family: Arial, Helvetica, sans-serif; color: #000;">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; border-bottom:2px solid #000; padding-bottom:4px;">
-            <div style="font-size:14px; font-weight:800;">
-              ${storeProfile.name} (#${storeProfile.number}) — ${reportTitle}
-            </div>
-            <div style="font-size:11px; font-weight:600;">
-              Printed: ${new Date().toLocaleString()}
-            </div>
-          </div>
-          <table class="print-table">
-            <thead>
-              <tr>
-                <th style="text-align:center;">Box #</th>
-                <th style="text-align:center;">Game #</th>
-                <th style="text-align:left;">Game Name</th>
-                <th style="text-align:center;">Game $</th>
-                <th style="text-align:center;">Start</th>
-                <th style="text-align:center;">End</th>
-                <th style="text-align:right;">Total $ Sold</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="6" style="text-align:right; font-weight:800; font-size:11px; padding:4px 6px;">TOTAL SHIFT SCRATCH SALES:</td>
-                <td style="text-align:right; font-family:monospace; font-weight:900; font-size:12px; padding:4px 6px;">$${grandTotalDollars.toFixed(2)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `;
-    }
-
- function buildListPrintHTML() {
+    function buildListPrintHTML() {
       let gtTickets = 0, gtSales = 0;
       const rows = boxes.map(b => {
         const m = calculateBoxMetrics(b); gtTickets += m.ticketsSold; gtSales += m.salesAmount;
@@ -2090,3 +1984,4 @@ function checkAutoRollover(idx, val) {
   <div id="print-container"></div>
 </body>
 </html>
+   
