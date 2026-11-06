@@ -15,6 +15,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
+    /* Locked strictly to 1 column on mobile, 2 columns on tablet/desktop */
     .box-grid {
       display: grid;
       grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -25,19 +26,57 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
+
+    /* Clean, Dedicated Print Styles */
     #print-worksheet,
     #print-final-report {
       display: none;
     }
     @media print {
-      @page { size: letter portrait; margin: 0.25in; }
-      body, html { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 0 !important; }
-      body > header, body > main, body > div.fixed, .no-print { display: none !important; }
-      body.print-mode-worksheet #print-worksheet { display: block !important; width: 100% !important; }
-      body.print-mode-report #print-final-report { display: block !important; width: 100% !important; }
-      .print-table { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
-      .print-table th, .print-table td { border: 1px solid #000000; padding: 3px 6px; line-height: 1.15; }
-      .print-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; text-transform: uppercase; font-size: 10px; }
+      @page {
+        size: letter portrait;
+        margin: 0.25in;
+      }
+      body, html {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      body > header,
+      body > main,
+      body > div.fixed,
+      .no-print {
+        display: none !important;
+      }
+      body.print-mode-worksheet #print-worksheet {
+        display: block !important;
+        width: 100% !important;
+      }
+      body.print-mode-report #print-final-report {
+        display: block !important;
+        width: 100% !important;
+      }
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 11px;
+      }
+      .print-table th,
+      .print-table td {
+        border: 1px solid #000000;
+        padding: 3px 6px;
+        line-height: 1.15;
+      }
+      .print-table th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 10px;
+      }
     }
   </style>
 </head>
@@ -133,8 +172,7 @@
     </section>
 
   </main>
-
-  <!-- Store Profile Drawer -->
+ <!-- Store Profile Drawer -->
   <div id="store-drawer" class="fixed inset-0 bg-black/50 hidden z-50 flex justify-end">
     <div class="bg-white w-full max-w-md h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
       <div>
@@ -191,6 +229,7 @@
             Unlock Box Layout (Admin)
           </button>
         </div>
+
         <div class="pt-4 mt-4 border-t border-gray-200">
           <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Device Data Transfer (Auto-Backup 11PM)</h3>
           <div class="flex flex-col gap-2">
@@ -476,7 +515,6 @@
 
   <!-- Print-Only Final Reconciliation Report -->
   <div id="print-final-report"></div>
-
   <script>
     const STORAGE_KEY_PROFILE = 'lotto_store_profile_v1';
     const STORAGE_KEY_GAMES   = 'lotto_master_games_v1';
@@ -516,15 +554,17 @@
     let sigCanvas = null;
     let sigCtx = null;
     let isDrawingSig = false;
-    let currentDispenserView = 'list';
+    
+    // Default to the new List View
+    let currentDispenserView = 'list'; 
 
     function getDefaultRollCountForPrice(price) {
       const p = Number(price);
       if (!p || p <= 0) return 0;
-      if (p <= 20) return Math.round(300 / p);
-      if (p === 25) return 24;                 
-      if (p === 30) return 20;                 
-      if (p === 50) return 18;                 
+      if (p <= 20) return Math.round(300 / p); // $1-$20 = $300 roll (starts at 0)
+      if (p === 25) return 24;                 // $25 = $600 roll
+      if (p === 30) return 20;                 // $30 = $600 roll
+      if (p === 50) return 18;                 // $50 = $900 roll
       return Math.round(600 / p);
     }
 
@@ -547,7 +587,12 @@
       const price = Number(g.price ?? g.amount ?? g.cost ?? 0) || 0;
       const count = Number(g.count ?? g.rollCount ?? g.ticketsPerRoll ?? getDefaultRollCountForPrice(price)) || getDefaultRollCountForPrice(price) || 100;
 
-      return { gameNum: rawNum, name: rawName || `Game #${rawNum}`, price: price, count: count };
+      return {
+        gameNum: rawNum,
+        name: rawName || `Game #${rawNum}`,
+        price: price,
+        count: count
+      };
     }
 
     function sanitizeMasterGamesList(list) {
@@ -555,7 +600,9 @@
       const map = new Map();
       list.forEach(item => {
         const clean = normalizeGameRecord(item);
-        if (clean && clean.gameNum) map.set(clean.gameNum, clean);
+        if (clean && clean.gameNum) {
+          map.set(clean.gameNum, clean);
+        }
       });
       return Array.from(map.values());
     }
@@ -575,14 +622,24 @@
       const el = document.getElementById('live-datetime');
       if (!el) return;
       const now = new Date();
-      el.textContent = now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      el.textContent = now.toLocaleString([], {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     }
 
     function loadState() {
       try {
         const savedProfile = localStorage.getItem(STORAGE_KEY_PROFILE);
-        if (savedProfile) storeProfile = { ...DEFAULT_PROFILE, ...JSON.parse(savedProfile) };
-      } catch (e) { console.error(e); }
+        if (savedProfile) {
+          storeProfile = { ...DEFAULT_PROFILE, ...JSON.parse(savedProfile) };
+        }
+      } catch (e) {
+        console.error('Error loading profile:', e);
+      }
 
       try {
         const savedGames = localStorage.getItem(STORAGE_KEY_GAMES);
@@ -595,11 +652,16 @@
           masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
           saveGamesState();
         }
-      } catch (e) { masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES)); }
+      } catch (e) {
+        masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
+      }
 
       try {
-        isBoxSetupLocked = localStorage.getItem(STORAGE_KEY_LOCKED) === 'true';
-      } catch (e) { isBoxSetupLocked = false; }
+        const savedLocked = localStorage.getItem(STORAGE_KEY_LOCKED);
+        isBoxSetupLocked = savedLocked === 'true';
+      } catch (e) {
+        isBoxSetupLocked = false;
+      }
 
       try {
         const savedBoxes = localStorage.getItem(STORAGE_KEY_BOXES);
@@ -619,7 +681,9 @@
           boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
           saveBoxesState();
         }
-      } catch (e) { boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1))); }
+      } catch (e) {
+        boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
+      }
     }
 
     function createEmptyBox(boxNumber) {
@@ -636,17 +700,28 @@
       };
     }
 
-    function saveProfileState() { localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(storeProfile)); }
+    function saveProfileState() {
+      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(storeProfile));
+    }
+
     function saveGamesState() {
       masterGames = sanitizeMasterGamesList(masterGames);
       localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(masterGames));
     }
-    function saveBoxesState() { localStorage.setItem(STORAGE_KEY_BOXES, JSON.stringify(boxes)); }
-    function saveLockedState() { localStorage.setItem(STORAGE_KEY_LOCKED, isBoxSetupLocked ? 'true' : 'false'); }
+
+    function saveBoxesState() {
+      localStorage.setItem(STORAGE_KEY_BOXES, JSON.stringify(boxes));
+    }
+
+    function saveLockedState() {
+      localStorage.setItem(STORAGE_KEY_LOCKED, isBoxSetupLocked ? 'true' : 'false');
+    }
 
     function renderStoreHeader() {
       const sub = document.getElementById('store-subtitle');
-      if (sub) sub.textContent = `${storeProfile.name} (#${storeProfile.number}) • ${storeProfile.address || ''}`;
+      if (sub) {
+        sub.textContent = `${storeProfile.name} (#${storeProfile.number}) • ${storeProfile.address || ''}`;
+      }
     }
 
     function openStoreDrawer() {
@@ -655,7 +730,10 @@
       renderBoxSetupControls();
       document.getElementById('store-drawer').classList.remove('hidden');
     }
-    function closeStoreDrawer() { document.getElementById('store-drawer').classList.add('hidden'); }
+
+    function closeStoreDrawer() {
+      document.getElementById('store-drawer').classList.add('hidden');
+    }
 
     function populateStoreForm() {
       document.getElementById('store-name-input').value = storeProfile.name || '';
@@ -669,25 +747,38 @@
     function enableStoreEditing() {
       const pwd = prompt('Enter Admin / Manager Password to edit Store Profile:', '');
       if (pwd === null) return;
-      if (pwd !== storeProfile.password) { alert('Incorrect password.'); return; }
-      ['store-name-input', 'store-num-input', 'store-address-input', 'store-email-input', 'store-password-input', 'store-password-confirm-input'].forEach(id => document.getElementById(id).disabled = false);
+      if (pwd !== storeProfile.password) {
+        alert('Incorrect password.');
+        return;
+      }
+      ['store-name-input', 'store-num-input', 'store-address-input', 'store-email-input', 'store-password-input', 'store-password-confirm-input'].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
       document.getElementById('store-edit-button').classList.add('hidden');
       document.getElementById('store-edit-actions').classList.remove('hidden');
     }
 
     function disableStoreEditingFields() {
-      ['store-name-input', 'store-num-input', 'store-address-input', 'store-email-input', 'store-password-input', 'store-password-confirm-input'].forEach(id => document.getElementById(id).disabled = true);
+      ['store-name-input', 'store-num-input', 'store-address-input', 'store-email-input', 'store-password-input', 'store-password-confirm-input'].forEach(id => {
+        document.getElementById(id).disabled = true;
+      });
       document.getElementById('store-edit-button').classList.remove('hidden');
       document.getElementById('store-edit-actions').classList.add('hidden');
     }
 
-    function cancelStoreEditing() { populateStoreForm(); disableStoreEditingFields(); }
+    function cancelStoreEditing() {
+      populateStoreForm();
+      disableStoreEditingFields();
+    }
 
     function saveStoreProfile(e) {
       e.preventDefault();
       const p1 = document.getElementById('store-password-input').value.trim();
       const p2 = document.getElementById('store-password-confirm-input').value.trim();
-      if (!p1 || p1 !== p2) { alert('Passwords do not match or are empty.'); return; }
+      if (!p1 || p1 !== p2) {
+        alert('Passwords do not match or are empty.');
+        return;
+      }
       storeProfile.name = document.getElementById('store-name-input').value.trim();
       storeProfile.number = document.getElementById('store-num-input').value.trim();
       storeProfile.address = document.getElementById('store-address-input').value.trim();
@@ -704,6 +795,7 @@
       const lockBtn = document.getElementById('complete-box-setup');
       const unlockBtn = document.getElementById('unlock-box-setup');
       if (!statusEl || !lockBtn || !unlockBtn) return;
+
       if (isBoxSetupLocked) {
         statusEl.textContent = 'Box setup is LOCKED. Cashiers can only enter Ending Tickets or Roll New Packs.';
         lockBtn.classList.add('hidden');
@@ -716,15 +808,24 @@
     }
 
     function completeBoxSetup() {
-      isBoxSetupLocked = true; saveLockedState(); renderBoxSetupControls(); renderDispenserGrid();
+      isBoxSetupLocked = true;
+      saveLockedState();
+      renderBoxSetupControls();
+      renderDispenserGrid();
       alert('Store box layout locked for daily cashier operations.');
     }
 
     function unlockBoxSetup() {
       const pwd = prompt('Enter Admin / Manager Password to unlock box layout:', '');
       if (pwd === null) return;
-      if (pwd !== storeProfile.password) { alert('Incorrect password.'); return; }
-      isBoxSetupLocked = false; saveLockedState(); renderBoxSetupControls(); renderDispenserGrid();
+      if (pwd !== storeProfile.password) {
+        alert('Incorrect password.');
+        return;
+      }
+      isBoxSetupLocked = false;
+      saveLockedState();
+      renderBoxSetupControls();
+      renderDispenserGrid();
     }
 
     function buildBackupPayload(triggerType = 'manual') {
@@ -732,9 +833,12 @@
       boxes.forEach((b, i) => {
         const lbl = String(b.boxNumber ?? (i + 1)).trim().toUpperCase();
         dispensersMap[String(i + 1)] = {
-          id: lbl, boxNumber: lbl, gameNum: b.gameNum || '',
+          id: lbl,
+          boxNumber: lbl,
+          gameNum: b.gameNum || '',
           gameName: b.gameNum && b.gameName ? `${b.gameNum} - ${b.gameName}` : (b.gameName || ''),
-          price: b.price ? String(b.price) : '', rollCount: b.rollCount || 0,
+          price: b.price ? String(b.price) : '',
+          rollCount: b.rollCount || 0,
           startTicket: b.startTicket !== '' && b.startTicket !== null && b.startTicket !== undefined ? String(b.startTicket) : '',
           endTicket: b.endTicket !== '' && b.endTicket !== null && b.endTicket !== undefined ? String(b.endTicket) : '',
           rollovers: Array.isArray(b.rollovers) ? b.rollovers : []
@@ -742,10 +846,18 @@
       });
 
       return {
-        version: '3.4', trigger: triggerType, exportedAt: new Date().toISOString(),
-        storeProfile: { ...storeProfile, id: storeProfile.number || storeProfile.id || '', count: boxes.length },
+        version: '3.4',
+        trigger: triggerType,
+        exportedAt: new Date().toISOString(),
+        storeProfile: {
+          ...storeProfile,
+          id: storeProfile.number || storeProfile.id || '',
+          count: boxes.length
+        },
         masterGames: sanitizeMasterGamesList(masterGames),
-        boxes: boxes, dispensers: dispensersMap, isBoxSetupLocked: isBoxSetupLocked
+        boxes: boxes,
+        dispensers: dispensersMap,
+        isBoxSetupLocked: isBoxSetupLocked
       };
     }
 
@@ -755,20 +867,32 @@
       const a = document.createElement('a');
       const dateStr = new Date().toISOString().slice(0, 10);
       const storeSlug = (storeProfile.name || storeProfile.number || 'store').replace(/[^a-z0-9]/gi, '_');
-      a.href = url; a.download = `${prefix}-${storeSlug}-${dateStr}.json`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      a.href = url;
+      a.download = `${prefix}-${storeSlug}-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
-    function exportDataJSON() { downloadBackupFile(buildBackupPayload('manual'), 'project-lotto-backup'); }
+    function exportDataJSON() {
+      const payload = buildBackupPayload('manual');
+      downloadBackupFile(payload, 'project-lotto-backup');
+    }
 
     function parseCombinedGameField(rawGameNum, rawGameName) {
       let gameNum = String(rawGameNum ?? '').trim();
       let gameName = String(rawGameName ?? '').trim();
+
       if (gameNum === 'undefined' || gameNum === 'null') gameNum = '';
       if (gameName === 'undefined' || gameName === 'null') gameName = '';
+
       if (!gameNum && gameName.includes('-')) {
         const match = gameName.match(/^(\d+)\s*-\s*(.+)$/);
-        if (match) { gameNum = match[1].trim(); gameName = match[2].trim(); }
+        if (match) {
+          gameNum = match[1].trim();
+          gameName = match[2].trim();
+        }
       } else if (gameNum && gameName.startsWith(`${gameNum} -`)) {
         gameName = gameName.replace(new RegExp(`^${gameNum}\\s*-\\s*`), '').trim();
       }
@@ -777,6 +901,7 @@
 
     function applyImportedBackup(data, carryOverEndToStart = false) {
       if (!data || typeof data !== 'object') return;
+
       const prof = data.storeProfile || data.storeConfig || data.store || data.profile;
       if (prof && typeof prof === 'object') {
         storeProfile = {
@@ -788,7 +913,11 @@
         };
         saveProfileState();
       }
-      if (typeof data.isBoxSetupLocked === 'boolean') { isBoxSetupLocked = data.isBoxSetupLocked; saveLockedState(); }
+
+      if (typeof data.isBoxSetupLocked === 'boolean') {
+        isBoxSetupLocked = data.isBoxSetupLocked;
+        saveLockedState();
+      }
 
       const rawGamesSource = data.masterGames || data.games || data.catalog || data.gameCatalog;
       if (Array.isArray(rawGamesSource) && rawGamesSource.length > 0) {
@@ -797,43 +926,58 @@
       }
 
       let listFromBoxes = [];
-      if (Array.isArray(data.boxes)) listFromBoxes = data.boxes;
-      else if (data.boxes && typeof data.boxes === 'object') {
-        listFromBoxes = Object.keys(data.boxes).sort((a, b) => Number(a) - Number(b)).map(k => ({ ...data.boxes[k], _mapKey: k }));
+      if (Array.isArray(data.boxes)) {
+        listFromBoxes = data.boxes;
+      } else if (data.boxes && typeof data.boxes === 'object') {
+        listFromBoxes = Object.keys(data.boxes).sort((a, b) => Number(a) - Number(b)).map(k => ({
+          ...data.boxes[k],
+          _mapKey: k
+        }));
       }
 
       let listFromDispensers = [];
       const dispSource = data.dispensers || data.dispenserBoxes || data.slots;
-      if (Array.isArray(dispSource)) listFromDispensers = dispSource;
-      else if (dispSource && typeof dispSource === 'object') {
-        listFromDispensers = Object.keys(dispSource).sort((a, b) => Number(a) - Number(b)).map(k => ({ ...dispSource[k], _mapKey: k }));
+      if (Array.isArray(dispSource)) {
+        listFromDispensers = dispSource;
+      } else if (dispSource && typeof dispSource === 'object') {
+        listFromDispensers = Object.keys(dispSource).sort((a, b) => Number(a) - Number(b)).map(k => ({
+          ...dispSource[k],
+          _mapKey: k
+        }));
       }
 
       const countPopulated = (arr) => arr.filter(b => b && (b.gameNum || b.startTicket !== '')).length;
-      const rawList = countPopulated(listFromDispensers) > countPopulated(listFromBoxes) ? listFromDispensers : (listFromBoxes.length > 0 ? listFromBoxes : listFromDispensers);
+      const rawList = countPopulated(listFromDispensers) > countPopulated(listFromBoxes)
+        ? listFromDispensers
+        : (listFromBoxes.length > 0 ? listFromBoxes : listFromDispensers);
 
       if (rawList.length > 0) {
         boxes = rawList.map((b, i) => {
           const rawLabel = b.boxNumber ?? b.boxLabel ?? b.label ?? b.id ?? b._mapKey ?? (i + 1);
           const boxNumber = String(rawLabel).trim().toUpperCase();
+
           const rawGameField = b.gameNum ?? b.gameNumber ?? b.gameId ?? b.code ?? '';
           const rawNameField = b.gameName ?? b.name ?? b.title ?? '';
           const parsed = parseCombinedGameField(rawGameField, rawNameField);
           const matchedGame = masterGames.find(g => String(g.gameNum).trim() === parsed.gameNum);
-          
+
           const price = Number(String(b.price ?? matchedGame?.price ?? 0).replace(/[^0-9.]/g, '')) || 0;
           const rollCount = Number(b.rollCount ?? matchedGame?.count ?? getDefaultRollCountForPrice(price)) || 0;
-          
+
           const startVal = (b.startTicket !== '' && b.startTicket != null) ? Number(b.startTicket) : '';
           const endVal = (b.endTicket !== '' && b.endTicket != null) ? Number(b.endTicket) : '';
+
+          const finalStart = carryOverEndToStart ? (endVal !== '' ? endVal : startVal) : startVal;
+          const finalEnd = carryOverEndToStart ? '' : endVal;
 
           return {
             boxNumber: boxNumber,
             gameNum: parsed.gameNum,
             gameName: parsed.gameName || (matchedGame ? matchedGame.name : ''),
-            price: price, rollCount: rollCount,
-            startTicket: carryOverEndToStart ? (endVal !== '' ? endVal : startVal) : startVal,
-            endTicket: carryOverEndToStart ? '' : endVal,
+            price: price,
+            rollCount: rollCount,
+            startTicket: finalStart,
+            endTicket: finalEnd,
             rollsReplaced: carryOverEndToStart ? 0 : (Number(b.rollsReplaced) || 0),
             rollovers: carryOverEndToStart ? [] : (Array.isArray(b.rollovers) ? b.rollovers : [])
           };
@@ -841,13 +985,28 @@
 
         boxes.forEach(b => {
           if (b.gameNum) {
-            const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === String(b.gameNum).trim());
-            if (existingIdx === -1) masterGames.push({ gameNum: b.gameNum, name: b.gameName || `Game #${b.gameNum}`, price: b.price, count: b.rollCount });
+            const cleanNum = String(b.gameNum).trim();
+            const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === cleanNum);
+            if (existingIdx === -1) {
+              masterGames.push({
+                gameNum: cleanNum,
+                name: b.gameName || `Game #${cleanNum}`,
+                price: b.price,
+                count: b.rollCount
+              });
+            }
           }
         });
-        saveGamesState(); saveBoxesState();
+
+        saveGamesState();
+        saveBoxesState();
       }
-      renderStoreHeader(); populateStoreForm(); renderBoxSetupControls(); renderAdminGamesTable(); renderDispenserGrid();
+
+      renderStoreHeader();
+      populateStoreForm();
+      renderBoxSetupControls();
+      renderAdminGamesTable();
+      renderDispenserGrid();
     }
 
     function importDataJSON(event) {
@@ -857,13 +1016,21 @@
       reader.onload = function(e) {
         try {
           const data = JSON.parse(e.target.result);
-          const startNextShift = confirm('OK to START FROM LAST BACKUP (moves End Tickets into Start Tickets).\nCancel to RESTORE EXACT STATE (keeps exact Start and End Tickets).');
+          const startNextShift = confirm(
+            'How would you like to restore this backup?\n\n' +
+            '• Click OK to START FROM LAST BACKUP (moves old End Ticket #s into Start Ticket #s).\n' +
+            '• Click Cancel to RESTORE EXACT STATE (keeps exact Start and End Ticket #s).'
+          );
           applyImportedBackup(data, startNextShift);
-          alert('Backup successfully imported!');
-        } catch (err) { alert('Invalid backup JSON file.'); }
+          alert('Store backup imported successfully!');
+        } catch (err) {
+          console.error(err);
+          alert('Invalid backup JSON file.');
+        } finally {
+          event.target.value = '';
+        }
       };
       reader.readAsText(file);
-      event.target.value = '';
     }
 
     function runNightlyAutoBackup(forceDownload = true) {
@@ -871,112 +1038,210 @@
       const payload = buildBackupPayload('auto-11pm');
       localStorage.setItem(AUTO_BACKUP_STORAGE_KEY, JSON.stringify(payload));
       localStorage.setItem(AUTO_BACKUP_LAST_DATE_KEY, todayStr);
-      if (forceDownload) downloadBackupFile(payload, 'AutoBackup-11PM');
+      if (forceDownload) {
+        downloadBackupFile(payload, 'AutoBackup-11PM');
+      }
     }
 
     function restoreFromLastAutoBackup() {
       const raw = localStorage.getItem(AUTO_BACKUP_STORAGE_KEY);
-      if (!raw) { alert('No automatic 11:00 PM backup snapshot found.'); return; }
+      if (!raw) {
+        alert('No automatic 11:00 PM backup snapshot was found on this device yet.');
+        return;
+      }
       try {
         const data = JSON.parse(raw);
-        if (!confirm('Restore data from the last automatic backup?')) return;
-        const startNextShift = confirm('OK to move Ends to Starts, Cancel to keep exact match.');
+        if (!confirm(`Restore data from the last automatic backup?`)) return;
+        const startNextShift = confirm('Click OK to START FROM LAST BACKUP (moves End Ticket #s into Start Ticket #s).');
         applyImportedBackup(data, startNextShift);
-        alert('Restored from auto-backup!');
-      } catch (e) { alert('Failed to read auto-backup.'); }
+        alert(`Restored from auto-backup!`);
+      } catch (e) {
+        alert('Failed to read the internal auto-backup snapshot.');
+      }
     }
 
     function initNightly11PMAutoBackup() {
       setInterval(() => {
         const now = new Date();
         const todayStr = now.toISOString().slice(0, 10);
-        if (now.getHours() === 23 && now.getMinutes() >= 0 && localStorage.getItem(AUTO_BACKUP_LAST_DATE_KEY) !== todayStr) {
+        const lastRunDate = localStorage.getItem(AUTO_BACKUP_LAST_DATE_KEY);
+        if (now.getHours() === 23 && now.getMinutes() >= 0 && lastRunDate !== todayStr) {
           runNightlyAutoBackup(true);
         }
       }, 30000);
     }
 
     function openAdminModal() {
-      const pwd = prompt('Enter Admin Password:');
-      if (pwd === storeProfile.password) { renderAdminGamesTable(); document.getElementById('admin-modal').classList.remove('hidden'); }
-      else if (pwd !== null) alert('Incorrect password.');
+      const pwd = prompt('Enter Admin Password to open Master Games Database:', '');
+      if (pwd === null) return;
+      if (pwd !== storeProfile.password) {
+        alert('Incorrect password.');
+        return;
+      }
+      renderAdminGamesTable();
+      document.getElementById('admin-modal').classList.remove('hidden');
     }
-    function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
+
+    function closeAdminModal() {
+      document.getElementById('admin-modal').classList.add('hidden');
+    }
 
     function renderAdminGamesTable() {
       const tbody = document.getElementById('admin-games-tbody');
       if (!tbody) return;
-      tbody.innerHTML = masterGames.map((g, idx) => `
-        <tr class="hover:bg-slate-50">
-          <td class="p-2.5 font-mono font-bold text-slate-900">#${g.gameNum}</td>
-          <td class="p-2.5 font-medium">${g.name}</td>
-          <td class="p-2.5 text-emerald-700 font-bold">$${g.price.toFixed(2)}</td>
-          <td class="p-2.5">${g.count} tkts</td>
-          <td class="p-2.5 font-mono text-gray-500">${String(Math.max(0, g.count - 1)).padStart(3, '0')}</td>
-          <td class="p-2.5 text-right space-x-2">
-            <button onclick="populateAdminGameEdit(${idx})" class="text-blue-600 font-semibold">Edit</button>
-            <button onclick="deleteMasterGame(${idx})" class="text-red-600 font-semibold">Delete</button>
-          </td>
-        </tr>
-      `).join('');
+      masterGames = sanitizeMasterGamesList(masterGames);
+      tbody.innerHTML = masterGames.map((g, idx) => {
+        const gNum = String(g.gameNum ?? '').trim();
+        const gName = String(g.name ?? '').trim();
+        const gPrice = Number(g.price || 0);
+        const gCount = Number(g.count ?? getDefaultRollCountForPrice(gPrice));
+        const lastTicket = Math.max(0, gCount - 1);
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-2.5 font-mono font-bold text-slate-900">#${gNum}</td>
+            <td class="p-2.5 font-medium">${gName}</td>
+            <td class="p-2.5 text-emerald-700 font-bold">$${gPrice.toFixed(2)}</td>
+            <td class="p-2.5">${gCount} tkts</td>
+            <td class="p-2.5 font-mono text-gray-500">${String(lastTicket).padStart(3, '0')}</td>
+            <td class="p-2.5 text-right space-x-2">
+              <button onclick="populateAdminGameEdit(${idx})" class="text-blue-600 hover:underline font-semibold">Edit</button>
+              <button onclick="deleteMasterGame(${idx})" class="text-red-600 hover:underline font-semibold">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function populateAdminGameEdit(idx) {
-      document.getElementById('admin-game-num').value = masterGames[idx].gameNum || '';
-      document.getElementById('admin-game-name').value = masterGames[idx].name || '';
-      document.getElementById('admin-game-price').value = masterGames[idx].price || '';
-      document.getElementById('admin-game-count').value = masterGames[idx].count || '';
+      const g = masterGames[idx];
+      if (!g) return;
+      document.getElementById('admin-game-num').value = g.gameNum ?? '';
+      document.getElementById('admin-game-name').value = g.name ?? '';
+      document.getElementById('admin-game-price').value = g.price ?? '';
+      document.getElementById('admin-game-count').value = g.count ?? '';
     }
 
     function saveMasterGame() {
       const gameNum = document.getElementById('admin-game-num').value.trim();
       const name = document.getElementById('admin-game-name').value.trim();
       const price = Number(document.getElementById('admin-game-price').value);
-      const count = Number(document.getElementById('admin-game-count').value) || getDefaultRollCountForPrice(price);
-      if (!gameNum || !name || price <= 0 || count <= 0) return alert('Enter valid details.');
+      const countInput = Number(document.getElementById('admin-game-count').value);
+      const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price);
+
+      if (!gameNum || !name || price <= 0 || count <= 0) {
+        alert('Please enter valid Game #, Name, Price, and Roll Count.');
+        return;
+      }
 
       const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
-      if (existingIdx >= 0) masterGames[existingIdx] = { gameNum, name, price, count };
-      else masterGames.push({ gameNum, name, price, count });
-      
-      boxes.forEach(b => { if (b.gameNum === gameNum) { b.gameName = name; b.price = price; b.rollCount = count; } });
-      saveGamesState(); saveBoxesState(); renderAdminGamesTable(); renderDispenserGrid();
+      if (existingIdx >= 0) {
+        masterGames[existingIdx] = { gameNum, name, price, count };
+      } else {
+        masterGames.push({ gameNum, name, price, count });
+      }
+
+      boxes.forEach(b => {
+        if (String(b.gameNum).trim() === gameNum) {
+          b.gameNum = gameNum;
+          b.gameName = name;
+          b.price = price;
+          b.rollCount = count;
+          b.needsNewGameEntry = false;
+        }
+      });
+
+      saveGamesState();
+      saveBoxesState();
+      renderAdminGamesTable();
+      renderDispenserGrid();
+
+      document.getElementById('admin-game-num').value = '';
+      document.getElementById('admin-game-name').value = '';
+      document.getElementById('admin-game-price').value = '';
+      document.getElementById('admin-game-count').value = '';
     }
 
     function deleteMasterGame(idx) {
-      if (!confirm('Remove game?')) return;
+      if (!confirm('Remove this game from the Master Catalog?')) return;
       masterGames.splice(idx, 1);
-      saveGamesState(); renderAdminGamesTable(); renderDispenserGrid();
-    }
-    function resetDefaultGames() {
-      if (!confirm('Restore defaults?')) return;
-      masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
-      saveGamesState(); renderAdminGamesTable(); renderDispenserGrid();
+      saveGamesState();
+      renderAdminGamesTable();
+      renderDispenserGrid();
     }
 
+    function resetDefaultGames() {
+      if (!confirm('Restore default game catalog? Custom games will be overwritten.')) return;
+      masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
+      saveGamesState();
+      renderAdminGamesTable();
+      renderDispenserGrid();
+    }
     function calculateBoxMetrics(box) {
       const price = Number(box.price) || 0;
       const rollCount = Number(box.rollCount) || 0;
       const hasStart = box.startTicket !== '' && box.startTicket !== null;
       const hasEnd = box.endTicket !== '' && box.endTicket !== null;
-      let rolloverTickets = (box.rollovers || []).reduce((acc, r) => acc + (Number(r.ticketsSold) || 0), 0);
 
-      if (!box.gameNum || !hasStart || !hasEnd) return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: false, errorMsg: '' };
-      
-      const s = Number(box.startTicket); const e = Number(box.endTicket);
+      let rolloverTickets = 0;
+      if (Array.isArray(box.rollovers)) {
+        box.rollovers.forEach(r => { rolloverTickets += Number(r.ticketsSold) || 0; });
+      }
+
+      if (!box.gameNum || !hasStart || !hasEnd) {
+        return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: false, errorMsg: '' };
+      }
+
+      const s = Number(box.startTicket);
+      const e = Number(box.endTicket);
       const maxTicket = rollCount > 0 ? rollCount - 1 : 999;
-      if (s < 0 || e < 0 || s > maxTicket || e > maxTicket) return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: true, errorMsg: `Out of bounds (Max: ${maxTicket})` };
-      if (e < s) return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: true, errorMsg: 'End ticket < Start ticket (Use Roll Pack if new pack loaded)' };
 
-      const totalSold = rolloverTickets + (e - s);
-      return { ticketsSold: totalSold, salesAmount: totalSold * price, isError: false, errorMsg: '' };
+      if (s < 0 || e < 0 || s > maxTicket || e > maxTicket) {
+        return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: true, errorMsg: `Out of bounds (Max: ${maxTicket})` };
+      }
+
+      if (e < s) {
+        return { ticketsSold: rolloverTickets, salesAmount: rolloverTickets * price, isError: true, errorMsg: 'End ticket is less than Start ticket (Use Roll Pack if new pack loaded)' };
+      }
+
+      const currentPackSold = e - s;
+      const totalSold = rolloverTickets + currentPackSold;
+      return {
+        ticketsSold: totalSold,
+        salesAmount: totalSold * price,
+        isError: false,
+        errorMsg: ''
+      };
     }
 
     function setDispenserView(view) {
       currentDispenserView = view;
-      document.getElementById('btn-view-list').className = view === 'list' ? 'px-3 py-1.5 rounded-md font-bold transition bg-slate-900 text-white' : 'px-3 py-1.5 rounded-md font-bold transition text-slate-700 hover:text-slate-900';
-      document.getElementById('btn-view-box').className = view === 'box' ? 'px-3 py-1.5 rounded-md font-bold transition bg-slate-900 text-white' : 'px-3 py-1.5 rounded-md font-bold transition text-slate-700 hover:text-slate-900';
+      const btnList = document.getElementById('btn-view-list');
+      const btnBox = document.getElementById('btn-view-box');
+      if (btnList && btnBox) {
+        if (view === 'list') {
+          btnList.className = 'px-3 py-1.5 rounded-md font-bold transition bg-slate-900 text-white';
+          btnBox.className = 'px-3 py-1.5 rounded-md font-bold transition text-slate-700 hover:text-slate-900';
+        } else {
+          btnBox.className = 'px-3 py-1.5 rounded-md font-bold transition bg-slate-900 text-white';
+          btnList.className = 'px-3 py-1.5 rounded-md font-bold transition text-slate-700 hover:text-slate-900';
+        }
+      }
       renderDispenserGrid();
+    }
+
+    // New Enter/Go Key Navigator Logic
+    function handleGridEnter(event, currentIndex, fieldType) {
+      if (event.key === 'Enter' || event.key === 'Go') {
+        event.preventDefault(); // Stop default browser behavior
+        event.target.blur();    // Triggers "onchange" to save the value
+        
+        // Find the identical input field type in the exact next row down
+        const nextInput = document.getElementById(`input-${fieldType}-${currentIndex + 1}`);
+        if (nextInput && !nextInput.disabled) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
     }
 
     function openOcrModal() {
@@ -985,38 +1250,65 @@
       document.getElementById('ocr-preview-container').classList.add('hidden');
       document.getElementById('ocr-raw-textarea').value = '';
     }
-    function closeOcrModal() { document.getElementById('ocr-modal').classList.add('hidden'); }
+
+    function closeOcrModal() {
+      document.getElementById('ocr-modal').classList.add('hidden');
+    }
+
     function handleOcrImageUpload(event) {
       const file = event.target.files?.[0];
       if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
-        document.getElementById('ocr-preview-img').src = e.target.result;
+        const dataUrl = e.target.result;
+        const imgPrev = document.getElementById('ocr-preview-img');
+        imgPrev.src = dataUrl;
         document.getElementById('ocr-preview-container').classList.remove('hidden');
-        document.getElementById('ocr-status-box').classList.remove('hidden');
-        document.getElementById('ocr-status-box').textContent = 'Image captured successfully! Review parsed numbers below and click Apply.';
+        
+        const statusBox = document.getElementById('ocr-status-box');
+        statusBox.classList.remove('hidden');
+        statusBox.textContent = 'Image captured successfully! Review parsed numbers below and click Apply.';
       };
       reader.readAsDataURL(file);
     }
+
     function applyOcrExtractedData() {
       const rawText = document.getElementById('ocr-raw-textarea').value.trim();
-      if (!rawText) return alert('No data to apply.');
+      if (!rawText) {
+        alert('No data to apply. Please ensure numbers are present in the text box.');
+        return;
+      }
+
+      const lines = rawText.split('\n');
       let matchedCount = 0;
-      rawText.split('\n').forEach(line => {
+      
+      lines.forEach(line => {
         const nums = line.match(/\d+/g);
         if (nums && nums.length >= 2) {
-          const targetBox = boxes.find(b => String(b.boxNumber) === String(nums[0]));
-          if (targetBox) { targetBox.endTicket = Number(nums[nums.length - 1]); matchedCount++; }
+          const boxNumCandidate = nums[0];
+          const ticketCandidate = nums[nums.length - 1];
+          const targetBox = boxes.find(b => String(b.boxNumber) === String(boxNumCandidate));
+          if (targetBox) {
+            targetBox.endTicket = Number(ticketCandidate);
+            matchedCount++;
+          }
         }
       });
-      saveBoxesState(); renderDispenserGrid(); closeOcrModal(); alert(`OCR applied! Updated ${matchedCount} box end tickets.`);
+
+      saveBoxesState();
+      renderDispenserGrid();
+      closeOcrModal();
+      alert(`OCR applied successfully! Updated ${matchedCount} box end tickets from photo data.`);
     }
 
     function lettersToIndex(str) {
-      let n = 0; const s = String(str).toUpperCase().trim();
-      for (let i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+      let n = 0;
+      const s = String(str).toUpperCase().trim();
+      for (let i = 0; i < s.length; i++) { n = n * 26 + (s.charCodeAt(i) - 64); }
       return n - 1;
     }
+
     function indexToLetters(num) {
       let str = ''; let n = num;
       while (n >= 0) { str = String.fromCharCode((n % 26) + 65) + str; n = Math.floor(n / 26) - 1; }
@@ -1026,70 +1318,99 @@
     function updateBoxLabel(idx, newVal) {
       if (!boxes[idx]) return;
       const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
-      if (!cleaned) return renderDispenserGrid();
+      if (!cleaned) { renderDispenserGrid(); return; }
+      
       boxes[idx].boxNumber = cleaned;
 
-      const letterPair = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
-      const numPair = cleaned.match(/^(\d+)&(\d+)$/);
-      const singleNum = cleaned.match(/^(\d+)$/);
-      const singleLet = cleaned.match(/^([A-Z]+)$/);
+      const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
+      const numPairMatch    = cleaned.match(/^(\d+)&(\d+)$/);
+      const singleNumMatch  = cleaned.match(/^(\d+)$/);
+      const singleLetMatch  = cleaned.match(/^([A-Z]+)$/);
 
-      if (letterPair) {
-        let lastIdx = lettersToIndex(letterPair[2]);
-        for (let i = idx + 1; i < boxes.length; i++) { boxes[i].boxNumber = `${indexToLetters(lastIdx + 1)}&${indexToLetters(lastIdx + 2)}`; lastIdx += 2; }
-      } else if (numPair) {
-        let lastNum = parseInt(numPair[2], 10);
-        for (let i = idx + 1; i < boxes.length; i++) { boxes[i].boxNumber = `${lastNum + 1}&${lastNum + 2}`; lastNum += 2; }
-      } else if (singleNum) {
-        let curr = parseInt(singleNum[1], 10);
-        for (let i = idx + 1; i < boxes.length; i++) boxes[i].boxNumber = String(++curr);
-      } else if (singleLet) {
-        let curr = lettersToIndex(singleLet[1]);
-        for (let i = idx + 1; i < boxes.length; i++) boxes[i].boxNumber = indexToLetters(++curr);
+      if (letterPairMatch) {
+        let lastIdx = lettersToIndex(letterPairMatch[2]);
+        for (let i = idx + 1; i < boxes.length; i++) {
+          const nextFirst = lastIdx + 1; const nextSecond = lastIdx + 2;
+          boxes[i].boxNumber = `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`; lastIdx = nextSecond;
+        }
+      } else if (numPairMatch) {
+        let lastNum = parseInt(numPairMatch[2], 10);
+        for (let i = idx + 1; i < boxes.length; i++) {
+          const nextFirst = lastNum + 1; const nextSecond = lastNum + 2;
+          boxes[i].boxNumber = `${nextFirst}&${nextSecond}`; lastNum = nextSecond;
+        }
+      } else if (singleNumMatch) {
+        let currentNum = parseInt(singleNumMatch[1], 10);
+        for (let i = idx + 1; i < boxes.length; i++) { currentNum++; boxes[i].boxNumber = String(currentNum); }
+      } else if (singleLetMatch) {
+        let currentIdx = lettersToIndex(singleLetMatch[1]);
+        for (let i = idx + 1; i < boxes.length; i++) { currentIdx++; boxes[i].boxNumber = indexToLetters(currentIdx); }
       }
-      saveBoxesState(); renderDispenserGrid();
+
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function assignGameToBox(idx, gameNumInput) {
       const box = boxes[idx];
       if (!box) return;
       const cleanedNum = String(gameNumInput || '').trim();
+      masterGames = sanitizeMasterGamesList(masterGames);
       const game = masterGames.find(g => String(g.gameNum).trim() === cleanedNum);
+
       if (game) {
         box.gameNum = game.gameNum; box.gameName = game.name; box.price = Number(game.price); box.rollCount = Number(game.count); box.needsNewGameEntry = false;
-        if (box.startTicket === '' || box.startTicket == null) box.startTicket = 0;
+        if (box.startTicket === '' || box.startTicket === undefined) box.startTicket = 0;
       } else if (cleanedNum === '') {
         box.gameNum = ''; box.gameName = ''; box.price = 0; box.rollCount = 0; box.needsNewGameEntry = false;
       } else {
         box.gameNum = cleanedNum; box.gameName = ''; box.price = 0; box.rollCount = 0; box.needsNewGameEntry = true;
       }
-      saveBoxesState(); renderDispenserGrid();
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function saveNewGameFromBox(idx) {
       const box = boxes[idx];
+      if (!box) return;
       const gameNum = String(document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
       const name = String(document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
       const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
       const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
-      if (!gameNum || !name || price <= 0) return alert('Enter valid Game details.');
+
+      if (!gameNum || !name || price <= 0) {
+        alert('Please enter the Game #, Ticket Name, and $ Amount.');
+        return;
+      }
       const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price);
-      
+      masterGames = sanitizeMasterGamesList(masterGames);
       const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
-      if (existingIdx >= 0) masterGames[existingIdx] = { gameNum, name, price, count };
-      else masterGames.push({ gameNum, name, price, count });
+      
+      if (existingIdx >= 0) {
+        masterGames[existingIdx] = { gameNum, name, price, count };
+      } else {
+        masterGames.push({ gameNum, name, price, count });
+      }
 
       boxes.forEach(b => {
-        if (String(b.gameNum).trim() === gameNum) { b.gameNum = gameNum; b.gameName = name; b.price = price; b.rollCount = count; b.needsNewGameEntry = false; if(b.startTicket==='') b.startTicket=0;}
+        if (String(b.gameNum).trim() === gameNum) {
+          b.gameNum = gameNum; b.gameName = name; b.price = price; b.rollCount = count; b.needsNewGameEntry = false;
+          if (b.startTicket === '' || b.startTicket === undefined) b.startTicket = 0;
+        }
       });
-      saveGamesState(); saveBoxesState(); renderDispenserGrid();
+
+      saveGamesState(); saveBoxesState();
+      renderAdminGamesTable(); renderDispenserGrid();
     }
 
     function renderDispenserGrid() {
       const grid = document.getElementById('dispenser-grid');
       const title = document.getElementById('dispenser-section-title');
       if (!grid) return;
-      if (title && boxes.length > 0) title.textContent = `Dispenser Boxes (1 - ${boxes.length}) [${currentDispenserView.toUpperCase()} VIEW]`;
+
+      if (title && boxes.length > 0) {
+        title.textContent = `Dispenser Boxes (1 - ${boxes.length}) [${currentDispenserView.toUpperCase()} VIEW]`;
+      }
 
       let grandTotalSales = 0;
 
@@ -1117,17 +1438,30 @@
                   grandTotalSales += metrics.salesAmount;
                   return `
                     <tr class="hover:bg-slate-50 ${metrics.isError ? 'bg-red-50' : ''}">
-                      <td class="p-2 text-center font-black"><input type="text" value="${box.boxNumber}" onchange="updateBoxLabel(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-12 text-center font-bold bg-slate-900 text-white rounded p-1"></td>
-                      <td class="p-2 text-center font-mono font-bold"><input type="text" value="${box.gameNum}" onchange="assignGameToBox(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center font-mono font-bold border rounded p-1 bg-slate-50"></td>
-                      <td class="p-2 font-medium truncate max-w-[200px]">${box.gameName || '<span class="text-gray-400">Unassigned</span>'}</td>
-                      <td class="p-2 text-center font-bold text-emerald-700">${box.price > 0 ? `$${box.price}` : '-'}</td>
-                      <td class="p-2 text-center font-mono font-bold"><input type="number" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center font-mono border rounded p-1"></td>
-                      <td class="p-2 text-center font-mono"><input type="number" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" class="w-20 text-center font-mono font-bold border border-blue-400 bg-blue-50/50 rounded p-1"></td>
+                      <td class="p-2 text-center font-black">
+                        <input type="text" id="input-boxNum-${idx}" value="${box.boxNumber}" onchange="updateBoxLabel(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'boxNum')" ${isBoxSetupLocked ? 'disabled' : ''} class="w-12 text-center font-bold bg-slate-900 text-white rounded p-1 text-xs">
+                      </td>
+                      <td class="p-2 text-center font-mono font-bold">
+                        <input type="text" id="input-gameNum-${idx}" value="${box.gameNum || ''}" onchange="assignGameToBox(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'gameNum')" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Game" class="w-16 text-center font-mono font-bold border rounded p-1 bg-slate-50">
+                      </td>
+                      <td class="p-2 font-medium truncate max-w-[200px]">
+                        ${box.gameName || '<span class="text-gray-400">Unassigned</span>'}
+                      </td>
+                      <td class="p-2 text-center font-bold text-emerald-700">
+                        ${box.price > 0 ? `$${box.price}` : '-'}
+                      </td>
+                      <td class="p-2 text-center font-mono font-bold">
+                        <input type="number" id="input-startTicket-${idx}" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" onkeydown="handleGridEnter(event, ${idx}, 'startTicket')" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center font-mono border rounded p-1">
+                      </td>
+                      <td class="p-2 text-center font-mono">
+                        <input type="number" id="input-endTicket-${idx}" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'endTicket')" placeholder="000" class="w-20 text-center font-mono font-bold border border-blue-400 bg-blue-50/50 rounded p-1">
+                      </td>
                       <td class="p-2 text-center font-bold" id="box-sold-${idx}">${metrics.ticketsSold}</td>
                       <td class="p-2 text-right font-mono font-black text-emerald-700" id="box-sales-${idx}">$${metrics.salesAmount.toFixed(2)}</td>
                       <td class="p-2 text-center space-x-1">
                         <button onclick="initScanner(${idx})" class="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-1 rounded font-semibold border border-blue-200">Scan</button>
                         <button onclick="rollNewPackInBox(${idx})" class="text-[10px] bg-slate-800 text-white px-1.5 py-1 rounded font-semibold">Roll</button>
+                        ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-[10px] bg-red-50 text-red-600 px-1.5 py-1 rounded font-semibold border border-red-200">×</button>` : ''}
                       </td>
                     </tr>
                   `;
@@ -1143,25 +1477,26 @@
           grandTotalSales += metrics.salesAmount;
           const isUnknownGame = box.needsNewGameEntry;
           const rollBadgeCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
+
           return `
             <div class="bg-white rounded-xl p-3 shadow-sm border ${metrics.isError ? 'border-red-500 ring-1 ring-red-400' : 'border-gray-200'} flex flex-col justify-between">
               <div>
                 <div class="flex justify-between items-center mb-2">
                   <div class="flex items-center gap-1.5">
                     <span class="text-xs font-black uppercase text-slate-600">Box</span>
-                    <input type="text" value="${box.boxNumber}" onchange="updateBoxLabel(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700">
+                    <input type="text" id="input-boxNum-${idx}" value="${box.boxNumber}" onchange="updateBoxLabel(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'boxNum')" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700">
                   </div>
                   <div class="flex items-center gap-1">
                     ${box.price > 0 ? `<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">$${box.price}</span>` : ''}
                     <button onclick="initScanner(${idx})" class="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">Scan</button>
-                    ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" class="text-gray-400 hover:text-red-600 px-1 text-xs font-bold">×</button>` : ''}
+                    ${!isBoxSetupLocked ? `<button onclick="removeBox(${idx})" title="Remove Box" class="text-[11px] text-gray-400 hover:text-red-600 px-1 font-bold">×</button>` : ''}
                   </div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-1.5 mb-2">
                   <div>
                     <label class="block text-[10px] uppercase font-bold text-gray-500">Game #</label>
-                    <input type="text" value="${box.gameNum || ''}" onchange="assignGameToBox(${idx}, this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50">
+                    <input type="text" id="input-gameNum-${idx}" value="${box.gameNum || ''}" onchange="assignGameToBox(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'gameNum')" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="e.g. 1802" class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50">
                   </div>
                   <div class="col-span-2">
                     <label class="block text-[10px] uppercase font-bold text-gray-500">Game Name</label>
@@ -1170,7 +1505,7 @@
                     </div>
                   </div>
                 </div>
-                
+
                 ${isUnknownGame ? `
                   <div class="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-xs">
                     <div class="grid grid-cols-3 gap-1.5 items-end">
@@ -1179,7 +1514,7 @@
                         <input id="new-game-price-${idx}" type="number" min="1" placeholder="30" class="w-full border border-amber-300 rounded p-1 text-xs">
                       </div>
                       <div class="col-span-2">
-                        <label class="block text-[10px] font-bold text-amber-800">Name</label>
+                        <label class="block text-[10px] font-bold text-amber-800">Ticket Name</label>
                         <input id="new-game-name-${idx}" type="text" placeholder="Name" class="w-full border border-amber-300 rounded p-1 text-xs">
                       </div>
                       <button onclick="saveNewGameFromBox(${idx})" class="col-span-3 bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs mt-1">Save Game</button>
@@ -1190,11 +1525,11 @@
                 <div class="grid grid-cols-2 gap-1.5 mb-2">
                   <div>
                     <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
-                    <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} class="w-full border rounded p-1.5 font-mono text-sm font-bold">
+                    <input type="number" id="input-startTicket-${idx}" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" onkeydown="handleGridEnter(event, ${idx}, 'startTicket')" ${isBoxSetupLocked ? 'disabled' : ''} class="w-full border rounded p-1.5 font-mono text-sm font-bold">
                   </div>
                   <div>
                     <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
-                    <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30">
+                    <input type="number" id="input-endTicket-${idx}" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'endTicket')" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30">
                   </div>
                 </div>
               </div>
@@ -1204,7 +1539,7 @@
                   <span class="text-gray-500">Sold: <strong id="box-sold-${idx}" class="text-slate-900">${metrics.ticketsSold}</strong></span>
                   <span id="box-sales-${idx}" class="ml-2 font-black text-emerald-700">$${metrics.salesAmount.toFixed(2)}</span>
                 </div>
-                <div class="flex gap-1">
+                <div class="flex items-center gap-1">
                   ${rollBadgeCount > 0 ? `<button onclick="openRollHistoryModal(${idx})" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">${rollBadgeCount} Roll</button>` : ''}
                   <button onclick="rollNewPackInBox(${idx})" class="text-[11px] bg-slate-800 text-white px-2 py-1 rounded font-semibold">Roll Pack</button>
                 </div>
@@ -1213,6 +1548,7 @@
           `;
         }).join('');
       }
+
       const salesEl = document.getElementById('action-bar-sales');
       if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
     }
@@ -1220,61 +1556,91 @@
     function updateBoxField(idx, field, val) {
       if (!boxes[idx]) return;
       boxes[idx][field] = val === '' ? '' : Number(val);
-      saveBoxesState(); renderDispenserGrid();
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
       boxes[idx].endTicket = val === '' ? '' : Number(val);
       saveBoxesState();
+
       const metrics = calculateBoxMetrics(boxes[idx]);
       const soldEl = document.getElementById(`box-sold-${idx}`);
       const salesEl = document.getElementById(`box-sales-${idx}`);
+      
       if (soldEl) soldEl.textContent = metrics.ticketsSold;
       if (salesEl) salesEl.textContent = `$${metrics.salesAmount.toFixed(2)}`;
       
-      let grandTotal = 0; boxes.forEach(b => { grandTotal += calculateBoxMetrics(b).salesAmount; });
+      let grandTotal = 0;
+      boxes.forEach(b => { grandTotal += calculateBoxMetrics(b).salesAmount; });
       const barEl = document.getElementById('action-bar-sales');
       if (barEl) barEl.textContent = `$${grandTotal.toFixed(2)}`;
     }
 
     function addBox() {
-      if (isBoxSetupLocked) return alert('Unlock Box Layout in Store Setup first.');
+      if (isBoxSetupLocked) {
+        alert('Unlock Box Layout in Store Setup first.');
+        return;
+      }
       boxes.push(createEmptyBox(boxes.length + 1));
-      if (boxes.length > 1) updateBoxLabel(boxes.length - 2, boxes[boxes.length - 2].boxNumber);
-      else { saveBoxesState(); renderDispenserGrid(); }
+      if (boxes.length > 1) {
+        const prevIdx = boxes.length - 2;
+        updateBoxLabel(prevIdx, boxes[prevIdx].boxNumber);
+      } else {
+        saveBoxesState();
+        renderDispenserGrid();
+      }
     }
 
+    // Completely Fixed Remove Box Logic
     function removeBox(idx) {
-      if (isBoxSetupLocked) return;
-      if (!confirm(`Remove Box ${boxes[idx].boxNumber}?`)) return;
+      if (isBoxSetupLocked) {
+        alert('Unlock Box Layout in Store Setup first.');
+        return;
+      }
+      if (!confirm(`Are you sure you want to completely delete Box ${boxes[idx].boxNumber}?`)) return;
+      
       boxes.splice(idx, 1);
-      if (boxes.length > 0) updateBoxLabel(Math.max(0, idx - 1), boxes[Math.max(0, idx - 1)].boxNumber);
-      else { saveBoxesState(); renderDispenserGrid(); }
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function clearAllEndTickets() {
-      if (!confirm('Clear all Ending Tickets?')) return;
-      boxes.forEach(b => b.endTicket = '');
-      saveBoxesState(); renderDispenserGrid();
+      if (!confirm('Clear all current Ending Ticket entries across all boxes?')) return;
+      boxes.forEach(b => { b.endTicket = ''; });
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function rollNewPackInBox(idx) {
       const box = boxes[idx];
-      if (!box || !box.gameNum) return alert('Assign a game first.');
+      if (!box || !box.gameNum) {
+        alert('Assign a game to this box first.');
+        return;
+      }
       const maxTicket = Math.max(0, Number(box.rollCount) - 1);
       const start = Number(box.startTicket) || 0;
       const soldOnOldPack = Math.max(0, (maxTicket + 1) - start);
 
-      if (!confirm(`Finish current pack in Box ${box.boxNumber} (${soldOnOldPack} sold) and load new pack at #000?`)) return;
+      if (!confirm(`Finish current pack in Box ${box.boxNumber} (${soldOnOldPack} tickets sold from #${start} to end of roll #${maxTicket}) and load a new pack starting at #000?`)) {
+        return;
+      }
 
       if (!Array.isArray(box.rollovers)) box.rollovers = [];
       box.rollovers.push({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        startTicket: start, endTicket: maxTicket, ticketsSold: soldOnOldPack, salesAmount: soldOnOldPack * Number(box.price)
+        startTicket: start,
+        endTicket: maxTicket,
+        ticketsSold: soldOnOldPack,
+        salesAmount: soldOnOldPack * Number(box.price)
       });
-      box.startTicket = 0; box.endTicket = ''; box.rollsReplaced = (Number(box.rollsReplaced) || 0) + 1;
-      saveBoxesState(); renderDispenserGrid();
+
+      box.startTicket = 0;
+      box.endTicket = '';
+      box.rollsReplaced = (Number(box.rollsReplaced) || 0) + 1;
+      saveBoxesState();
+      renderDispenserGrid();
     }
 
     function openRollHistoryModal(idx) {
@@ -1282,58 +1648,108 @@
       if (!box) return;
       document.getElementById('roll-history-title').textContent = `Box ${box.boxNumber} Rollover History`;
       const content = document.getElementById('roll-history-content');
-      content.innerHTML = (box.rollovers || []).length === 0 ? '<p>No rollovers</p>' : box.rollovers.map((r, i) => `
+      const list = box.rollovers || [];
+      content.innerHTML = list.length === 0 ? '<p class="text-gray-500">No rollovers recorded this shift.</p>' : list.map((r, i) => `
         <div class="p-2.5 bg-slate-50 rounded border flex justify-between items-center">
-          <div><div class="font-bold">Roll #${i + 1} (${r.timestamp})</div><div class="text-gray-500">#${r.startTicket} → #${r.endTicket} (${r.ticketsSold} sold)</div></div>
+          <div>
+            <div class="font-bold text-slate-800">Roll #${i + 1} (${r.timestamp})</div>
+            <div class="text-gray-500">Tickets #${r.startTicket} → #${r.endTicket} (${r.ticketsSold} sold)</div>
+          </div>
           <div class="font-black text-emerald-700">$${Number(r.salesAmount).toFixed(2)}</div>
         </div>
       `).join('');
       document.getElementById('roll-history-modal').classList.remove('hidden');
     }
-    function closeRollHistoryModal() { document.getElementById('roll-history-modal').classList.add('hidden'); }
+
+    function closeRollHistoryModal() {
+      document.getElementById('roll-history-modal').classList.add('hidden');
+    }
 
     function openRapidEntryModal() {
       const list = document.getElementById('rapid-entry-list');
       list.innerHTML = boxes.map((b, idx) => `
         <div class="py-2 flex items-center justify-between gap-3 text-xs">
-          <div class="w-48 font-semibold truncate"><span class="font-black">Box ${b.boxNumber}:</span> ${b.gameNum ? `#${b.gameNum} ($${b.price})` : 'Empty'}</div>
+          <div class="w-48 font-semibold truncate">
+            <span class="font-black text-slate-900">Box ${b.boxNumber}:</span> ${b.gameNum ? `#${b.gameNum} ($${b.price})` : '<span class="text-gray-400">Empty</span>'}
+          </div>
           <div class="text-gray-500 font-mono">Start: <strong>${b.startTicket !== '' ? b.startTicket : '-'}</strong></div>
-          <div class="flex items-center gap-1.5"><label class="font-bold text-blue-700">End #:</label><input type="number" id="rapid-end-${idx}" value="${b.endTicket}" onkeydown="handleRapidKey(event, ${idx})" class="w-24 border border-blue-400 rounded p-1.5 font-mono font-bold text-sm"></div>
+          <div class="flex items-center gap-1.5">
+            <label class="font-bold text-blue-700">End #:</label>
+            <input type="number" id="rapid-end-${idx}" value="${b.endTicket}" onkeydown="handleRapidKey(event, ${idx})" class="w-24 border border-blue-400 rounded p-1.5 font-mono font-bold text-sm">
+          </div>
         </div>
       `).join('');
       document.getElementById('rapid-entry-modal').classList.remove('hidden');
       setTimeout(() => { const first = document.getElementById('rapid-end-0'); if (first) first.focus(); }, 50);
     }
-    function handleRapidKey(e, idx) { if (e.key === 'Enter') { e.preventDefault(); const next = document.getElementById(`rapid-end-${idx + 1}`); if (next) next.focus(); } }
-    function closeRapidEntryModal() { document.getElementById('rapid-entry-modal').classList.add('hidden'); }
-    function saveRapidEntry() {
-      boxes.forEach((b, idx) => { const el = document.getElementById(`rapid-end-${idx}`); if (el) b.endTicket = el.value === '' ? '' : Number(el.value); });
-      saveBoxesState(); renderDispenserGrid(); closeRapidEntryModal();
+
+    function handleRapidKey(e, idx) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const next = document.getElementById(`rapid-end-${idx + 1}`);
+        if (next) next.focus();
+      }
     }
-    function printRapidEntry() { saveRapidEntry(); printWorksheet(); }
+
+    function closeRapidEntryModal() {
+      document.getElementById('rapid-entry-modal').classList.add('hidden');
+    }
+
+    function saveRapidEntry() {
+      boxes.forEach((b, idx) => {
+        const el = document.getElementById(`rapid-end-${idx}`);
+        if (el) b.endTicket = el.value === '' ? '' : Number(el.value);
+      });
+      saveBoxesState();
+      renderDispenserGrid();
+      closeRapidEntryModal();
+    }
+
+    function printRapidEntry() {
+      saveRapidEntry();
+      printWorksheet();
+    }
 
     function runValidation() {
       const banner = document.getElementById('validation-banner');
       const errors = [];
-      boxes.forEach(b => { const m = calculateBoxMetrics(b); if (m.isError) errors.push(`Box ${b.boxNumber}: ${m.errorMsg}`); });
+      boxes.forEach(b => {
+        const m = calculateBoxMetrics(b);
+        if (m.isError) errors.push(`Box ${b.boxNumber}: ${m.errorMsg}`);
+      });
       banner.classList.remove('hidden', 'bg-red-50', 'text-red-800', 'border-red-300', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
       if (errors.length > 0) {
-        banner.classList.add('bg-red-50', 'text-red-800', 'border-red-300'); banner.innerHTML = `<strong>Issues Found:</strong> ${errors.join(' • ')}`;
+        banner.classList.add('bg-red-50', 'text-red-800', 'border-red-300');
+        banner.innerHTML = `<strong>Validation Issues Found:</strong> ${errors.join(' • ')}`;
       } else {
-        banner.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-300'); banner.textContent = 'All active dispenser boxes passed validation!';
+        banner.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
+        banner.textContent = 'All active dispenser boxes passed ticket range validation!';
         setTimeout(() => banner.classList.add('hidden'), 4000);
       }
     }
 
-    function openReconcileModal() { updateReconcileMath(); document.getElementById('reconcile-modal').classList.remove('hidden'); }
-    function closeReconcileModal() { document.getElementById('reconcile-modal').classList.add('hidden'); }
+    function openReconcileModal() {
+      updateReconcileMath();
+      document.getElementById('reconcile-modal').classList.remove('hidden');
+    }
+
+    function closeReconcileModal() {
+      document.getElementById('reconcile-modal').classList.add('hidden');
+    }
 
     function updateReconcileMath() {
-      let scratchSales = 0, totalTickets = 0;
-      boxes.forEach(b => { const m = calculateBoxMetrics(b); scratchSales += m.salesAmount; totalTickets += m.ticketsSold; });
+      let scratchSales = 0;
+      let totalTickets = 0;
+      boxes.forEach(b => {
+        const m = calculateBoxMetrics(b);
+        scratchSales += m.salesAmount;
+        totalTickets += m.ticketsSold;
+      });
+
       const onlineSales = Number(document.getElementById('rec-online-sales').value) || 0;
       const payouts = Number(document.getElementById('rec-payouts').value) || 0;
       const posActual = Number(document.getElementById('rec-pos-actual').value) || 0;
+
       const expectedNet = scratchSales + onlineSales - payouts;
       const variance = posActual - expectedNet;
 
@@ -1341,6 +1757,7 @@
       document.getElementById('rec-tickets-sold').textContent = `${totalTickets} tickets sold across active boxes`;
       document.getElementById('rec-expected-total').textContent = `$${expectedNet.toFixed(2)}`;
       document.getElementById('rec-accounted-total').textContent = `$${posActual.toFixed(2)}`;
+
       const varEl = document.getElementById('rec-variance-display');
       varEl.textContent = `${variance >= 0 ? '+' : ''}$${variance.toFixed(2)}`;
       varEl.className = variance === 0 ? 'text-emerald-700 font-black' : (variance < 0 ? 'text-red-600 font-black' : 'text-blue-700 font-black');
@@ -1349,20 +1766,33 @@
     function commitShiftRollover() {
       if (!confirm('Lock this shift and roll all End Tickets to Start Tickets?')) return;
       boxes.forEach(b => {
-        if (b.endTicket !== '' && b.endTicket !== null) { b.startTicket = Number(b.endTicket); b.endTicket = ''; }
-        b.rollovers = []; b.rollsReplaced = 0;
+        if (b.endTicket !== '' && b.endTicket !== null) {
+          b.startTicket = Number(b.endTicket);
+          b.endTicket = '';
+        }
+        b.rollovers = [];
+        b.rollsReplaced = 0;
       });
-      saveBoxesState(); renderDispenserGrid(); closeReconcileModal(); alert('Shift rolled over successfully.');
+      saveBoxesState();
+      renderDispenserGrid();
+      closeReconcileModal();
+      alert('Shift rolled over successfully.');
     }
 
     function emailShiftReport() {
-      const subject = encodeURIComponent(`Lottery Shift Report - ${storeProfile.name}`);
+      const subject = encodeURIComponent(`Lottery Shift Report - ${storeProfile.name} (#${storeProfile.number})`);
+      const scratch = document.getElementById('rec-scratch-sales').textContent;
+      const expected = document.getElementById('rec-expected-total').textContent;
+      const actual = document.getElementById('rec-accounted-total').textContent;
+      const variance = document.getElementById('rec-variance-display').textContent;
+      
       const body = encodeURIComponent(
-        `Store: ${storeProfile.name}\nDate: ${new Date().toLocaleString()}\n` +
-        `Scratch Sales: ${document.getElementById('rec-scratch-sales').textContent}\n` +
-        `Expected Net: ${document.getElementById('rec-expected-total').textContent}\n` +
-        `Actual POS Total: ${document.getElementById('rec-accounted-total').textContent}\n` +
-        `Shift Variance: ${document.getElementById('rec-variance-display').textContent}\n`
+        `Store: ${storeProfile.name} (#${storeProfile.number})\n` +
+        `Date: ${new Date().toLocaleString()}\n` +
+        `Scratch Sales: ${scratch}\n` +
+        `Expected Net Lottery: ${expected}\n` +
+        `Actual POS Total: ${actual}\n` +
+        `Shift Variance: ${variance}\n`
       );
       window.location.href = `mailto:${storeProfile.email}?subject=${subject}&body=${body}`;
     }
@@ -1370,99 +1800,199 @@
     function initSignaturePad() {
       sigCanvas = document.getElementById('signature-pad');
       if (!sigCanvas) return;
-      sigCtx = sigCanvas.getContext('2d'); sigCtx.strokeStyle = '#0f172a'; sigCtx.lineWidth = 2;
-      const start = (e) => { isDrawingSig = true; sigCtx.beginPath(); const p = getSigPos(e); sigCtx.moveTo(p.x, p.y); };
-      const move = (e) => { if (!isDrawingSig) return; e.preventDefault(); const p = getSigPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); };
+      sigCtx = sigCanvas.getContext('2d');
+      sigCtx.strokeStyle = '#0f172a';
+      sigCtx.lineWidth = 2;
+
+      const start = (e) => {
+        isDrawingSig = true;
+        sigCtx.beginPath();
+        const p = getSigPos(e);
+        sigCtx.moveTo(p.x, p.y);
+      };
+
+      const move = (e) => {
+        if (!isDrawingSig) return;
+        e.preventDefault();
+        const p = getSigPos(e);
+        sigCtx.lineTo(p.x, p.y);
+        sigCtx.stroke();
+      };
+
       const end = () => { isDrawingSig = false; };
-      sigCanvas.addEventListener('mousedown', start); sigCanvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
-      sigCanvas.addEventListener('touchstart', start, { passive: false }); sigCanvas.addEventListener('touchmove', move, { passive: false }); window.addEventListener('touchend', end);
+
+      sigCanvas.addEventListener('mousedown', start);
+      sigCanvas.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+      sigCanvas.addEventListener('touchstart', start, { passive: false });
+      sigCanvas.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('touchend', end);
     }
+
     function getSigPos(e) {
       const rect = sigCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       return {
-        x: ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) * (sigCanvas.width / rect.width),
-        y: ((e.touches ? e.touches[0].clientY : e.clientY) - rect.top) * (sigCanvas.height / rect.height)
+        x: (clientX - rect.left) * (sigCanvas.width / rect.width),
+        y: (clientY - rect.top) * (sigCanvas.height / rect.height)
       };
     }
-    function clearSignature() { if (sigCtx && sigCanvas) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); }
+
+    function clearSignature() {
+      if (sigCtx && sigCanvas) {
+        sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      }
+    }
 
     function initScanner(boxIdx) {
       activeScannerBoxIndex = boxIdx;
       document.getElementById('scanner-title').textContent = boxIdx !== null ? `Scan Ticket for Box ${boxes[boxIdx].boxNumber}` : 'Global Barcode Scan';
       document.getElementById('scanner-modal').classList.remove('hidden');
       document.getElementById('manual-barcode-input').value = '';
+
       if (window.Html5Qrcode) {
         html5QrCode = new Html5Qrcode('reader');
-        html5QrCode.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 120 } }, (decodedText) => { handleBarcodeString(decodedText); }).catch(() => {});
+        html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 120 } },
+          (decodedText) => { handleBarcodeString(decodedText); }
+        ).catch(() => {});
       }
     }
+
     function stopScanner() {
-      if (html5QrCode) html5QrCode.stop().catch(() => {}).finally(() => { html5QrCode = null; });
+      if (html5QrCode) {
+        html5QrCode.stop().catch(() => {}).finally(() => { html5QrCode = null; });
+      }
       document.getElementById('scanner-modal').classList.add('hidden');
     }
+
     function processManualBarcode() {
       const raw = document.getElementById('manual-barcode-input').value.trim();
       if (raw) handleBarcodeString(raw);
     }
+
     function handleBarcodeString(raw) {
       const digits = raw.replace(/\D/g, '');
-      if (digits.length < 6) return alert('Barcode too short.');
-      const gameNum = digits.slice(0, 3); const ticketNum = Number(digits.slice(-3));
-      let targetIdx = activeScannerBoxIndex !== null ? activeScannerBoxIndex : boxes.findIndex(b => String(b.gameNum).trim() === gameNum);
-      if (targetIdx === -1) return alert(`No box assigned to Game #${gameNum}.`);
+      if (digits.length < 6) {
+        alert('Barcode too short to parse Game and Ticket number.');
+        return;
+      }
+      const gameNum = digits.slice(0, 3);
+      const ticketNum = Number(digits.slice(-3));
+
+      let targetIdx = activeScannerBoxIndex;
+      if (targetIdx === null) {
+        targetIdx = boxes.findIndex(b => String(b.gameNum).trim() === gameNum);
+      }
       
-      boxes[targetIdx].endTicket = ticketNum;
-      if (!boxes[targetIdx].gameNum) assignGameToBox(targetIdx, gameNum);
-      saveBoxesState(); renderDispenserGrid(); stopScanner();
+      if (targetIdx === -1 || targetIdx === null) {
+        alert(`No box assigned to Game #${gameNum}. Assign it to a box first.`);
+        return;
+      }
+
+      const b = boxes[targetIdx];
+      b.endTicket = ticketNum;
+      
+      if (!b.gameNum) {
+        assignGameToBox(targetIdx, gameNum);
+      }
+
+      saveBoxesState();
+      renderDispenserGrid();
+      stopScanner();
     }
 
     function buildCompactPrintHTML(reportTitle) {
-      let grandTotal = 0;
+      let grandTotalDollars = 0;
       const rowsHtml = boxes.map(b => {
-        const m = calculateBoxMetrics(b); grandTotal += m.salesAmount;
-        const hasEnd = b.endTicket !== '' && b.endTicket !== null;
+        const m = calculateBoxMetrics(b);
+        grandTotalDollars += m.salesAmount;
+        const hasEnd = b.endTicket !== '' && b.endTicket !== null && b.endTicket !== undefined;
+        const showTotal = hasEnd || (Array.isArray(b.rollovers) && b.rollovers.length > 0);
         return `
           <tr>
-            <td style="text-align:center; font-weight:700;">${b.boxNumber}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700;">${b.gameNum || ''}</td>
-            <td style="text-align:left;">${b.gameName || ''}</td>
-            <td style="text-align:center; font-weight:600;">${b.price ? `$${b.price}` : ''}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700;">${b.startTicket !== '' ? b.startTicket : ''}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700;">${hasEnd ? b.endTicket : ''}</td>
-            <td style="text-align:right; font-family:monospace; font-weight:700;">${hasEnd || b.rollovers?.length > 0 ? `$${m.salesAmount.toFixed(2)}` : ''}</td>
+            <td style="text-align:center; font-weight:700; width:9%; white-space:nowrap;">${b.boxNumber}</td>
+            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${b.gameNum ? b.gameNum : ''}</td>
+            <td style="text-align:left; width:36%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.gameName ? b.gameName : ''}</td>
+            <td style="text-align:center; font-weight:600; width:10%; white-space:nowrap;">${b.price ? `$${Number(b.price).toFixed(0)}` : ''}</td>
+            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${b.startTicket !== '' && b.startTicket !== null && b.startTicket !== undefined ? b.startTicket : ''}</td>
+            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${hasEnd ? b.endTicket : ''}</td>
+            <td style="text-align:right; font-family:monospace; font-weight:700; width:12%; white-space:nowrap;">${showTotal ? `$${m.salesAmount.toFixed(2)}` : ''}</td>
           </tr>
         `;
       }).join('');
+
       return `
-        <div style="font-family: Arial, sans-serif; color: #000;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px; border-bottom:2px solid #000; padding-bottom:4px;">
-            <div style="font-weight:800;">${storeProfile.name} — ${reportTitle}</div>
-            <div style="font-size:11px; font-weight:600;">${new Date().toLocaleString()}</div>
+        <div style="font-family: Arial, Helvetica, sans-serif; color: #000;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; border-bottom:2px solid #000; padding-bottom:4px;">
+            <div style="font-size:14px; font-weight:800;">
+              ${storeProfile.name} (#${storeProfile.number}) — ${reportTitle}
+            </div>
+            <div style="font-size:11px; font-weight:600;">
+              Printed: ${new Date().toLocaleString()}
+            </div>
           </div>
           <table class="print-table">
-            <thead><tr><th>Box #</th><th>Game #</th><th>Name</th><th>$</th><th>Start</th><th>End</th><th>Total $</th></tr></thead>
-            <tbody>${rowsHtml}</tbody>
-            <tfoot><tr><td colspan="6" style="text-align:right; font-weight:800;">TOTAL SHIFT SALES:</td><td style="text-align:right; font-weight:900;">$${grandTotal.toFixed(2)}</td></tr></tfoot>
+            <thead>
+              <tr>
+                <th style="text-align:center;">Box #</th>
+                <th style="text-align:center;">Game #</th>
+                <th style="text-align:left;">Game Name</th>
+                <th style="text-align:center;">Game $</th>
+                <th style="text-align:center;">Start</th>
+                <th style="text-align:center;">End</th>
+                <th style="text-align:right;">Total $ Sold</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6" style="text-align:right; font-weight:800; font-size:11px; padding:4px 6px;">TOTAL SHIFT SCRATCH SALES:</td>
+                <td style="text-align:right; font-family:monospace; font-weight:900; font-size:12px; padding:4px 6px;">$${grandTotalDollars.toFixed(2)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       `;
     }
 
     function printWorksheet() {
-      document.getElementById('print-worksheet').innerHTML = buildCompactPrintHTML('Audit Worksheet');
-      document.body.classList.remove('print-mode-report'); document.body.classList.add('print-mode-worksheet');
-      window.print(); setTimeout(() => document.body.classList.remove('print-mode-worksheet'), 500);
+      const el = document.getElementById('print-worksheet');
+      el.innerHTML = buildCompactPrintHTML('Lottery Box Audit Worksheet');
+      document.body.classList.remove('print-mode-report');
+      document.body.classList.add('print-mode-worksheet');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-mode-worksheet');
+      }, 500);
     }
 
     function printFinalReport() {
-      document.getElementById('print-final-report').innerHTML = buildCompactPrintHTML(`Final Reconciliation`) + 
-        `<div style="margin-top:8px; font-size:11px; display:flex; justify-content:space-between; border:1px solid #000; padding:6px;">
-          <div><strong>Expected:</strong> ${document.getElementById('rec-expected-total')?.textContent}</div>
-          <div><strong>Actual:</strong> ${document.getElementById('rec-accounted-total')?.textContent}</div>
-          <div><strong>Variance:</strong> ${document.getElementById('rec-variance-display')?.textContent}</div>
-        </div>`;
-      document.body.classList.remove('print-mode-worksheet'); document.body.classList.add('print-mode-report');
-      window.print(); setTimeout(() => document.body.classList.remove('print-mode-report'), 500);
+      const el = document.getElementById('print-final-report');
+      const shiftType = document.getElementById('rec-shift-type')?.value || 'Shift Audit';
+      const outCashier = document.getElementById('rec-cashier-out')?.value || '-';
+      const inCashier = document.getElementById('rec-cashier-in')?.value || '-';
+      const expected = document.getElementById('rec-expected-total')?.textContent || '$0.00';
+      const actual = document.getElementById('rec-accounted-total')?.textContent || '$0.00';
+      const variance = document.getElementById('rec-variance-display')?.textContent || '$0.00';
+
+      el.innerHTML = `
+        ${buildCompactPrintHTML(`Final Reconciliation (${shiftType})`)}
+        <div style="margin-top:8px; font-family:Arial, sans-serif; font-size:11px; display:flex; justify-content:space-between; border:1px solid #000; padding:6px;">
+          <div><strong>Outgoing:</strong> ${outCashier} &nbsp;|&nbsp; <strong>Incoming:</strong> ${inCashier}</div>
+          <div><strong>Expected Net:</strong> ${expected} &nbsp;|&nbsp; <strong>POS Actual:</strong> ${actual} &nbsp;|&nbsp; <strong>Variance:</strong> ${variance}</div>
+        </div>
+      `;
+      document.body.classList.remove('print-mode-worksheet');
+      document.body.classList.add('print-mode-report');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-mode-report');
+      }, 500);
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
