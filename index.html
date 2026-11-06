@@ -26,33 +26,56 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
+
+    /* Clean, Dedicated Print Styles */
+    #print-worksheet,
+    #print-final-report {
+      display: none;
+    }
     @media print {
       @page {
         size: letter portrait;
-        margin: 0.3in;
+        margin: 0.25in;
+      }
+      body, html {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       body > header,
       body > main,
-      body > div.fixed {
+      body > div.fixed,
+      .no-print {
         display: none !important;
-      }
-      body, html {
-        background: white !important;
-      }
-      #print-worksheet,
-      #print-final-report {
-        display: none !important;
-        width: 100%;
-        box-sizing: border-box;
       }
       body.print-mode-worksheet #print-worksheet {
         display: block !important;
+        width: 100% !important;
       }
       body.print-mode-report #print-final-report {
         display: block !important;
+        width: 100% !important;
       }
-      .no-print {
-        display: none !important;
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 11px;
+      }
+      .print-table th,
+      .print-table td {
+        border: 1px solid #000000;
+        padding: 3px 6px;
+        line-height: 1.15;
+      }
+      .print-table th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 10px;
       }
     }
   </style>
@@ -79,7 +102,11 @@
       </button>
     </div>
   </header>
+  **Part 2 of 10** covers the Main Workspace, Action Bar, Dispenser Grid Section, and Store Profile & Backup Drawer.
 
+Paste this directly below **Part 1**, and reply **"ready"** for **Part 3 of 10**.
+
+```html
   <!-- Main Workspace -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-4">
 
@@ -219,6 +246,8 @@
       </div>
     </div>
   </div>
+
+```
   <!-- Master Admin Modal -->
   <div id="admin-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-4xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
@@ -436,10 +465,10 @@
   </div>
 
   <!-- Print-Only Physical Floor Worksheet -->
-  <div id="print-worksheet" class="hidden"></div>
+  <div id="print-worksheet"></div>
 
   <!-- Print-Only Final Reconciliation Report -->
-  <div id="print-final-report" class="hidden"></div>
+  <div id="print-final-report"></div>
   <script>
     const STORAGE_KEY_PROFILE = 'lotto_store_profile_v1';
     const STORAGE_KEY_GAMES   = 'lotto_master_games_v1';
@@ -495,6 +524,45 @@
       return Math.max(10, Math.round(300 / p));
     }
 
+    function normalizeGameRecord(g) {
+      if (!g || typeof g !== 'object') return null;
+      let rawNum = String(g.gameNum ?? g.gameNumber ?? g.number ?? g.id ?? g.code ?? '').trim();
+      let rawName = String(g.name ?? g.gameName ?? g.title ?? '').trim();
+
+      if ((!rawNum || rawNum === 'undefined') && rawName.includes('-')) {
+        const m = rawName.match(/^(\d+)\s*-\s*(.+)$/);
+        if (m) {
+          rawNum = m[1].trim();
+          rawName = m[2].trim();
+        }
+      } else if (rawNum && rawName.startsWith(`${rawNum} -`)) {
+        rawName = rawName.replace(new RegExp(`^${rawNum}\\s*-\\s*`), '').trim();
+      }
+
+      if (!rawNum || rawNum === 'undefined' || rawNum === 'null') return null;
+      const price = Number(g.price ?? g.amount ?? g.cost ?? 0) || 0;
+      const count = Number(g.count ?? g.rollCount ?? g.ticketsPerRoll ?? getDefaultRollCountForPrice(price)) || getDefaultRollCountForPrice(price) || 100;
+
+      return {
+        gameNum: rawNum,
+        name: rawName || `Game #${rawNum}`,
+        price: price,
+        count: count
+      };
+    }
+
+    function sanitizeMasterGamesList(list) {
+      if (!Array.isArray(list)) return [];
+      const map = new Map();
+      list.forEach(item => {
+        const clean = normalizeGameRecord(item);
+        if (clean && clean.gameNum) {
+          map.set(clean.gameNum, clean);
+        }
+      });
+      return Array.from(map.values());
+    }
+
     function initApp() {
       loadState();
       updateClock();
@@ -532,7 +600,10 @@
       try {
         const savedGames = localStorage.getItem(STORAGE_KEY_GAMES);
         if (savedGames) {
-          masterGames = JSON.parse(savedGames);
+          const parsed = JSON.parse(savedGames);
+          const cleaned = sanitizeMasterGamesList(parsed);
+          masterGames = cleaned.length > 0 ? cleaned : JSON.parse(JSON.stringify(DEFAULT_GAMES));
+          saveGamesState();
         } else {
           masterGames = JSON.parse(JSON.stringify(DEFAULT_GAMES));
           saveGamesState();
@@ -551,7 +622,17 @@
       try {
         const savedBoxes = localStorage.getItem(STORAGE_KEY_BOXES);
         if (savedBoxes) {
-          boxes = JSON.parse(savedBoxes);
+          const parsedBoxes = JSON.parse(savedBoxes);
+          if (Array.isArray(parsedBoxes) && parsedBoxes.length > 0) {
+            boxes = parsedBoxes.map((b, i) => ({
+              ...createEmptyBox(i + 1),
+              ...b,
+              boxNumber: String(b.boxNumber ?? b.boxLabel ?? b.id ?? (i + 1)).trim().toUpperCase()
+            }));
+          } else {
+            boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
+          }
+          saveBoxesState();
         } else {
           boxes = Array.from({ length: 40 }, (_, i) => createEmptyBox(String(i + 1)));
           saveBoxesState();
@@ -581,6 +662,7 @@
     }
 
     function saveGamesState() {
+      masterGames = sanitizeMasterGamesList(masterGames);
       localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(masterGames));
     }
 
@@ -591,7 +673,6 @@
     function saveLockedState() {
       localStorage.setItem(STORAGE_KEY_LOCKED, isBoxSetupLocked ? 'true' : 'false');
     }
-
     function renderStoreHeader() {
       const sub = document.getElementById('store-subtitle');
       if (sub) {
@@ -664,6 +745,7 @@
       disableStoreEditingFields();
       alert('Store profile saved.');
     }
+
     function renderBoxSetupControls() {
       const statusEl = document.getElementById('box-setup-status');
       const lockBtn = document.getElementById('complete-box-setup');
@@ -721,7 +803,7 @@
       });
 
       return {
-        version: '3.2',
+        version: '3.3',
         trigger: triggerType,
         exportedAt: new Date().toISOString(),
         storeProfile: {
@@ -729,7 +811,7 @@
           id: storeProfile.number || storeProfile.id || '',
           count: boxes.length
         },
-        masterGames: masterGames,
+        masterGames: sanitizeMasterGamesList(masterGames),
         boxes: boxes,
         dispensers: dispensersMap,
         isBoxSetupLocked: isBoxSetupLocked
@@ -759,6 +841,9 @@
       let gameNum = String(rawGameNum ?? '').trim();
       let gameName = String(rawGameName ?? '').trim();
 
+      if (gameNum === 'undefined' || gameNum === 'null') gameNum = '';
+      if (gameName === 'undefined' || gameName === 'null') gameName = '';
+
       if (!gameNum && gameName.includes('-')) {
         const match = gameName.match(/^(\d+)\s*-\s*(.+)$/);
         if (match) {
@@ -770,17 +855,16 @@
       }
       return { gameNum, gameName };
     }
-
     function applyImportedBackup(data, carryOverEndToStart = false) {
       if (!data || typeof data !== 'object') return;
 
       // 1. Restore Store Profile & Admin Info
-      const prof = data.storeProfile || data.storeConfig || data.store;
+      const prof = data.storeProfile || data.storeConfig || data.store || data.profile;
       if (prof && typeof prof === 'object') {
         storeProfile = {
-          name: prof.name ?? storeProfile.name ?? DEFAULT_PROFILE.name,
-          number: String(prof.number ?? prof.id ?? storeProfile.number ?? DEFAULT_PROFILE.number),
-          address: prof.address ?? storeProfile.address ?? DEFAULT_PROFILE.address,
+          name: prof.name ?? prof.storeName ?? storeProfile.name ?? DEFAULT_PROFILE.name,
+          number: String(prof.number ?? prof.id ?? prof.storeNumber ?? storeProfile.number ?? DEFAULT_PROFILE.number),
+          address: prof.address ?? prof.location ?? storeProfile.address ?? DEFAULT_PROFILE.address,
           email: prof.email ?? storeProfile.email ?? DEFAULT_PROFILE.email,
           password: prof.password ?? data.adminPin ?? storeProfile.password ?? DEFAULT_PROFILE.password
         };
@@ -794,57 +878,88 @@
       }
 
       // 3. Restore Master Games if present
-      if (Array.isArray(data.masterGames) && data.masterGames.length > 0) {
-        masterGames = data.masterGames.map(g => ({
-          gameNum: String(g.gameNum ?? g.number ?? g.id ?? '').trim(),
-          name: String(g.name ?? g.gameName ?? '').trim(),
-          price: Number(g.price ?? 0),
-          count: Number(g.count ?? g.rollCount ?? getDefaultRollCountForPrice(g.price))
-        })).filter(g => g.gameNum !== '');
-      }
-
-      // 4. Restore Boxes from either "boxes" Array OR "dispensers" Object Map
-      let rawList = [];
-      if (Array.isArray(data.boxes) && data.boxes.length > 0) {
-        rawList = data.boxes;
-      } else if (data.dispensers && typeof data.dispensers === 'object') {
-        if (Array.isArray(data.dispensers)) {
-          rawList = data.dispensers;
-        } else {
-          const sortedKeys = Object.keys(data.dispensers).sort((a, b) => Number(a) - Number(b));
-          rawList = sortedKeys.map(k => ({
-            ...data.dispensers[k],
-            _mapKey: k
-          }));
+      const rawGamesSource = data.masterGames || data.games || data.catalog || data.gameCatalog;
+      if (Array.isArray(rawGamesSource) && rawGamesSource.length > 0) {
+        const cleaned = sanitizeMasterGamesList(rawGamesSource);
+        if (cleaned.length > 0) {
+          masterGames = cleaned;
+        }
+      } else if (rawGamesSource && typeof rawGamesSource === 'object') {
+        const cleaned = sanitizeMasterGamesList(Object.values(rawGamesSource));
+        if (cleaned.length > 0) {
+          masterGames = cleaned;
         }
       }
 
+      // 4. Smart extraction of Boxes from either "boxes" OR "dispensers"
+      let listFromBoxes = [];
+      if (Array.isArray(data.boxes)) {
+        listFromBoxes = data.boxes;
+      } else if (data.boxes && typeof data.boxes === 'object') {
+        listFromBoxes = Object.keys(data.boxes).sort((a, b) => Number(a) - Number(b)).map(k => ({
+          ...data.boxes[k],
+          _mapKey: k
+        }));
+      }
+
+      let listFromDispensers = [];
+      const dispSource = data.dispensers || data.dispenserBoxes || data.slots;
+      if (Array.isArray(dispSource)) {
+        listFromDispensers = dispSource;
+      } else if (dispSource && typeof dispSource === 'object') {
+        listFromDispensers = Object.keys(dispSource).sort((a, b) => Number(a) - Number(b)).map(k => ({
+          ...dispSource[k],
+          _mapKey: k
+        }));
+      }
+
+      const countPopulated = (arr) => arr.filter(b => b && (
+        b.gameNum || b.gameNumber || b.gameName || b.name || b.game ||
+        (b.startTicket !== '' && b.startTicket !== undefined && b.startTicket !== null) ||
+        (b.start !== '' && b.start !== undefined && b.start !== null)
+      )).length;
+
+      const rawList = countPopulated(listFromDispensers) > countPopulated(listFromBoxes)
+        ? listFromDispensers
+        : (listFromBoxes.length > 0 ? listFromBoxes : listFromDispensers);
+
       if (rawList.length > 0) {
         boxes = rawList.map((b, i) => {
-          const rawLabel = b.boxNumber ?? b.boxLabel ?? b.label ?? b.id ?? b._mapKey ?? (i + 1);
+          const rawLabel = b.boxNumber ?? b.boxLabel ?? b.label ?? b.boxNum ?? b.id ?? b.slot ?? b._mapKey ?? (i + 1);
           const boxNumber = String(rawLabel).trim().toUpperCase();
 
-          const parsed = parseCombinedGameField(b.gameNum ?? b.gameNumber, b.gameName ?? b.name);
+          const rawGameField = b.gameNum ?? b.gameNumber ?? b.gameId ?? b.code ?? (typeof b.game === 'string' ? b.game : b.game?.gameNum) ?? '';
+          const rawNameField = b.gameName ?? b.name ?? b.title ?? (typeof b.game === 'object' ? b.game?.name : '') ?? '';
+
+          const parsed = parseCombinedGameField(rawGameField, rawNameField);
           const gameNum = parsed.gameNum;
           const matchedGame = masterGames.find(g => String(g.gameNum).trim() === gameNum);
 
           const gameName = parsed.gameName || (matchedGame ? matchedGame.name : '');
-          const price = Number(b.price ?? (matchedGame ? matchedGame.price : 0)) || 0;
-          const rollCount = Number(b.rollCount ?? b.count ?? (matchedGame ? matchedGame.count : getDefaultRollCountForPrice(price))) || 0;
-          const packNum = String(b.packNum ?? b.packNumber ?? b.pack ?? '').trim();
+          const rawPrice = b.price ?? b.amount ?? b.cost ?? b.ticketPrice ?? (matchedGame ? matchedGame.price : 0);
+          const price = Number(String(rawPrice).replace(/[^0-9.]/g, '')) || 0;
+          const rollCount = Number(b.rollCount ?? b.count ?? b.ticketsPerRoll ?? (matchedGame ? matchedGame.count : getDefaultRollCountForPrice(price))) || getDefaultRollCountForPrice(price) || 0;
+          const packNum = String(b.packNum ?? b.packNumber ?? b.pack ?? b.packId ?? '').trim();
 
-          const rawStart = b.startTicket ?? b.start ?? '';
-          const rawEnd = b.endTicket ?? b.end ?? '';
-          const hasStart = rawStart !== '' && rawStart !== null && rawStart !== undefined;
-          const hasEnd = rawEnd !== '' && rawEnd !== null && rawEnd !== undefined;
+          const rawStart = b.startTicket ?? b.start ?? b.startingTicket ?? b.beginTicket ?? b.openTicket ?? '';
+          const rawEnd = b.endTicket ?? b.end ?? b.endingTicket ?? b.closeTicket ?? '';
+
+          const cleanTicketVal = (val) => {
+            if (val === '' || val === null || val === undefined) return '';
+            const n = Number(String(val).trim());
+            return isNaN(n) ? '' : n;
+          };
+
+          const startVal = cleanTicketVal(rawStart);
+          const endVal = cleanTicketVal(rawEnd);
 
           const finalStart = carryOverEndToStart
-            ? (hasEnd ? Number(rawEnd) : (hasStart ? Number(rawStart) : ''))
-            : (hasStart ? Number(rawStart) : '');
+            ? (endVal !== '' ? endVal : startVal)
+            : startVal;
 
           const finalEnd = carryOverEndToStart
             ? ''
-            : (hasEnd ? Number(rawEnd) : '');
+            : endVal;
 
           return {
             boxNumber: boxNumber,
@@ -860,15 +975,17 @@
           };
         });
 
-        // Add any games from imported boxes into masterGames database automatically
+        // Automatically sync all games found in boxes into Master Games Database
         boxes.forEach(b => {
-          if (b.gameNum && b.gameName) {
-            const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === b.gameNum);
+          if (b.gameNum) {
+            const cleanNum = String(b.gameNum).trim();
+            if (!cleanNum || cleanNum === 'undefined') return;
+            const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === cleanNum);
             const entry = {
-              gameNum: b.gameNum,
-              name: b.gameName,
-              price: Number(b.price || 0),
-              count: Number(b.rollCount || getDefaultRollCountForPrice(b.price))
+              gameNum: cleanNum,
+              name: b.gameName || (existingIdx >= 0 ? masterGames[existingIdx].name : `Game #${cleanNum}`),
+              price: Number(b.price || (existingIdx >= 0 ? masterGames[existingIdx].price : 1)),
+              count: Number(b.rollCount || (existingIdx >= 0 ? masterGames[existingIdx].count : getDefaultRollCountForPrice(b.price || 1)))
             };
             if (existingIdx >= 0) {
               masterGames[existingIdx] = entry;
@@ -902,10 +1019,11 @@
             '• Click Cancel to RESTORE EXACT STATE (keeps both Start and End Ticket #s exactly as saved).'
           );
           applyImportedBackup(data, startNextShift);
+          const activeCount = boxes.filter(b => b.gameNum || b.startTicket !== '').length;
           alert(
             `Store backup imported!\n` +
             `• Store: ${storeProfile.name} (#${storeProfile.number})\n` +
-            `• Boxes Loaded: ${boxes.length}\n` +
+            `• Total Boxes: ${boxes.length} (${activeCount} with active game/ticket data)\n` +
             `• Master Games in Database: ${masterGames.length}`
           );
         } catch (err) {
@@ -959,7 +1077,7 @@
         }
       }, 30000);
     }
-    function openAdminModal() {
+   function openAdminModal() {
       const pwd = prompt('Enter Admin Password to open Master Games Database:', '');
       if (pwd === null) return;
       if (pwd !== storeProfile.password) {
@@ -977,14 +1095,19 @@
     function renderAdminGamesTable() {
       const tbody = document.getElementById('admin-games-tbody');
       if (!tbody) return;
+      masterGames = sanitizeMasterGamesList(masterGames);
       tbody.innerHTML = masterGames.map((g, idx) => {
-        const lastTicket = Math.max(0, Number(g.count || 0) - 1);
+        const gNum = String(g.gameNum ?? g.number ?? g.id ?? '').trim();
+        const gName = String(g.name ?? g.gameName ?? '').trim();
+        const gPrice = Number(g.price || 0);
+        const gCount = Number(g.count ?? g.rollCount ?? getDefaultRollCountForPrice(gPrice));
+        const lastTicket = Math.max(0, gCount - 1);
         return `
           <tr class="hover:bg-slate-50">
-            <td class="p-2.5 font-mono font-bold text-slate-900">#${g.gameNum}</td>
-            <td class="p-2.5 font-medium">${g.name}</td>
-            <td class="p-2.5 text-emerald-700 font-bold">$${Number(g.price).toFixed(2)}</td>
-            <td class="p-2.5">${g.count} tkts</td>
+            <td class="p-2.5 font-mono font-bold text-slate-900">#${gNum}</td>
+            <td class="p-2.5 font-medium">${gName}</td>
+            <td class="p-2.5 text-emerald-700 font-bold">$${gPrice.toFixed(2)}</td>
+            <td class="p-2.5">${gCount} tkts</td>
             <td class="p-2.5 font-mono text-gray-500">${String(lastTicket).padStart(3, '0')}</td>
             <td class="p-2.5 text-right space-x-2">
               <button onclick="populateAdminGameEdit(${idx})" class="text-blue-600 hover:underline font-semibold">Edit</button>
@@ -998,24 +1121,25 @@
     function populateAdminGameEdit(idx) {
       const g = masterGames[idx];
       if (!g) return;
-      document.getElementById('admin-game-num').value = g.gameNum;
-      document.getElementById('admin-game-name').value = g.name;
-      document.getElementById('admin-game-price').value = g.price;
-      document.getElementById('admin-game-count').value = g.count;
+      document.getElementById('admin-game-num').value = g.gameNum ?? g.number ?? g.id ?? '';
+      document.getElementById('admin-game-name').value = g.name ?? g.gameName ?? '';
+      document.getElementById('admin-game-price').value = g.price ?? '';
+      document.getElementById('admin-game-count').value = g.count ?? g.rollCount ?? '';
     }
 
     function saveMasterGame() {
       const gameNum = document.getElementById('admin-game-num').value.trim();
       const name = document.getElementById('admin-game-name').value.trim();
       const price = Number(document.getElementById('admin-game-price').value);
-      const count = Number(document.getElementById('admin-game-count').value);
+      const countInput = Number(document.getElementById('admin-game-count').value);
+      const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price);
 
       if (!gameNum || !name || price <= 0 || count <= 0) {
         alert('Please enter valid Game #, Name, Price, and Roll Count.');
         return;
       }
 
-      const existingIdx = masterGames.findIndex(g => g.gameNum === gameNum);
+      const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
       if (existingIdx >= 0) {
         masterGames[existingIdx] = { gameNum, name, price, count };
       } else {
@@ -1023,10 +1147,12 @@
       }
 
       boxes.forEach(b => {
-        if (b.gameNum === gameNum) {
+        if (String(b.gameNum).trim() === gameNum) {
+          b.gameNum = gameNum;
           b.gameName = name;
           b.price = price;
           b.rollCount = count;
+          b.needsNewGameEntry = false;
         }
       });
 
@@ -1060,8 +1186,8 @@
     function calculateBoxMetrics(box) {
       const price = Number(box.price) || 0;
       const rollCount = Number(box.rollCount) || 0;
-      const hasStart = box.startTicket !== '' && box.startTicket !== null && !isNaN(Number(box.startTicket));
-      const hasEnd = box.endTicket !== '' && box.endTicket !== null && !isNaN(Number(box.endTicket));
+      const hasStart = box.startTicket !== '' && box.startTicket !== null && box.startTicket !== undefined && !isNaN(Number(box.startTicket));
+      const hasEnd = box.endTicket !== '' && box.endTicket !== null && box.endTicket !== undefined && !isNaN(Number(box.endTicket));
 
       let rolloverTickets = 0;
       if (Array.isArray(box.rollovers)) {
@@ -1097,7 +1223,7 @@
           ticketsSold: rolloverTickets,
           salesAmount: rolloverTickets * price,
           isError: true,
-          errorMsg: 'End ticket is less than Start ticket (Use Roll Box if new pack loaded)'
+          errorMsg: 'End ticket is less than Start ticket (Use Roll Pack if new pack loaded)'
         };
       }
 
@@ -1110,6 +1236,15 @@
         errorMsg: ''
       };
     }
+function lettersToIndex(str) {
+      let n = 0;
+      const s = String(str).toUpperCase().trim();
+      for (let i = 0; i < s.length; i++) {
+        n = n * 26 + (s.charCodeAt(i) - 64);
+      }
+      return n - 1;
+    }
+
     function indexToLetters(num) {
       let str = '';
       let n = num;
@@ -1121,6 +1256,7 @@
     }
 
     function updateBoxLabel(idx, newVal) {
+      if (!boxes[idx]) return;
       const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
       if (!cleaned) {
         renderDispenserGrid();
@@ -1128,18 +1264,23 @@
       }
       boxes[idx].boxNumber = cleaned;
 
+      // Match patterns:
+      // 1) Letter pair with &: "A&B" -> C&D, E&F...
+      // 2) Number pair with &: "1&2" -> 3&4, 5&6...
+      // 3) Single/multi Letter: "A" -> B, C, D...
+      // 4) Single Number: "1" -> 2, 3, 4...
       const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
-      const numPairMatch = cleaned.match(/^(\d+)&(\d+)$/);
-      const singleNumMatch = cleaned.match(/^(\d+)&?$/);
-      const singleLetterMatch = cleaned.match(/^([A-Z])&?$/);
+      const numPairMatch    = cleaned.match(/^(\d+)&(\d+)$/);
+      const singleNumMatch  = cleaned.match(/^(\d+)$/);
+      const singleLetMatch  = cleaned.match(/^([A-Z]+)$/);
 
       if (letterPairMatch) {
-        let secondLetterIdx = letterPairMatch[2].charCodeAt(0) - 65;
+        let lastIdx = lettersToIndex(letterPairMatch[2]);
         for (let i = idx + 1; i < boxes.length; i++) {
-          const nextFirst = secondLetterIdx + 1;
-          const nextSecond = secondLetterIdx + 2;
+          const nextFirst = lastIdx + 1;
+          const nextSecond = lastIdx + 2;
           boxes[i].boxNumber = `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`;
-          secondLetterIdx = nextSecond;
+          lastIdx = nextSecond;
         }
       } else if (numPairMatch) {
         let lastNum = parseInt(numPairMatch[2], 10);
@@ -1155,8 +1296,8 @@
           currentNum++;
           boxes[i].boxNumber = String(currentNum);
         }
-      } else if (singleLetterMatch) {
-        let currentIdx = singleLetterMatch[1].charCodeAt(0) - 65;
+      } else if (singleLetMatch) {
+        let currentIdx = lettersToIndex(singleLetMatch[1]);
         for (let i = idx + 1; i < boxes.length; i++) {
           currentIdx++;
           boxes[i].boxNumber = indexToLetters(currentIdx);
@@ -1171,6 +1312,7 @@
       const box = boxes[idx];
       if (!box) return;
       const cleanedNum = String(gameNumInput || '').trim();
+      masterGames = sanitizeMasterGamesList(masterGames);
       const game = masterGames.find(g => String(g.gameNum).trim() === cleanedNum);
 
       if (game) {
@@ -1201,8 +1343,8 @@
       const box = boxes[idx];
       if (!box) return;
 
-      const gameNum = (document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
-      const name = (document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
+      const gameNum = String(document.getElementById(`new-game-num-${idx}`)?.value || box.gameNum || '').trim();
+      const name = String(document.getElementById(`new-game-name-${idx}`)?.value || '').trim();
       const price = Number(document.getElementById(`new-game-price-${idx}`)?.value || 0);
       const countInput = Number(document.getElementById(`new-game-count-${idx}`)?.value || 0);
 
@@ -1212,6 +1354,7 @@
       }
 
       const count = countInput > 0 ? countInput : getDefaultRollCountForPrice(price);
+      masterGames = sanitizeMasterGamesList(masterGames);
       const existingIdx = masterGames.findIndex(g => String(g.gameNum).trim() === gameNum);
       if (existingIdx >= 0) {
         masterGames[existingIdx] = { gameNum, name, price, count };
@@ -1221,17 +1364,18 @@
 
       boxes.forEach(b => {
         if (String(b.gameNum).trim() === gameNum) {
+          b.gameNum = gameNum;
           b.gameName = name;
           b.price = price;
           b.rollCount = count;
           b.needsNewGameEntry = false;
-          if (b.startTicket === '') b.startTicket = 0;
+          if (b.startTicket === '' || b.startTicket === undefined) b.startTicket = 0;
         }
       });
 
       saveGamesState();
       saveBoxesState();
-      if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
+      renderAdminGamesTable();
       renderDispenserGrid();
     }
 
@@ -1263,8 +1407,9 @@
                     type="text" 
                     value="${box.boxNumber}" 
                     onchange="updateBoxLabel(${idx}, this.value)"
+                    onkeydown="if(event.key==='Enter'){this.blur();}"
                     ${isBoxSetupLocked ? 'disabled' : ''}
-                    title="Type A&B, 1&2, A, or 1 — following boxes auto-update"
+                    title="Type A, 1, A&B, or 1&2 — all following boxes auto-update"
                     class="w-16 text-center text-xs font-black uppercase px-1.5 py-0.5 rounded bg-slate-900 text-white border border-slate-700 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500 disabled:opacity-90"
                   >
                 </div>
@@ -1282,6 +1427,7 @@
                     type="text" 
                     value="${box.gameNum || ''}" 
                     onchange="assignGameToBox(${idx}, this.value)"
+                    onkeydown="if(event.key==='Enter'){this.blur();}"
                     ${isBoxSetupLocked ? 'disabled' : ''}
                     placeholder="e.g. 1802" 
                     class="w-full border rounded p-1.5 font-mono text-xs font-bold bg-slate-50 focus:bg-white disabled:bg-gray-100"
@@ -1398,17 +1544,26 @@
         return;
       }
       boxes.push(createEmptyBox(boxes.length + 1));
-      saveBoxesState();
-      renderDispenserGrid();
+      if (boxes.length > 1) {
+        const prevIdx = boxes.length - 2;
+        updateBoxLabel(prevIdx, boxes[prevIdx].boxNumber);
+      } else {
+        saveBoxesState();
+        renderDispenserGrid();
+      }
     }
 
     function removeBox(idx) {
       if (isBoxSetupLocked) return;
       if (!confirm(`Remove Box ${boxes[idx].boxNumber}?`)) return;
       boxes.splice(idx, 1);
-      boxes.forEach((b, i) => { b.boxNumber = String(i + 1); });
-      saveBoxesState();
-      renderDispenserGrid();
+      if (boxes.length > 0) {
+        const anchorIdx = Math.max(0, idx - 1);
+        updateBoxLabel(anchorIdx, boxes[anchorIdx].boxNumber);
+      } else {
+        saveBoxesState();
+        renderDispenserGrid();
+      }
     }
 
     function clearAllEndTickets() {
@@ -1472,6 +1627,7 @@
     function closeRollHistoryModal() {
       document.getElementById('roll-history-modal').classList.add('hidden');
     }
+
     function openRapidEntryModal() {
       const list = document.getElementById('rapid-entry-list');
       list.innerHTML = boxes.map((b, idx) => `
@@ -1534,7 +1690,6 @@
         setTimeout(() => banner.classList.add('hidden'), 4000);
       }
     }
-
     function openReconcileModal() {
       updateReconcileMath();
       document.getElementById('reconcile-modal').classList.remove('hidden');
@@ -1619,7 +1774,7 @@
       window.addEventListener('mouseup', end);
       sigCanvas.addEventListener('touchstart', start, { passive: false });
       sigCanvas.addEventListener('touchmove', move, { passive: false });
-      sigCanvas.addEventListener('touchend', end);
+      window.addEventListener('touchend', end);
     }
 
     function getSigPos(e) {
@@ -1693,52 +1848,95 @@
       stopScanner();
     }
 
-    function printWorksheet() {
-      const el = document.getElementById('print-worksheet');
-      el.innerHTML = `
-        <div class="p-4 text-xs">
-          <h1 class="text-lg font-bold">${storeProfile.name} (#${storeProfile.number}) - Floor Audit Worksheet</h1>
-          <p class="mb-3 text-gray-600">Printed: ${new Date().toLocaleString()}</p>
-          <table class="w-full border-collapse border border-gray-400 text-[11px]">
+    function buildCompactPrintHTML(reportTitle) {
+      let grandTotalDollars = 0;
+      const rowsHtml = boxes.map(b => {
+        const m = calculateBoxMetrics(b);
+        grandTotalDollars += m.salesAmount;
+        const hasEnd = b.endTicket !== '' && b.endTicket !== null && b.endTicket !== undefined;
+        const showTotal = hasEnd || (Array.isArray(b.rollovers) && b.rollovers.length > 0);
+        return `
+          <tr>
+            <td style="text-align:center; font-weight:700; width:9%; white-space:nowrap;">${b.boxNumber}</td>
+            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${b.gameNum ? b.gameNum : ''}</td>
+            <td style="text-align:left; width:36%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.gameName ? b.gameName : ''}</td>
+            <td style="text-align:center; font-weight:600; width:10%; white-space:nowrap;">${b.price ? `$${Number(b.price).toFixed(0)}` : ''}</td>
+            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${b.startTicket !== '' && b.startTicket !== null && b.startTicket !== undefined ? b.startTicket : ''}</td>
+            <td style="text-align:center; font-family:monospace; font-weight:700; width:11%; white-space:nowrap;">${hasEnd ? b.endTicket : ''}</td>
+            <td style="text-align:right; font-family:monospace; font-weight:700; width:12%; white-space:nowrap;">${showTotal ? `$${m.salesAmount.toFixed(2)}` : ''}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        <div style="font-family: Arial, Helvetica, sans-serif; color: #000;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; border-bottom:2px solid #000; padding-bottom:4px;">
+            <div style="font-size:14px; font-weight:800;">
+              ${storeProfile.name} (#${storeProfile.number}) — ${reportTitle}
+            </div>
+            <div style="font-size:11px; font-weight:600;">
+              Printed: ${new Date().toLocaleString()}
+            </div>
+          </div>
+          <table class="print-table">
             <thead>
-              <tr class="bg-gray-100">
-                <th class="border border-gray-400 p-1">Box</th>
-                <th class="border border-gray-400 p-1">Game</th>
-                <th class="border border-gray-400 p-1">Price</th>
-                <th class="border border-gray-400 p-1">Start #</th>
-                <th class="border border-gray-400 p-1">End #</th>
-                <th class="border border-gray-400 p-1">Sold</th>
-                <th class="border border-gray-400 p-1">Sales ($)</th>
+              <tr>
+                <th style="text-align:center;">Box #</th>
+                <th style="text-align:center;">Game #</th>
+                <th style="text-align:left;">Game Name</th>
+                <th style="text-align:center;">Game $</th>
+                <th style="text-align:center;">Start</th>
+                <th style="text-align:center;">End</th>
+                <th style="text-align:right;">Total $ Sold</th>
               </tr>
             </thead>
             <tbody>
-              ${boxes.map(b => {
-                const m = calculateBoxMetrics(b);
-                return `
-                  <tr>
-                    <td class="border border-gray-400 p-1 font-bold text-center">${b.boxNumber}</td>
-                    <td class="border border-gray-400 p-1">${b.gameNum ? `#${b.gameNum} ${b.gameName}` : ''}</td>
-                    <td class="border border-gray-400 p-1 text-center">${b.price ? `$${b.price}` : ''}</td>
-                    <td class="border border-gray-400 p-1 font-mono text-center">${b.startTicket}</td>
-                    <td class="border border-gray-400 p-1 font-mono text-center">${b.endTicket}</td>
-                    <td class="border border-gray-400 p-1 text-center">${m.ticketsSold || ''}</td>
-                    <td class="border border-gray-400 p-1 text-right">${m.salesAmount ? `$${m.salesAmount.toFixed(2)}` : ''}</td>
-                  </tr>
-                `;
-              }).join('')}
+              ${rowsHtml}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6" style="text-align:right; font-weight:800; font-size:11px; padding:4px 6px;">TOTAL SHIFT SCRATCH SALES:</td>
+                <td style="text-align:right; font-family:monospace; font-weight:900; font-size:12px; padding:4px 6px;">$${grandTotalDollars.toFixed(2)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       `;
+    }
+
+    function printWorksheet() {
+      const el = document.getElementById('print-worksheet');
+      el.innerHTML = buildCompactPrintHTML('Lottery Box Audit Worksheet');
+      document.body.classList.remove('print-mode-report');
       document.body.classList.add('print-mode-worksheet');
       window.print();
-      document.body.classList.remove('print-mode-worksheet');
+      setTimeout(() => {
+        document.body.classList.remove('print-mode-worksheet');
+      }, 500);
     }
 
     function printFinalReport() {
       const el = document.getElementById('print-final-report');
-      el.innerHTML = document.getElementById('print-worksheet').innerHTML;
-      printWorksheet();
+      const shiftType = document.getElementById('rec-shift-type')?.value || 'Shift Audit';
+      const outCashier = document.getElementById('rec-cashier-out')?.value || '-';
+      const inCashier = document.getElementById('rec-cashier-in')?.value || '-';
+      const expected = document.getElementById('rec-expected-total')?.textContent || '$0.00';
+      const actual = document.getElementById('rec-accounted-total')?.textContent || '$0.00';
+      const variance = document.getElementById('rec-variance-display')?.textContent || '$0.00';
+
+      el.innerHTML = `
+        ${buildCompactPrintHTML(`Final Reconciliation (${shiftType})`)}
+        <div style="margin-top:8px; font-family:Arial, sans-serif; font-size:11px; display:flex; justify-content:space-between; border:1px solid #000; padding:6px;">
+          <div><strong>Outgoing:</strong> ${outCashier} &nbsp;|&nbsp; <strong>Incoming:</strong> ${inCashier}</div>
+          <div><strong>Expected Net:</strong> ${expected} &nbsp;|&nbsp; <strong>POS Actual:</strong> ${actual} &nbsp;|&nbsp; <strong>Variance:</strong> ${variance}</div>
+        </div>
+      `;
+      document.body.classList.remove('print-mode-worksheet');
+      document.body.classList.add('print-mode-report');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-mode-report');
+      }, 500);
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
