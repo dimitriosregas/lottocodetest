@@ -1560,22 +1560,33 @@
       renderDispenserGrid();
     }
 
-    function updateBoxEndTicketLive(idx, val) {
+ function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
       boxes[idx].endTicket = val === '' ? '' : Number(val);
       saveBoxesState();
 
-      const metrics = calculateBoxMetrics(boxes[idx]);
+      const m = calculateBoxMetrics(boxes[idx]);
       const soldEl = document.getElementById(`box-sold-${idx}`);
       const salesEl = document.getElementById(`box-sales-${idx}`);
-      
-      if (soldEl) soldEl.textContent = metrics.ticketsSold;
-      if (salesEl) salesEl.textContent = `$${metrics.salesAmount.toFixed(2)}`;
-      
-      let grandTotal = 0;
-      boxes.forEach(b => { grandTotal += calculateBoxMetrics(b).salesAmount; });
-      const barEl = document.getElementById('action-bar-sales');
-      if (barEl) barEl.textContent = `$${grandTotal.toFixed(2)}`;
+      if (soldEl) soldEl.textContent = m.ticketsSold;
+      if (salesEl) salesEl.textContent = `$${m.salesAmount.toFixed(2)}`;
+
+      let gtTickets = 0, gtSales = 0;
+      boxes.forEach(b => {
+        const r = calculateBoxMetrics(b);
+        gtTickets += r.ticketsSold;
+        gtSales += r.salesAmount;
+      });
+
+      const actionBarSales = document.getElementById('action-bar-sales');
+      if (actionBarSales) actionBarSales.textContent = `$${gtSales.toFixed(2)}`;
+
+      const listTotalSold = document.getElementById('list-total-sold');
+      const listTotalSales = document.getElementById('list-total-sales');
+      if (listTotalSold && listTotalSales) {
+        listTotalSold.textContent = gtTickets;
+        listTotalSales.textContent = `$${gtSales.toFixed(2)}`;
+      }
     }
 
     function addBox() {
