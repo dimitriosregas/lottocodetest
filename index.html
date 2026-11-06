@@ -1307,41 +1307,13 @@
       return str;
     }
 
-    function updateBoxLabel(idx, newVal) {
-      if (!boxes[idx]) return;
-      const cleaned = String(newVal || '').trim().toUpperCase().replace(/\s+/g, '');
-      if (!cleaned) { renderDispenserGrid(); return; }
-      
-      boxes[idx].boxNumber = cleaned;
-
-      const letterPairMatch = cleaned.match(/^([A-Z]+)&([A-Z]+)$/);
-      const numPairMatch    = cleaned.match(/^(\d+)&(\d+)$/);
-      const singleNumMatch  = cleaned.match(/^(\d+)$/);
-      const singleLetMatch  = cleaned.match(/^([A-Z]+)$/);
-
-      if (letterPairMatch) {
-        let lastIdx = lettersToIndex(letterPairMatch[2]);
-        for (let i = idx + 1; i < boxes.length; i++) {
-          const nextFirst = lastIdx + 1; const nextSecond = lastIdx + 2;
-          boxes[i].boxNumber = `${indexToLetters(nextFirst)}&${indexToLetters(nextSecond)}`; lastIdx = nextSecond;
-        }
-      } else if (numPairMatch) {
-        let lastNum = parseInt(numPairMatch[2], 10);
-        for (let i = idx + 1; i < boxes.length; i++) {
-          const nextFirst = lastNum + 1; const nextSecond = lastNum + 2;
-          boxes[i].boxNumber = `${nextFirst}&${nextSecond}`; lastNum = nextSecond;
-        }
-      } else if (singleNumMatch) {
-        let currentNum = parseInt(singleNumMatch[1], 10);
-        for (let i = idx + 1; i < boxes.length; i++) { currentNum++; boxes[i].boxNumber = String(currentNum); }
-      } else if (singleLetMatch) {
-        let currentIdx = lettersToIndex(singleLetMatch[1]);
-        for (let i = idx + 1; i < boxes.length; i++) { currentIdx++; boxes[i].boxNumber = indexToLetters(currentIdx); }
-      }
-
-      saveBoxesState();
-      renderDispenserGrid();
-    }
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+  
+  <!-- Print Container -->
+  <div id="print-container"></div>
+</body>
+</html>
 
     function assignGameToBox(idx, gameNumInput) {
       const box = boxes[idx];
