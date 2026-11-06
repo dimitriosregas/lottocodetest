@@ -482,7 +482,7 @@
       password: 'admin'
     };
 
-    const DEFAULT_GAMES = [
+ const DEFAULT_GAMES = [
       { gameNum: '401', name: 'Lucky 7s', price: 1, count: 300 },
       { gameNum: '402', name: 'Double Cash', price: 2, count: 150 },
       { gameNum: '405', name: 'Crossword Cash', price: 3, count: 100 },
@@ -491,8 +491,8 @@
       { gameNum: '420', name: 'Platinum Jackpot', price: 10, count: 30 },
       { gameNum: '425', name: 'Gold Rush $10', price: 10, count: 30 },
       { gameNum: '430', name: 'Extreme Millions', price: 20, count: 15 },
-      { gameNum: '435', name: 'VIP Club $25', price: 25, count: 12 },
-      { gameNum: '440', name: 'Supreme Riches', price: 30, count: 10 }
+      { gameNum: '435', name: 'VIP Club $25', price: 25, count: 24 },
+      { gameNum: '440', name: 'Supreme Riches', price: 30, count: 20 }
     ];
 
     let storeProfile = { ...DEFAULT_PROFILE };
@@ -505,19 +505,14 @@
     let sigCtx = null;
     let isDrawingSig = false;
 
-    function getDefaultRollCountForPrice(price) {
+  function getDefaultRollCountForPrice(price) {
       const p = Number(price);
       if (!p || p <= 0) return 0;
-      if (p === 1) return 300;
-      if (p === 2) return 150;
-      if (p === 3) return 100;
-      if (p === 5) return 60;
-      if (p === 10) return 30;
-      if (p === 20) return 15;
-      if (p === 25) return 12;
-      if (p === 30) return 10;
-      if (p === 50) return 10;
-      return Math.max(10, Math.round(300 / p));
+      if (p <= 20) return Math.round(300 / p); // $1-$20 = $300 roll (300, 150, 100, 60, 30, 15 tickets, starting at 0)
+      if (p === 25) return 24;                 // $25 = $600 roll (tickets 0 to 23)
+      if (p === 30) return 20;                 // $30 = $600 roll (tickets 0 to 19)
+      if (p === 50) return 18;                 // $50 = $900 roll (tickets 0 to 17)
+      return Math.round(600 / p);
     }
 
     function normalizeGameRecord(g) {
@@ -1479,14 +1474,14 @@ function lettersToIndex(str) {
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-1.5 mb-2">
+              <div class="grid grid-cols-2 gap-1.5 mb-2 text-[11px]">
                 <div>
-                  <label class="block text-[10px] uppercase font-bold text-gray-500">Start Tkt #</label>
-                  <input type="number" min="0" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="000" class="w-full border rounded p-1.5 font-mono text-sm font-bold disabled:bg-gray-100">
+                  <label class="block text-gray-500 font-semibold">Pack #</label>
+                  <input type="text" value="${box.packNum || ''}" onchange="updateBoxField(${idx}, 'packNum', this.value)" ${isBoxSetupLocked ? 'disabled' : ''} placeholder="Pack ID" class="w-full border rounded p-1 font-mono text-xs disabled:bg-gray-100">
                 </div>
                 <div>
-                  <label class="block text-[10px] uppercase font-bold text-blue-700">End Tkt #</label>
-                  <input type="number" min="0" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="000" class="w-full border border-blue-400 rounded p-1.5 font-mono text-sm font-bold bg-blue-50/30 focus:bg-white">
+                  <label class="block text-gray-500 font-semibold">Roll Max #</label>
+                  <div class="p-1 font-mono text-xs bg-gray-100 border rounded text-gray-600 select-none">${maxTicketStr} (${box.rollCount || 0})</div>
                 </div>
               </div>
 
