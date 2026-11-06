@@ -42,6 +42,43 @@
         color: #000000 !important;
         margin: 0 !important;
         padding: 0 !important;
+        @media print {
+      @page {
+        size: letter portrait;
+        margin: 0.25in;
+      }
+      body, html {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        overflow: hidden !important;
+      }
+      body > header,
+      body > main,
+      body > div.fixed,
+      .no-print {
+        display: none !important;
+      }
+      body.print-mode-worksheet #print-worksheet,
+      body.print-mode-report #print-final-report,
+      #print-container {
+        display: block !important;
+        width: 100% !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
+      }
+      .print-table th,
+      .print-table td {
+        padding: 2px 4px !important; /* Compact padding to fit 40 rows on 1 page */
+        font-size: 10px !important;
+      }
+      /* Force everything inside print container to stay on single page */
+      #print-container * {
+        page-break-inside: avoid !important;
+      }
+    }
       }
       body > header,
       body > main,
