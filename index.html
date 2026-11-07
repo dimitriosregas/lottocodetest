@@ -1077,20 +1077,22 @@
     let sigCanvas = null;
     let sigCtx = null;
 
-    // Helper to calculate default tickets per pack based on ticket price
-    function getDefaultRollCountForPrice(price) {
+function getDefaultRollCountForPrice(price) {
       const p = Number(price);
-      if (p === 1) return 300;
-      if (p === 2) return 150;
-      if (p === 3) return 100;
-      if (p === 5) return 60;
-      if (p === 10) return 60;
-      if (p === 20) return 30;
-      if (p === 25) return 30;
-      if (p === 30) return 30;
-      if (p === 50) return 20;
-      return 60;
-    }
+      if (!p || p <= 0) return 300;
+      
+      // $1, $2, $3, $5, $10, $20 = $300 per roll
+      if (p <= 20) return Math.round(300 / p); 
+      
+      // $25 & $30 = $600 per roll
+      if (p === 25) return 24;                 
+      if (p === 30) return 20;                 
+      
+      // $50 = $900 per roll
+      if (p === 50) return 18;                 
+      
+      return Math.round(300 / p);
+    } 
 
     // Generate clean 40-box matrix
     function createDefault40Boxes() {
