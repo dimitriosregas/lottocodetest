@@ -2429,6 +2429,71 @@ function renderDispenserGrid() {
       alert('Downloaded games.json! Upload this file to your GitHub folder so all devices automatically receive the new games.');
     }
 
+// --- 2. LIVE CLOUD 2-WAY GAME SYNC & PHOTO OCR GAME SCANNER ---
+    const WORKER_SYNC_URL = 'https://lottoinventory.dimitriosregas.workers.dev/games';
+
+    async function syncMasterGamesFromServer() {
+      try {
+        const res = await fetch(WORKER_SYNC_URL + '?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return;
+        const serverGames = await res.json();
+        if (!Array.isArray(serverGames) || serverGames.length === 0) return;
+
+        const combined = Array.isArray(masterGames) ? [...masterGames] : [];
+        let changed = false;
+
+        serverGames.forEach(sg => {
+          const gNum = String(sg.gameNum ?? sg.number ?? '').trim();
+          if (!gNum) return;
+          const priceVal = Number(sg.price) || 1;
+          const countVal = Number(sg.count ?? sg.rollCount) || (typeof getDefaultRollCountForPrice === 'function' ? getDefaultRollCountForPrice(priceVal) : 300);
+          const norm = { gameNum: gNum, name: String(sg.name || '').trim(), price: priceVal, count: countVal };
+          const idx = combined.findIndex(g => String(g.gameNum).trim() === gNum);
+          if (idx === -1) {
+            combined.push(norm);
+            changed = true;
+          } else if (combined[idx].name !== norm.name || Number(combined[idx].price) !== norm.price) {
+            combined[idx] = norm;
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          masterGames = typeof sanitizeMasterGamesList === 'function' ? sanitizeMasterGamesList(combined) : combined;
+          if (typeof saveGamesState === 'function') saveGamesState();
+          if (Array.isArray(boxes)) {
+            boxes.forEach(b => {
+              const match = masterGames.find(g => String(g.gameNum).trim() === String(b.gameNum).trim());
+              if (match) {
+                b.gameName = match.name;
+                b.price = Number(match.price);
+                b.rollCount = Number(match.count);
+                b.needsNewGameEntry = false;
+              }
+            });
+            if (typeof saveBoxesState === 'function') saveBoxesState();
+          }
+          if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
+          if (typeof renderDispenserGrid === 'function') renderDispenserGrid();
+        }
+      } catch (e) {
+        // Fallback or offline silently
+      }
+    }
+
+    async function pushMasterGamesToCloud() {
+      try {
+        const cleanList = typeof sanitizeMasterGamesList === 'function' ? sanitizeMasterGamesList(masterGames) : masterGames;
+        await fetch(WORKER_SYNC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cleanList)
+        });
+      } catch (e) {
+        console.error('Cloud sync push failed:', e);
+      }
+    }
+
     async function scanGameInfoFromPhoto(event) {
       const file = event?.target?.files?.[0];
       if (!file) return;
@@ -2452,15 +2517,12 @@ function renderDispenserGrid() {
         const rawText = (result?.data?.text || '').replace(/\r/g, '');
         const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
 
-        // Extract Game # (3 to 4 digit number like 1452 or Game #1452)
         const gameMatch = rawText.match(/(?:GAME|GM|NO|#)\s*[:#-]?\s*(\d{3,4})/i) || rawText.match(/\b(\d{3,4})\b/);
         const detectedNum = gameMatch ? gameMatch[1] : '';
 
-        // Extract Ticket Price ($1, $2, $3, $5, $10, $20, $25, $30, $50)
         const priceMatch = rawText.match(/\$\s*(1|2|3|5|10|20|25|30|50)\b/);
         const detectedPrice = priceMatch ? Number(priceMatch[1]) : 5;
 
-        // Extract best candidate line for Game Name
         let detectedName = '';
         for (const line of lines) {
           const clean = line.replace(/[^a-zA-Z0-9 $&'-]/g, '').trim();
@@ -2490,7 +2552,10 @@ function renderDispenserGrid() {
         if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
         if (typeof renderDispenserGrid === 'function') renderDispenserGrid();
 
-        alert(`Saved Game #${gNumClean}: ${finalName.trim()} ($${finalPrice})! Click "Export games.json" when ready to push to all devices.`);
+        // Automatically push to cloud worker so all other devices update instantly
+        await pushMasterGamesToCloud();
+
+        alert(`Saved & Synced Game #${gNumClean}: ${finalName.trim()} ($${finalPrice})! All devices updated.`);
       } catch (err) {
         console.error('OCR Error:', err);
         alert('Could not auto-read text from photo. Please make sure the photo is clear and well-lit.');
@@ -2651,19 +2716,19 @@ function renderDispenserGrid() {
       window.print();
     }
 
-    // --- 4. AUTO-INJECT ON-SCREEN LEGAL STATEMENT, PHOTO BUTTON & BACKUP LISTENER ---
+    // --- 4. AUTO-INJECT ON-SCREEN LEGAL STATEMENT & PHOTO BUTTON ---
     window.addEventListener('DOMContentLoaded', () => {
-      // A. Sync master games.json on startup
+      // A. Sync master games from Cloudflare worker on startup
       syncMasterGamesFromServer();
 
-      // B. Attach full backup restore to any JSON file input on the page
+      // B. Attach backup import handler
       document.querySelectorAll('input[type="file"]').forEach(inp => {
         if ((inp.accept || '').includes('json') || (inp.id || '').toLowerCase().includes('backup') || (inp.id || '').toLowerCase().includes('import')) {
           inp.onchange = (e) => { handleFullBackupRestore(e.target.files?.[0]); e.target.value = ''; };
         }
       });
 
-      // C. Inject Legal Wording directly under the On-Screen Signature Pad
+      // C. Inject Legal Wording under On-Screen Signature Pad
       const sigPad = document.getElementById('signature-pad');
       if (sigPad && !document.getElementById('cashier-legal-statement')) {
         const legalDiv = document.createElement('div');
@@ -2673,56 +2738,26 @@ function renderDispenserGrid() {
         sigPad.parentElement.appendChild(legalDiv);
       }
 
-      // D. Inject "Scan Game Photo" & "Export games.json" buttons into Store Setup / Admin
+      // D. Inject Photo Scanner Button into Store Setup / Admin
       const adminTable = document.getElementById('admin-games-tbody')?.closest('div') || document.getElementById('view-admin');
       if (adminTable && !document.getElementById('owner-game-sync-bar')) {
         const bar = document.createElement('div');
         bar.id = 'owner-game-sync-bar';
         bar.className = 'mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap items-center justify-between gap-2 text-xs';
         bar.innerHTML = `
-          <div class="font-bold text-blue-900">Owner Game Tools (Photo Add & Multi-Device Sync):</div>
+          <div class="font-bold text-blue-900">Cloud Auto-Sync & Photo Scanner Active:</div>
           <div class="flex flex-wrap items-center gap-2">
             <input type="file" id="photo-ocr-input" accept="image/*" capture="environment" class="hidden" onchange="scanGameInfoFromPhoto(event)">
             <button type="button" id="btn-photo-ocr-game" onclick="document.getElementById('photo-ocr-input').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded shadow-sm">
               📸 Scan Game Info Photo
             </button>
-            <button type="button" onclick="exportMasterGamesFile()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded shadow-sm">
-              🌐 Export games.json (For All Devices)
-            </button>
+            <span class="text-emerald-700 font-bold">✓ Live Cloud Sync Ready</span>
           </div>
         `;
         adminTable.parentElement.insertBefore(bar, adminTable);
       }
     });
 
-    function printWorksheet() {
-      const container = document.getElementById('print-container');
-      if (container) container.innerHTML = buildListPrintHTML();
-      window.print();
-    }
-    
-    function printFinalReport() {
-      const shiftType = document.getElementById('rec-shift-type')?.value || 'Shift Audit';
-      const outCashier = document.getElementById('rec-cashier-out')?.value || '-';
-      const inCashier = document.getElementById('rec-cashier-in')?.value || '-';
-      const extras = `
-        <div style="margin-top: 14px; font-family: Arial, sans-serif; font-size: 12px; border: 1px solid #000; padding: 10px;">
-          <h3 style="margin:0 0 4px 0; font-size:13px;">Financial Reconciliation (${shiftType})</h3>
-          <p style="margin: 2px 0;"><strong>Outgoing Cashier:</strong> ${outCashier} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Incoming Cashier:</strong> ${inCashier}</p>
-          <p style="margin: 2px 0;"><strong>Expected Net:</strong> ${document.getElementById('rec-expected-total')?.textContent || '$0.00'} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>POS Actual:</strong> ${document.getElementById('rec-accounted-total')?.textContent || '$0.00'}</p>
-          <p style="margin: 2px 0; font-weight:bold;">Variance: ${document.getElementById('rec-variance-display')?.textContent || '$0.00'}</p>
-        </div>
-      `;
-      const container = document.getElementById('print-container');
-      if (container) container.innerHTML = buildListPrintHTML() + extras;
-      window.print();
-    }
-
     window.addEventListener('DOMContentLoaded', initApp);
-  </script>
+
   
-  <!-- Print Container -->
-  <div id="print-container"></div>
-</body>
-</html>
-   
