@@ -1651,147 +1651,77 @@ function getDefaultRollCountForPrice(price) {
       recalculateReconciliationTotals();
     }
 
-    // Called on keystroke: updates data & totals in memory without redrawing inputs or triggering alerts
+   // Called on keystroke: updates data & checks for rollovers if end ticket < start ticket
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
-      boxes[idx].endTicket = val === '' ? '' : Number(val);
-      saveBoxesState();
-      updateBoxMetricsDisplay(idx);
-      updateHeaderTotalsUI();
-      recalculateReconciliationTotals();
-    }
+      const box = boxes[idx];
+      const newEnd = val === '' ? '' : Number(val);
+      const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
+      const price = Number(box.price) || 0;
+      const rollCount = Number(box.rollCount) || getDefaultRollCountForPrice(price);
 
-    // Called when tabbing or tapping away from the End Ticket input
-    function handleEndTicketBlur(idx) {
-      if (!boxes[idx]) return;
-      saveBoxesState();
-      updateBoxMetricsDisplay(idx);
-      updateHeaderTotalsUI();
-      recalculateReconciliationTotals();
-    }
+      if (newEnd !== '' && newEnd < start) {
+        const confirmRollover = confirm(
+          `Rollover detected on Box ${box.boxNumber}!\nEnd ticket (${newEnd}) is lower than start ticket (${start}).\n\nDid you start a new pack on this box?`
+        );
 
-    // Enter key navigation on the grid for rapid data entry
-    function handleGridEnter(event, currentIdx, currentField) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        const nextIdx = currentIdx + 1;
-        if (nextIdx < 40) {
-          const nextInp = document.getElementById(`input-${currentField}-${nextIdx}`);
-          if (nextInp) {
-            nextInp.focus();
-            nextInp.select();
+        if (confirmRollover) {
+          const maxTicket = Math.max(0, rollCount - 1);
+          const oldPackSold = Math.max(0, (maxTicket + 1) - start);
+          const oldPackSales = oldPackSold * price;
+
+          if (!Array.isArray(box.rollovers)) box.rollovers = [];
+          box.rollovers.push({
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            gameNum: box.gameNum,
+            gameName: box.gameName,
+            price: price,
+            startTicket: start,
+            endTicket: maxTicket,
+            ticketsSold: oldPackSold,
+            salesAmount: oldPackSales
+          });
+
+          const isSameGame = confirm(`Is this new roll the EXACT SAME GAME (#${box.gameNum} - ${box.gameName})?\n\nClick OK for YES (Same Game)\nClick Cancel for NO (New Game)`);
+          
+          if (!isSameGame) {
+            const newGameNum = prompt("Enter the NEW Game Number:", "");
+            if (newGameNum !== null && newGameNum.trim() !== "") {
+              box.gameNum = newGameNum.trim();
+              const matched = masterGames.find(g => String(g.gameNum).trim() === box.gameNum);
+              if (matched) {
+                box.gameName = matched.name;
+                box.price = Number(matched.price);
+                box.rollCount = Number(matched.count);
+                box.needsNewGameEntry = false;
+              } else {
+                box.gameName = "";
+                box.price = 0;
+                box.needsNewGameEntry = true;
+              }
+            }
           }
+
+          box.startTicket = 0;
+          box.endTicket = newEnd;
+          box.rollsReplaced = (Number(box.rollsReplaced) || 0) + 1;
+
+          saveBoxesState();
+          renderDispenserGrid();
+          recalculateReconciliationTotals();
+          return;
         }
       }
-    }
 
-    // Updates only the text badges inside a card without touching the input elements
-    function updateBoxMetricsDisplay(idx) {
-      const box = boxes[idx];
-      if (!box) return;
-
-      const card = document.getElementById(`dispenser-card-${idx}`);
-      const soldBadge = document.getElementById(`box-sold-badge-${idx}`);
-      const salesBadge = document.getElementById(`box-sales-badge-${idx}`);
-
-      const metrics = calculateBoxMetrics(box);
-
-      if (soldBadge) soldBadge.textContent = `${metrics.ticketsSold} Sold`;
-      if (salesBadge) salesBadge.textContent = `$${metrics.dollarSales.toFixed(2)}`;
-
-      if (card) {
-        card.classList.remove('status-complete', 'status-rollover', 'status-pending', 'status-alert');
-        if (metrics.status === 'complete') card.classList.add('status-complete');
-        else if (metrics.status === 'rollover') card.classList.add('status-rollover');
-        else card.classList.add('status-pending');
-      }
-    }
-
-    /* ==========================================================================
-       13. EXPLICIT PACK ROLLOVER MODAL CONTROLS
-       ========================================================================== */
-    function openRolloverModal(idx) {
-      const box = boxes[idx];
-      if (!box || !box.gameNum) {
-        alert('Please assign a game number to this box before recording a rollover.');
-        return;
-      }
-
-      document.getElementById('modal-rollover-box-idx').value = idx;
-      document.getElementById('modal-rollover-title').textContent = `Box ${box.boxNumber}: ${box.gameName || 'Game #' + box.gameNum} Rollover`;
-      document.getElementById('modal-rollover-finished-ticket').value = '000';
-      document.getElementById('modal-rollover-new-end-ticket').value = box.endTicket !== '' ? box.endTicket : '';
-
-      renderRolloverHistoryInModal(box);
-      document.getElementById('modal-box-rollover').classList.remove('hidden');
-      setTimeout(() => {
-        const inp = document.getElementById('modal-rollover-new-end-ticket');
-        if (inp) { inp.focus(); inp.select(); }
-      }, 100);
-    }
-
-    function closeRolloverModal() {
-      document.getElementById('modal-box-rollover').classList.add('hidden');
-    }
-
-    function renderRolloverHistoryInModal(box) {
-      const histList = document.getElementById('modal-rollover-history-list');
-      if (!histList) return;
-
-      const rollovers = Array.isArray(box.rollovers) ? box.rollovers : [];
-      if (rollovers.length === 0) {
-        histList.innerHTML = '<span class="text-slate-400 italic">No previous rollovers recorded for this shift.</span>';
-        return;
-      }
-
-      histList.innerHTML = rollovers.map((ro, i) => `
-        <div class="flex items-center justify-between border-b border-slate-200 pb-1">
-          <span>Pack #${i + 1} finished at: <strong>#${ro.finishedTicket}</strong></span>
-          <span class="text-slate-400 text-[10px]">${ro.timestamp || ''}</span>
-        </div>
-      `).join('');
-    }
-
-    function confirmAndApplyBoxRollover() {
-      const idx = Number(document.getElementById('modal-rollover-box-idx').value);
-      if (isNaN(idx) || !boxes[idx]) return;
-
-      const finishedVal = document.getElementById('modal-rollover-finished-ticket').value;
-      const newEndVal = document.getElementById('modal-rollover-new-end-ticket').value;
-
-      if (finishedVal === '' || newEndVal === '') {
-        alert('Please enter both the finished ticket number and new pack ending ticket.');
-        return;
-      }
-
-      if (!Array.isArray(boxes[idx].rollovers)) {
-        boxes[idx].rollovers = [];
-      }
-
-      boxes[idx].rollovers.push({
-        finishedTicket: Number(finishedVal),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-
-      boxes[idx].endTicket = Number(newEndVal);
+      box.endTicket = newEnd;
       saveBoxesState();
-
-      closeRolloverModal();
-      renderDispenserGrid();
-      recalculateReconciliationTotals();
-    }
-
-    function clearAllRolloversFromActiveBox() {
-      const idx = Number(document.getElementById('modal-rollover-box-idx').value);
-      if (isNaN(idx) || !boxes[idx]) return;
-
-      if (confirm(`Reset all rollover records for Box ${boxes[idx].boxNumber}?`)) {
-        boxes[idx].rollovers = [];
-        saveBoxesState();
-        closeRolloverModal();
-        renderDispenserGrid();
-        recalculateReconciliationTotals();
+      
+      const badge = document.getElementById(`box-sold-badge-${idx}`);
+      if (badge) {
+        const m = calculateBoxMetrics(box);
+        badge.innerHTML = `${m.ticketsSold} Sold <span class="mx-1 text-slate-300">|</span> <span class="text-emerald-400 font-black">$${m.dollarSales.toFixed(2)}</span>`;
       }
+      recalculateReconciliationTotals();
     }
     /* ==========================================================================
        14. 40-BOX DISPENSER MATRIX RENDERER
