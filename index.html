@@ -249,7 +249,48 @@
             onclick="switchMainView('grid')"
             class="bg-blue-600 text-white font-bold text-xs px-3 py-1.5 rounded shadow-sm transition"
           >
-  <!-- ========================================================================
+            Boxes Grid
+          </button>
+          <button
+            type="button"
+            id="dispenser-view-toggle-btn"
+            onclick="toggleDispenserView()"
+            class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs px-3 py-1.5 rounded shadow-sm transition"
+          >
+            📋 List View
+          </button>
+          <button
+            type="button"
+            id="nav-btn-reconcile"
+            onclick="switchMainView('reconcile')"
+            class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs px-3 py-1.5 rounded shadow-sm transition"
+          >
+            Reconciliation
+          </button>
+          <button
+            type="button"
+            id="nav-btn-reports"
+            onclick="switchMainView('reports')"
+            class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs px-3 py-1.5 rounded shadow-sm transition"
+          >
+            Reports
+          </button>
+          <button
+            type="button"
+            id="nav-btn-admin"
+            onclick="switchMainView('admin')"
+            class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs px-3 py-1.5 rounded shadow-sm transition"
+          >
+            Setup / Games
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ========================================================================
+         4. VIEW 1: 40-BOX DISPENSER MATRIX & BARCODE / QUICK SCANNER
+         ======================================================================== --><!-- ========================================================================
          4. VIEW 1: 40-BOX DISPENSER MATRIX & BARCODE / QUICK SCANNER
          ======================================================================== -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-3 py-4">
