@@ -258,35 +258,7 @@
         
         <!-- Top Control Strip: Barcode Scanner, Shift Controls & Full Backup Import/Export -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3">
-          
-          <!-- Instant Barcode / Ticket Scanner Bar -->
-          <div class="flex-1 min-w-[260px] flex items-center gap-2">
-            <div class="relative flex-1">
-              <input
-                type="text"
-                id="barcode-scanner-input"
-                placeholder="Scan or type ticket barcode (Game# + Pack# + Ticket#) & press Enter..."
-                onkeydown="handleBarcodeScanEnter(event)"
-                class="w-full pl-3 pr-20 py-2 text-xs sm:text-sm font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 bg-slate-50"
-              />
-              <button
-                type="button"
-                onclick="processBarcodeInput()"
-                class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-2.5 py-1 rounded"
-              >
-                Apply
-              </button>
-            </div>
-            <select
-              id="scan-target-mode"
-              class="text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-2 bg-slate-100 text-slate-800"
-              title="Choose whether barcode scans populate End Ticket or Start Ticket"
-            >
-              <option value="end">Scan → End #</option>
-              <option value="start">Scan → Start #</option>
-            </select>
-          </div>
-
+      
           <!-- Quick Shift Actions & Full Location Backup Buttons -->
           <div class="flex flex-wrap items-center gap-2">
             <button
