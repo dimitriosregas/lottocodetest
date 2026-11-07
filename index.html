@@ -1723,16 +1723,71 @@ function getDefaultRollCountForPrice(price) {
       }
       recalculateReconciliationTotals();
     }
-    /* ==========================================================================
-       14. 40-BOX DISPENSER MATRIX RENDERER
+ /* ==========================================================================
+       14. 40-BOX DISPENSER MATRIX & LIST VIEW RENDERER
        ========================================================================== */
     function renderDispenserGrid() {
       const container = document.getElementById('dispenser-grid-container');
       if (!container) return;
 
-      let html = '';
+      // 1. IF LIST VIEW IS ACTIVE, RENDER THE COMPACT TABLE LAYOUT
+      if (typeof currentDispenserView !== 'undefined' && currentDispenserView === 'list') {
+        const rowsHtml = boxes.map((box, idx) => {
+          const m = calculateBoxMetrics(box);
+          const hasGame = Boolean(box.gameNum);
+          const roCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
+          return `
+            <tr style="border-bottom: 1px solid #e2e8f0; background: #fff;" class="hover:bg-slate-50 transition">
+              <td style="padding: 6px 8px; text-align: center; font-weight: 900; background: #0f172a; color: #fff;">${box.boxNumber}</td>
+              <td style="padding: 6px 8px; text-align: center; font-family: monospace; font-weight: bold;">
+                <input type="text" value="${box.gameNum || ''}" onchange="updateBoxGameNum(${idx}, this.value)" placeholder="Game#" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 bg-slate-50 font-mono" />
+              </td>
+              <td style="padding: 6px 8px; font-weight: 600;">
+                ${hasGame ? (box.gameName || 'Game #' + box.gameNum) : '<span class="text-slate-400 italic">Empty Box</span>'}
+              </td>
+              <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #047857;">${hasGame && box.price ? '$' + box.price : '-'}</td>
+              <td style="padding: 6px 8px; text-align: center; font-family: monospace;">
+                <input type="number" value="${box.startTicket !== '' ? box.startTicket : ''}" onchange="updateBoxStartTicket(${idx}, this.value)" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 font-mono" />
+              </td>
+              <td style="padding: 6px 8px; text-align: center; font-family: monospace;">
+                <input type="number" value="${box.endTicket !== '' ? box.endTicket : ''}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="End#" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 font-mono font-bold bg-amber-50" />
+              </td>
+              <td style="padding: 6px 8px; text-align: center; font-weight: bold;">${m.ticketsSold}${roCount > 0 ? ' *' : ''}</td>
+              <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; color: #047857;">$${m.dollarSales.toFixed(2)}</td>
+              <td style="padding: 6px 8px; text-align: center;">
+                <button type="button" onclick="rollNewPackInBox(${idx})" class="text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-1 rounded transition">Roll</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
 
-      boxes.forEach((box, idx) => {
+        container.innerHTML = `
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; text-transform: uppercase; font-size: 10px;">
+                  <th style="padding: 8px; text-align: center; width: 45px;">Box</th>
+                  <th style="padding: 8px; text-align: center; width: 80px;">Game #</th>
+                  <th style="padding: 8px;">Game Name</th>
+                  <th style="padding: 8px; text-align: center; width: 50px;">Price</th>
+                  <th style="padding: 8px; text-align: center; width: 80px;">Start</th>
+                  <th style="padding: 8px; text-align: center; width: 80px;">End</th>
+                  <th style="padding: 8px; text-align: center; width: 60px;">Sold</th>
+                  <th style="padding: 8px; text-align: right; width: 90px;">Sales $</th>
+                  <th style="padding: 8px; text-align: center; width: 60px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      // 2. OTHERWISE, RENDER YOUR STANDARD 40-BOX DISPENSER MATRIX VIEW
+      container.innerHTML = boxes.map((box, idx) => {
         const metrics = calculateBoxMetrics(box);
         const hasGame = Boolean(box.gameNum);
         const rollovers = Array.isArray(box.rollovers) ? box.rollovers : [];
@@ -1741,7 +1796,7 @@ function getDefaultRollCountForPrice(price) {
         if (metrics.status === 'complete') statusClass = 'status-complete';
         else if (metrics.status === 'rollover') statusClass = 'status-rollover';
 
-        html += `
+        return `
           <div
             id="dispenser-card-${idx}"
             class="dispenser-card bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex flex-col justify-between ${statusClass}"
@@ -1761,7 +1816,69 @@ function getDefaultRollCountForPrice(price) {
                   </div>
                 </div>
               </div>
+              ${rollovers.length > 0 ? `<span class="bg-blue-50 text-blue-700 font-bold text-[10px] px-1.5 py-0.5 rounded border border-blue-200">${rollovers.length} Rollover(s)</span>` : ''}
+            </div>
 
+            <!-- Card Body: Game Number & Ticket Inputs -->
+            <div class="space-y-2">
+              <div class="grid grid-cols-3 gap-1.5 items-center">
+                <div class="col-span-1 text-[11px] font-bold text-slate-600">Game #</div>
+                <div class="col-span-2">
+                  <input
+                    type="text"
+                    value="${box.gameNum || ''}"
+                    onchange="updateBoxGameNum(${idx}, this.value)"
+                    placeholder="Enter#"
+                    class="w-full text-xs font-mono font-bold border border-slate-300 rounded px-2 py-1 bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Start Ticket</label>
+                  <input
+                    type="number"
+                    value="${box.startTicket !== '' ? box.startTicket : ''}"
+                    onchange="updateBoxStartTicket(${idx}, this.value)"
+                    class="w-full text-xs font-mono border border-slate-300 rounded px-2 py-1 text-center bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600"
+                    placeholder="Start"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-0.5">End Ticket</label>
+                  <input
+                    type="number"
+                    value="${box.endTicket !== '' ? box.endTicket : ''}"
+                    oninput="updateBoxEndTicketLive(${idx}, this.value)"
+                    class="w-full text-xs font-mono font-bold border border-amber-300 rounded px-2 py-1 text-center bg-amber-50/50 focus:bg-white focus:outline-none focus:border-amber-600"
+                    placeholder="End"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Footer: Sold Count & Dollar Sales -->
+            <div class="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-100 text-xs">
+              <div id="box-sold-badge-${idx}" class="font-bold text-slate-700">
+                ${metrics.ticketsSold} Sold ${rollovers.length > 0 ? '<span class="text-blue-600">*</span>' : ''}
+              </div>
+              <div id="box-sales-badge-${idx}" class="font-black text-emerald-600 text-sm">
+                $${metrics.dollarSales.toFixed(2)}
+              </div>
+              <button
+                type="button"
+                onclick="rollNewPackInBox(${idx})"
+                class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded transition border border-slate-300"
+                title="Finish pack & rollover to new roll"
+              >
+                Roll
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
               <!-- Quick Rollover Trigger Button -->
               <button
                 type="button"
