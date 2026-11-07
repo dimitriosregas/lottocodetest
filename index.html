@@ -283,14 +283,7 @@
           >
             Setup / Games
           </button>
-        </div>
-
-      </div>
-    </header>
-
-    <!-- ========================================================================
-         4. VIEW 1: 40-BOX DISPENSER MATRIX & BARCODE / QUICK SCANNER
-         ======================================================================== --><!-- ========================================================================
+  <!-- ========================================================================
          4. VIEW 1: 40-BOX DISPENSER MATRIX & BARCODE / QUICK SCANNER
          ======================================================================== -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-3 py-4">
@@ -1897,6 +1890,16 @@ function getDefaultRollCountForPrice(price) {
   /* ==========================================================================
        14. 40-BOX DISPENSER MATRIX & LIST VIEW RENDERER
        ========================================================================== */
+    
+    function toggleDispenserView() {
+      currentDispenserView = currentDispenserView === 'grid' ? 'list' : 'grid';
+      const btn = document.getElementById('dispenser-view-toggle-btn');
+      if (btn) {
+        btn.textContent = currentDispenserView === 'grid' ? '📋 List View' : '🔲 Grid View';
+      }
+      renderDispenserGrid();
+    }
+
     function renderDispenserGrid() {
       const container = document.getElementById('dispenser-grid-container');
       if (!container) return;
