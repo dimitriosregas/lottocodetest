@@ -2835,85 +2835,212 @@
         renderAdminGamesTable();
       }
     }
-
-    /* ==========================================================================
-       23. STRICT 1-PAGE PRINT ENGINES (WORKSHEET, FINAL REPORT & ARCHIVES)
+/* ==========================================================================
+       23. STRICT 1-PAGE MATRIX PRINT ENGINES (6-COLUMNS: 1-6 TOP, BOTTOM TOTALS & LEGAL)
        ========================================================================== */
-    function printWorksheet() {
-      const printContainer = document.getElementById('print-container');
-      if (!printContainer) return;
+    function buildMatrixPrintHTML(repData, isFinalReport = false) {
+      const bList = Array.isArray(repData.boxesSnapshot) ? repData.boxesSnapshot : boxes;
+      const t = repData.totals || {};
+      const variance = Number(t.variance) || 0;
 
-      const rowsHtml = boxes.map(box => {
+      let gtTickets = 0;
+      let gtSales = 0;
+
+      // 6-Column matrix box layout: Row 1 = 1-6, Row 2 = 7-12, Row 3 = 13-18, etc.
+      const boxCardsHtml = bList.map(box => {
+        const m = calculateBoxMetrics(box);
+        gtTickets += m.ticketsSold;
+        gtSales += m.dollarSales;
         const hasGame = Boolean(box.gameNum);
+        const roCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
+
         return `
-          <tr style="border-bottom: 1px solid #cbd5e1; height: 16.5px;">
-            <td style="text-align:center; font-weight:800; border-right:1px solid #cbd5e1; font-size:9px;">${box.boxNumber}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; border-right:1px solid #cbd5e1; font-size:9px;">${box.gameNum || ''}</td>
-            <td style="padding:0 4px; font-weight:600; border-right:1px solid #cbd5e1; font-size:8.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;">
-              ${hasGame ? (box.gameName || '') : ''}
-            </td>
-            <td style="text-align:center; font-weight:700; border-right:1px solid #cbd5e1; font-size:9px;">${hasGame ? '$' + box.price : ''}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:800; border-right:1px solid #cbd5e1; font-size:9.5px; background:#f8fafc;">
-              ${hasGame ? box.startTicket : ''}
-            </td>
-            <td style="text-align:center; border-right:1px solid #cbd5e1; font-size:9px;"></td>
-            <td style="text-align:center; font-size:9px;"></td>
-          </tr>
+          <div style="border: 1px solid #000; padding: 2px 3px; background: #fff; display: flex; flex-direction: column; justify-content: space-between; height: 68px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 1px;">
+              <span style="font-weight: 900; font-size: 9.5px; background: #0f172a; color: #fff; padding: 0 3px; border-radius: 2px;">
+                ${box.boxNumber}
+              </span>
+              <span style="font-size: 8px; font-weight: bold; color: #047857;">
+                ${hasGame && box.price ? '$' + box.price : ''}
+              </span>
+            </div>
+
+            <div style="font-size: 7.2px; line-height: 1.1; margin: 1px 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+              <strong>#${box.gameNum || '-'}</strong> ${hasGame ? (box.gameName || '') : '<span style="color:#94a3b8;">Empty</span>'}
+            </div>
+
+            <div style="font-family: monospace; font-size: 7.2px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #f8fafc; padding: 1px; border: 0.5px solid #e2e8f0;">
+              <div>St: <strong>${box.startTicket !== '' ? box.startTicket : '-'}</strong></div>
+              <div>End: <strong>${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : '-'}</strong></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 7.2px; border-top: 1px solid #e2e8f0; padding-top: 1px;">
+              <span>Sld: <strong>${m.ticketsSold}${roCount > 0 ? '*' : ''}</strong></span>
+              <span style="font-weight: 900; color: #047857;">$${m.dollarSales.toFixed(2)}</span>
+            </div>
+          </div>
         `;
       }).join('');
 
-      printContainer.innerHTML = `
-        <div class="one-page-print-sheet" style="font-family: Arial, sans-serif; color: #000;">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px; margin-bottom:6px;">
+      const sigImgHtml = repData.signatureDataUrl
+        ? `<img src="${repData.signatureDataUrl}" style="max-height: 26px; max-width: 150px; object-fit: contain;" alt="Signature" />`
+        : `<span style="color: #94a3b8; font-size: 8px;">______________________________</span>`;
+
+      return `
+        <style>
+          @page {
+            size: letter portrait;
+            margin: 0.18in 0.22in;
+          }
+          @media print {
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              height: 100% !important;
+              max-height: 100% !important;
+              background: #fff !important;
+              color: #000 !important;
+              overflow: hidden !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            body > header,
+            body > main,
+            body > div.fixed,
+            #app-shell,
+            .no-print {
+              display: none !important;
+            }
+            #print-container {
+              display: block !important;
+              width: 100% !important;
+              max-height: 10.45in !important;
+              overflow: hidden !important;
+            }
+            .one-page-print-sheet {
+              width: 100%;
+              max-height: 10.45in;
+              page-break-inside: avoid !important;
+              page-break-after: avoid !important;
+              break-inside: avoid !important;
+              overflow: hidden !important;
+            }
+          }
+        </style>
+        <div class="one-page-print-sheet" style="font-family: Arial, sans-serif; color: #000; font-size: 8.5px; line-height: 1.15;">
+          <!-- 1. TOP HEADER BAR -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px;">
             <div>
-              <div style="font-size:14px; font-weight:900; text-transform:uppercase;">${storeProfile.name} (#${storeProfile.number}) — Shift Lotto Count Worksheet</div>
-              <div style="font-size:9.5px; color:#334155;">Date: ______________________ &nbsp;|&nbsp; Shift: ______________________ &nbsp;|&nbsp; Cashier: ______________________</div>
+              <div style="font-size: 13px; font-weight: 900; text-transform: uppercase;">
+                ${repData.storeName || storeProfile.name} (#${repData.storeNumber || storeProfile.number}) — ${isFinalReport ? 'Shift Lottery Audit' : 'Shift Count Worksheet'}
+              </div>
+              <div style="font-size: 8.5px; color: #334155; margin-top: 1px;">
+                Date: <strong>${repData.date}</strong> &nbsp;|&nbsp; Shift: <strong>${repData.shiftType}</strong>
+              </div>
             </div>
-            <div style="font-size:9px; font-weight:700; text-align:right;">40-BOX PHYSICAL WORKSHEET</div>
+            <div style="text-align: right; font-size: 8px; font-weight: bold;">
+              40-BOX AUDIT MATRIX (1-6 TOP ROW)
+            </div>
           </div>
 
-          <table style="width:100%; border-collapse:collapse; border:1px solid #000;">
-            <thead>
-              <tr style="background:#e2e8f0; border-bottom:1.5px solid #000; font-size:8.5px; text-transform:uppercase;">
-                <th style="width:36px; padding:2px; border-right:1px solid #000;">Box</th>
-                <th style="width:55px; padding:2px; border-right:1px solid #000;">Game #</th>
-                <th style="text-align:left; padding:2px 4px; border-right:1px solid #000;">Game Name</th>
-                <th style="width:42px; padding:2px; border-right:1px solid #000;">Price</th>
-                <th style="width:65px; padding:2px; border-right:1px solid #000;">Start #</th>
-                <th style="width:75px; padding:2px; border-right:1px solid #000;">New Roll / Rollover</th>
-                <th style="width:75px; padding:2px;">Ending #</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+          <!-- 2. 40-BOX MATRIX (6 COLUMNS PER ROW: 1-6, 7-12, 13-18, 19-24, 25-30, 31-36, 37-40) -->
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 2.5px; margin-bottom: 4px;">
+            ${boxCardsHtml}
+          </div>
+
+          <!-- 3. BOTTOM SECTION: TOTALS, FINANCIALS, CASHIER SIGNATURE & LEGAL CERTIFICATION -->
+          <div style="border: 1.5px solid #000; padding: 4px 6px; background: #f8fafc;">
+            <!-- Financial Reconciliation Grid -->
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; border-bottom: 1px solid #94a3b8; padding-bottom: 3px; margin-bottom: 3px; text-align: center; font-size: 8px;">
+              <div><span style="color:#475569;">Total Sold:</span><div style="font-family:monospace; font-weight:900; font-size:9.5px;">${gtTickets} tix</div></div>
+              <div><span style="color:#475569;">Scratch Sales:</span><div style="font-family:monospace; font-weight:900; font-size:9.5px; color:#047857;">$${gtSales.toFixed(2)}</div></div>
+              <div><span style="color:#475569;">Online Sales:</span><div style="font-family:monospace; font-weight:900; font-size:9.5px;">$${(Number(t.onlineSales) || 0).toFixed(2)}</div></div>
+              <div><span style="color:#475569;">Expected Net:</span><div style="font-family:monospace; font-weight:900; font-size:9.5px;">$${(Number(t.expectedNet) || 0).toFixed(2)}</div></div>
+              <div><span style="color:#475569;">POS Actual:</span><div style="font-family:monospace; font-weight:900; font-size:9.5px;">$${(Number(t.posActual) || 0).toFixed(2)}</div></div>
+              <div><span style="color:#475569;">Variance:</span><div style="font-family:monospace; font-weight:900; font-size:9.5px;">${variance > 0 ? '+' : ''}$${variance.toFixed(2)}</div></div>
+            </div>
+
+            <!-- Cashier Names, Signature Pad & Legal Statement -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <div style="flex: 1.2;">
+                <div style="display: flex; gap: 12px; font-size: 8px;">
+                  <div><strong>Outgoing Cashier:</strong> <span style="display:inline-block; border-bottom:1px solid #000; min-width:100px; font-weight:bold;">${repData.cashierOut || '&nbsp;'}</span></div>
+                  <div><strong>Incoming Cashier:</strong> <span style="display:inline-block; border-bottom:1px solid #000; min-width:100px; font-weight:bold;">${repData.cashierIn || '&nbsp;'}</span></div>
+                </div>
+                <div style="margin-top: 2px; font-size: 7px; line-height: 1.2; color: #1e293b;">
+                  <strong>Legal Certification:</strong> By signing beside, I certify that I have not altered any of the information on this report and that all ticket counts, game numbers, and shift figures are true and correct to the best of my ability.
+                </div>
+              </div>
+
+              <!-- Cashier Signature Preview -->
+              <div style="width: 165px; text-align: center; border-left: 1px solid #94a3b8; padding-left: 6px;">
+                <div style="height: 28px; display: flex; align-items: center; justify-content: center;">
+                  ${sigImgHtml}
+                </div>
+                <div style="font-size: 7px; font-weight: bold; text-transform: uppercase; border-top: 1px solid #000; padding-top: 1px;">
+                  Cashier Sign-Off Signature
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       `;
+    }
+
+    function printWorksheet() {
+      let printContainer = document.getElementById('print-container');
+      if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        document.body.appendChild(printContainer);
+      }
+
+      const reportDate = document.getElementById('rec-report-date')?.value || new Date().toISOString().slice(0, 10);
+      const shiftType = document.getElementById('rec-shift-type')?.value || 'Shift 1 (Morning)';
+      const cashierOut = document.getElementById('rec-cashier-out')?.value?.trim() || '____________________';
+
+      printContainer.innerHTML = buildMatrixPrintHTML({
+        storeName: storeProfile.name,
+        storeNumber: storeProfile.number,
+        date: reportDate,
+        shiftType: shiftType,
+        cashierOut: cashierOut,
+        cashierIn: '____________________',
+        totals: recalculateReconciliationTotals(),
+        signatureDataUrl: null,
+        boxesSnapshot: boxes
+      }, false);
 
       window.print();
     }
 
     function printFinalReport() {
+      let printContainer = document.getElementById('print-container');
+      if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        document.body.appendChild(printContainer);
+      }
+
       const totals = recalculateReconciliationTotals();
       const reportDate = document.getElementById('rec-report-date')?.value || new Date().toISOString().slice(0, 10);
       const shiftType = document.getElementById('rec-shift-type')?.value || 'Shift 1 (Morning)';
-      const cashierOut = document.getElementById('rec-cashier-out')?.value?.trim() || '________________________';
-      const cashierIn = document.getElementById('rec-cashier-in')?.value?.trim() || '________________________';
-      const notes = document.getElementById('rec-shift-notes')?.value?.trim() || '';
+      const cashierOut = document.getElementById('rec-cashier-out')?.value?.trim() || '____________________';
+      const cashierIn = document.getElementById('rec-cashier-in')?.value?.trim() || '____________________';
 
-      renderAndTriggerSingleShiftPrint({
+      printContainer.innerHTML = buildMatrixPrintHTML({
         storeName: storeProfile.name,
         storeNumber: storeProfile.number,
         date: reportDate,
-        shiftType,
-        cashierOut,
-        cashierIn,
-        notes,
-        totals,
+        shiftType: shiftType,
+        cashierOut: cashierOut,
+        cashierIn: cashierIn,
+        totals: totals,
         signatureDataUrl: currentSignatureDataUrl,
         boxesSnapshot: boxes
-      });
+      }, true);
+
+      window.print();
     }
 
     function printArchivedSingleReport(reportId) {
@@ -2923,105 +3050,15 @@
         alert('Could not locate archived shift report.');
         return;
       }
-      renderAndTriggerSingleShiftPrint(found);
-    }
 
-    function renderAndTriggerSingleShiftPrint(rep) {
-      const printContainer = document.getElementById('print-container');
-      if (!printContainer) return;
+      let printContainer = document.getElementById('print-container');
+      if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        document.body.appendChild(printContainer);
+      }
 
-      const bList = Array.isArray(rep.boxesSnapshot) ? rep.boxesSnapshot : boxes;
-      const t = rep.totals || {};
-      const variance = Number(t.variance) || 0;
-
-      const rowsHtml = bList.map(box => {
-        const m = calculateBoxMetrics(box);
-        const hasGame = Boolean(box.gameNum);
-        const roCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
-        return `
-          <tr style="border-bottom: 1px solid #cbd5e1; height: 14px; font-size: 8px;">
-            <td style="text-align:center; font-weight:800; border-right:1px solid #cbd5e1;">${box.boxNumber}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; border-right:1px solid #cbd5e1;">${box.gameNum || '-'}</td>
-            <td style="padding:0 3px; font-weight:600; border-right:1px solid #cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">
-              ${hasGame ? (box.gameName || 'Game #' + box.gameNum) : '-'}
-            </td>
-            <td style="text-align:center; border-right:1px solid #cbd5e1;">${hasGame ? '$' + box.price : '-'}</td>
-            <td style="text-align:center; font-family:monospace; border-right:1px solid #cbd5e1;">${hasGame ? box.startTicket : '-'}</td>
-            <td style="text-align:center; font-family:monospace; border-right:1px solid #cbd5e1;">${roCount > 0 ? roCount + 'x' : '-'}</td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; border-right:1px solid #cbd5e1;">
-              ${hasGame && box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : '-'}
-            </td>
-            <td style="text-align:center; font-family:monospace; font-weight:700; border-right:1px solid #cbd5e1;">${m.ticketsSold}</td>
-            <td style="text-align:right; padding-right:4px; font-family:monospace; font-weight:800;">$${m.dollarSales.toFixed(2)}</td>
-          </tr>
-        `;
-      }).join('');
-
-      const sigImgHtml = rep.signatureDataUrl
-        ? `<img src="${rep.signatureDataUrl}" style="max-height:32px; max-width:180px; object-fit:contain; display:inline-block;" alt="Cashier Signature" />`
-        : `<span style="font-size:9px; color:#64748b;">________________________________________</span>`;
-
-      printContainer.innerHTML = `
-        <div class="one-page-print-sheet" style="font-family: Arial, sans-serif; color: #000;">
-          <!-- TOP HEADER & CASHIER LEGAL CERTIFICATION BLOCK -->
-          <div style="border: 1.5px solid #000; padding: 5px 8px; margin-bottom: 5px; background: #f8fafc;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #94a3b8; padding-bottom:3px; margin-bottom:4px;">
-              <div>
-                <span style="font-size:13px; font-weight:900; text-transform:uppercase;">${rep.storeName || storeProfile.name} (#${rep.storeNumber || storeProfile.number}) — Shift Lottery Audit</span>
-              </div>
-              <div style="font-size:9.5px; font-weight:800;">
-                Date: ${rep.date} &nbsp;|&nbsp; ${rep.shiftType}
-              </div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:9px;">
-              <div style="flex:1;">
-                <div><strong>Outgoing Cashier:</strong> ${rep.cashierOut || '____________________'} &nbsp;&nbsp; <strong>Incoming:</strong> ${rep.cashierIn || '____________________'}</div>
-                <div style="margin-top:2px; font-size:7.8px; line-height:1.25; color:#1e293b;">
-                  <strong>Legal Certification:</strong> By signing beside, I certify that I have not altered any of the information on this report and that all ticket counts, game numbers, and shift figures are true and correct to the best of my ability.
-                </div>
-              </div>
-              <div style="width:200px; text-align:center; border-left:1px solid #94a3b8; padding-left:8px;">
-                <div style="height:34px; display:flex; align-items:center; justify-content:center;">${sigImgHtml}</div>
-                <div style="font-size:7.5px; font-weight:700; text-transform:uppercase; border-top:1px solid #000; padding-top:1px;">Cashier Verification Signature</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- FINANCIAL RECONCILIATION SUMMARY BAR -->
-          <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:4px; margin-bottom:5px; border:1px solid #000; padding:4px; background:#fff; font-size:8.5px; text-align:center;">
-            <div><div style="color:#475569; font-weight:700;">Scratch Sales</div><div style="font-family:monospace; font-weight:900; font-size:10px;">$${(Number(t.scratchSales) || 0).toFixed(2)}</div></div>
-            <div><div style="color:#475569; font-weight:700;">Online Sales</div><div style="font-family:monospace; font-weight:900; font-size:10px;">$${(Number(t.onlineSales) || 0).toFixed(2)}</div></div>
-            <div><div style="color:#475569; font-weight:700;">Total Cashed</div><div style="font-family:monospace; font-weight:900; font-size:10px;">-$${((Number(t.scratchCashed) || 0) + (Number(t.onlineCashed) || 0)).toFixed(2)}</div></div>
-            <div><div style="color:#475569; font-weight:700;">Expected Net</div><div style="font-family:monospace; font-weight:900; font-size:10px;">$${(Number(t.expectedNet) || 0).toFixed(2)}</div></div>
-            <div><div style="color:#475569; font-weight:700;">POS Actual</div><div style="font-family:monospace; font-weight:900; font-size:10px;">$${(Number(t.posActual) || 0).toFixed(2)}</div></div>
-            <div><div style="color:#475569; font-weight:700;">Shift Variance</div><div style="font-family:monospace; font-weight:900; font-size:10px;">${variance > 0 ? '+' : ''}$${variance.toFixed(2)}</div></div>
-          </div>
-
-          <!-- 40-BOX COMPACT AUDIT TABLE -->
-          <table style="width:100%; border-collapse:collapse; border:1px solid #000;">
-            <thead>
-              <tr style="background:#e2e8f0; border-bottom:1.5px solid #000; font-size:8px; text-transform:uppercase;">
-                <th style="width:28px; padding:1.5px; border-right:1px solid #000;">Box</th>
-                <th style="width:46px; padding:1.5px; border-right:1px solid #000;">Game #</th>
-                <th style="text-align:left; padding:1.5px 3px; border-right:1px solid #000;">Game Name</th>
-                <th style="width:34px; padding:1.5px; border-right:1px solid #000;">Price</th>
-                <th style="width:46px; padding:1.5px; border-right:1px solid #000;">Start</th>
-                <th style="width:36px; padding:1.5px; border-right:1px solid #000;">Roll</th>
-                <th style="width:46px; padding:1.5px; border-right:1px solid #000;">End</th>
-                <th style="width:42px; padding:1.5px; border-right:1px solid #000;">Sold</th>
-                <th style="width:58px; padding:1.5px; text-align:right; padding-right:4px;">Sales $</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-
-          ${rep.notes ? `<div style="margin-top:3px; font-size:8px;"><strong>Audit Notes:</strong> ${rep.notes}</div>` : ''}
-        </div>
-      `;
-
+      printContainer.innerHTML = buildMatrixPrintHTML(found, true);
       window.print();
     }
 
@@ -3078,10 +3115,48 @@
         `;
       }).join('');
 
-      const printContainer = document.getElementById('print-container');
-      if (!printContainer) return;
+      let printContainer = document.getElementById('print-container');
+      if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        document.body.appendChild(printContainer);
+      }
 
       printContainer.innerHTML = `
+        <style>
+          @page {
+            size: letter portrait;
+            margin: 0.18in 0.22in;
+          }
+          @media print {
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              height: 100% !important;
+              background: #fff !important;
+              color: #000 !important;
+              overflow: hidden !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            body > header,
+            body > main,
+            body > div.fixed,
+            #app-shell,
+            .no-print {
+              display: none !important;
+            }
+            #print-container {
+              display: block !important;
+              width: 100% !important;
+            }
+            .one-page-print-sheet {
+              width: 100%;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+          }
+        </style>
         <div class="one-page-print-sheet" style="font-family: Arial, sans-serif; color: #000;">
           <div style="border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
             <div>
@@ -3159,3 +3234,4 @@
   </script>
 </body>
 </html>
+        
