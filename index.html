@@ -2364,54 +2364,53 @@ function renderDispenserGrid() {
     function importBackupData(event) { handleFullBackupRestore(event?.target?.files?.[0]); if (event?.target) event.target.value = ''; }
     function restoreBackup(event) { handleFullBackupRestore(event?.target?.files?.[0]); if (event?.target) event.target.value = ''; }
 
-    // --- 2. GLOBAL MASTER GAMES SYNC (Option A: games.json) & PHOTO OCR GAME SCANNER ---
-    async function syncMasterGamesFromServer() {
+async function syncMasterGamesFromServer() {
       try {
-        const res = await fetch('./games.json?t=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) return;
+        const res = await fetch("https://lottoinventory.dimitriosregas.workers.dev/games", { cache: 'no-store' });
+        if (!res.ok) throw new Error("Worker offline");
         const serverGames = await res.json();
-        if (!Array.isArray(serverGames) || serverGames.length === 0) return;
+        if (Array.isArray(serverGames) && serverGames.length > 0) {
+          const combined = Array.isArray(masterGames) ? [...masterGames] : [];
+          let changed = false;
 
-        const combined = Array.isArray(masterGames) ? [...masterGames] : [];
-        let changed = false;
+          serverGames.forEach(sg => {
+            const gNum = String(sg.gameNum ?? sg.number ?? '').trim();
+            if (!gNum) return;
+            const priceVal = Number(sg.price) || 1;
+            const countVal = Number(sg.count ?? sg.rollCount) || (typeof getDefaultRollCountForPrice === 'function' ? getDefaultRollCountForPrice(priceVal) : 300);
+            const norm = { gameNum: gNum, name: String(sg.name || '').trim(), price: priceVal, count: countVal };
+            const idx = combined.findIndex(g => String(g.gameNum).trim() === gNum);
+            if (idx === -1) {
+              combined.push(norm);
+              changed = true;
+            } else if (combined[idx].name !== norm.name || Number(combined[idx].price) !== norm.price) {
+              combined[idx] = norm;
+              changed = true;
+            }
+          });
 
-        serverGames.forEach(sg => {
-          const gNum = String(sg.gameNum ?? sg.number ?? '').trim();
-          if (!gNum) return;
-          const priceVal = Number(sg.price) || 1;
-          const countVal = Number(sg.count ?? sg.rollCount) || (typeof getDefaultRollCountForPrice === 'function' ? getDefaultRollCountForPrice(priceVal) : 300);
-          const norm = { gameNum: gNum, name: String(sg.name || '').trim(), price: priceVal, count: countVal };
-          const idx = combined.findIndex(g => String(g.gameNum).trim() === gNum);
-          if (idx === -1) {
-            combined.push(norm);
-            changed = true;
-          } else if (combined[idx].name !== norm.name || Number(combined[idx].price) !== norm.price) {
-            combined[idx] = norm;
-            changed = true;
+          if (changed) {
+            masterGames = typeof sanitizeMasterGamesList === 'function' ? sanitizeMasterGamesList(combined) : combined;
+            if (typeof saveGamesState === 'function') saveGamesState();
+            if (Array.isArray(boxes)) {
+              boxes.forEach(b => {
+                const match = masterGames.find(g => String(g.gameNum).trim() === String(b.gameNum).trim());
+                if (match) {
+                  b.gameName = match.name;
+                  b.price = Number(match.price);
+                  b.rollCount = Number(match.count);
+                  b.needsNewGameEntry = false;
+                }
+              });
+              if (typeof saveBoxesState === 'function') saveBoxesState();
+            }
+            if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
+            if (typeof renderDispenserGrid === 'function') renderDispenserGrid();
           }
-        });
-
-        if (changed) {
-          masterGames = typeof sanitizeMasterGamesList === 'function' ? sanitizeMasterGamesList(combined) : combined;
-          if (typeof saveGamesState === 'function') saveGamesState();
-          // Backfill any boxes that had this game number waiting
-          if (Array.isArray(boxes)) {
-            boxes.forEach(b => {
-              const match = masterGames.find(g => String(g.gameNum).trim() === String(b.gameNum).trim());
-              if (match) {
-                b.gameName = match.name;
-                b.price = Number(match.price);
-                b.rollCount = Number(match.count);
-                b.needsNewGameEntry = false;
-              }
-            });
-            if (typeof saveBoxesState === 'function') saveBoxesState();
-          }
-          if (typeof renderAdminGamesTable === 'function') renderAdminGamesTable();
-          if (typeof renderDispenserGrid === 'function') renderDispenserGrid();
         }
-      } catch (e) {
-        // Silent fallback if games.json is not uploaded to repo yet
+      } catch (err) {
+        console.warn("Using local games data for tonight:", err);
+        // Falls back seamlessly to local storage so your app opens instantly
       }
     }
 
