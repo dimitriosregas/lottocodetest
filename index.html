@@ -1574,12 +1574,31 @@ function renderDispenserGrid() {
       if (salesEl) salesEl.textContent = `$${grandTotalSales.toFixed(2)}`;
     }
 
-    function updateBoxField(idx, field, val) {
+  function updateBoxField(idx, field, val) {
       if (!boxes[idx]) return;
+      
+      if (field === 'startTicket' || field === 'endTicket') {
+        boxes[idx][field] = val === '' ? '' : Number(val);
+        saveBoxesState();
+
+        // Update local metrics and totals without rebuilding the active input element
+        if (typeof updateHeaderTotalsUI === 'function') updateHeaderTotalsUI();
+        if (typeof updateBoxMetricsDisplay === 'function') {
+          updateBoxMetricsDisplay(idx);
+        }
+        return;
+      }
+
       boxes[idx][field] = val === '' ? '' : Number(val);
       saveBoxesState();
       renderDispenserGrid();
     }
+
+    function handleEndTicketBlur(idx) {
+      if (!boxes[idx]) return;
+      saveBoxesState();
+      renderDispenserGrid();
+    }  
 
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
@@ -2073,7 +2092,7 @@ function renderDispenserGrid() {
                         <input type="number" id="input-startTicket-${idx}" value="${box.startTicket}" onchange="updateBoxField(${idx}, 'startTicket', this.value)" onkeydown="handleGridEnter(event, ${idx}, 'startTicket')" ${isBoxSetupLocked ? 'disabled' : ''} class="w-16 text-center font-mono border rounded p-1">
                       </td>
                       <td class="p-2 text-center font-mono">
-                        <input type="number" id="input-endTicket-${idx}" value="${box.endTicket}" oninput="updateBoxEndTicketLive(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'endTicket')" placeholder="000" class="w-20 text-center font-mono font-bold border border-blue-400 bg-blue-50/50 rounded p-1">
+<input type="number" id="input-endTicket-${idx}" value="${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : ''}" oninput="updateBoxEndTicketLive(${idx}, this.value)" onblur="handleEndTicketBlur(${idx})" onkeydown="handleGridEnter(event, ${idx}, 'endTicket')" placeholder="000" class="w-20 text-center font-mono font-bold border border-blue-400 bg-blue-50/50 rounded p-1">
                       </td>
                       <td class="p-2 text-center font-bold" id="box-sold-${idx}">${metrics.ticketsSold}</td>
                       <td class="p-2 text-right font-mono font-black text-emerald-700" id="box-sales-${idx}">$${metrics.salesAmount.toFixed(2)}</td>
