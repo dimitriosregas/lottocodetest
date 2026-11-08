@@ -1919,8 +1919,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       const box = boxes[idx];
       const pendingEnd = document.getElementById('modal-roll-pending-end').value;
       const price = Number(box.price) || 0;
-      const rollCount = Number(bo
-x.rollCount) || getDefaultRollCountForPrice(price);
+      const rollCount = Number(box.rollCount) || getDefaultRollCountForPrice(price);
       const maxTicket = Math.max(0, rollCount - 1);
       const start = Number(box.startTicket) || 0;
       const oldPackSold = Math.max(0, (maxTicket + 1) - start);
