@@ -1316,6 +1316,7 @@ function getDefaultRollCountForPrice(price) {
       populateLocationSwitcherDropdown();
     }
 
+    // PASTE THIS UPDATED FUNCTION:
     function loadActiveStoreData() {
       // 1. Load active location profile
       const profKey = getStoreProfileStorageKey(activeLocationId);
@@ -1333,7 +1334,7 @@ function getDefaultRollCountForPrice(price) {
         storeProfile = { name: activeLocObj?.name || 'Regas Shell', number: activeLocObj?.number || '101' };
       }
 
-      // 2. Load active location boxes
+      // 2. Load active location boxes INDEPENDENTLY per store ID
       const boxKey = getStoreBoxesStorageKey(activeLocationId);
       try {
         const bRaw = localStorage.getItem(boxKey);
@@ -1350,6 +1351,24 @@ function getDefaultRollCountForPrice(price) {
       } catch (e) {
         boxes = createDefault40Boxes();
       }
+
+      // 3. Update Header & Footer Displays
+      const subTitle = document.getElementById('header-store-subtitle');
+      if (subTitle) subTitle.textContent = `${storeProfile.name} (#${storeProfile.number}) — Shift Audit Matrix`;
+
+      const footStore = document.getElementById('footer-store-display');
+      if (footStore) footStore.textContent = `Location: ${storeProfile.name} (#${storeProfile.number})`;
+
+      const adminName = document.getElementById('admin-store-name');
+      const adminNum = document.getElementById('admin-store-number');
+      if (adminName) adminName.value = storeProfile.name;
+      if (adminNum) adminNum.value = storeProfile.number;
+
+      const badgeElem = document.getElementById('admin-box-count-badge');
+      const bElem = document.getElementById('header-total-boxes');
+      if (badgeElem) badgeElem.textContent = String(boxes.length);
+      if (bElem) bElem.textContent = String(boxes.length);
+    }
 
       // Ensure 40 boxes exist and data fields are valid
       if (boxes.length < 40) {
@@ -3143,7 +3162,7 @@ function getDefaultRollCountForPrice(price) {
     }
 
     // Dynamic Box Adding / Removing Functions
-    function addBoxSlot() {
+function addBoxSlot() {
       const nextNum = boxes.length + 1;
       boxes.push({
         boxNumber: String(nextNum),
@@ -3156,11 +3175,24 @@ function getDefaultRollCountForPrice(price) {
         rollovers: [],
         needsNewGameEntry: false
       });
-      saveBoxesState();
+      saveBoxesState(); // Saves to activeLocationId key
       renderDispenserGrid();
       renderAdminBoxLabelsGrid();
       updateHeaderTotalsUI();
-      alert(`Added Box Slot #${nextNum}. Total active boxes: ${boxes.length}`);
+      alert(`Added Box Slot #${nextNum} to ${storeProfile.name}. Total active boxes: ${boxes.length}`);
+    }
+
+    function removeBoxSlot() {
+      if (boxes.length <= 1) {
+        alert('You must keep at least 1 box slot active.');
+        return;
+      }
+      boxes.pop();
+      saveBoxesState(); // Saves to activeLocationId key
+      renderDispenserGrid();
+      renderAdminBoxLabelsGrid();
+      updateHeaderTotalsUI();
+      alert(`Removed box slot successfully from ${storeProfile.name}. Total active boxes: ${boxes.length}`);
     }
 
     function removeBoxSlot() {
