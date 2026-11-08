@@ -1866,18 +1866,15 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       };
     }
 
-    /* ==========================================================================
-       12. NON-BLOCKING LIVE INPUT HANDLERS (SOLVES ISSUE #1)
-       ========================================================================== */
+/* ==========================================================================
+      12. NON-BLOCKING LIVE INPUT HANDLERS (SOLVES ISSUE #1)
+      ========================================================================== */
     function updateBoxFieldDirect(idx, field, val) {
       if (!boxes[idx]) return;
       boxes[idx][field] = val === '' ? '' : val;
-      saveBoxesState();
-
-function updateBoxFieldDirect(idx, field, val) {
-      if (!boxes[idx]) return;
-      boxes[idx][field] = val === '' ? '' : val;
-      saveBoxesState();
+      
+      // CALL THE NEW ISOLATED SAVE FUNCTION HERE:
+      saveActiveStoreBoxes();
 
       if (field === 'gameNum') {
         const found = masterGames.find(g => String(g.gameNum).trim() === String(val).trim());
@@ -1893,7 +1890,10 @@ function updateBoxFieldDirect(idx, field, val) {
           boxes[idx].price = 0;
           boxes[idx].needsNewGameEntry = false;
         }
-        saveBoxesState();
+        
+        // AND CALL IT HERE:
+        saveActiveStoreBoxes();
+        
         renderDispenserGrid();
         recalculateReconciliationTotals();
         return;
