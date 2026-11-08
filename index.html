@@ -2025,8 +2025,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
 
       document.getElementById('modal-rollover-box-idx').value = idx;
       document.getElementById('modal-rollover-title').textContent = `Box ${box.boxNumber}: ${box.gameName || 'Game #' + box.gameNum} Rollover`;
-      document.getElementById('modal-rollover-finished-
-ticket').value = '000';
+      document.getElementById('modal-rollover-finished-ticket').value = '000';
       document.getElementById('modal-rollover-new-end-ticket').value = box.endTicket !== '' ? box.endTicket : '';
 
       renderRolloverHistoryInModal(box);
