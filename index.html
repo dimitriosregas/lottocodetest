@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -135,7 +135,8 @@
       }
 
       .one-page-print-sheet {
-        width: 100% !important;
+        width: 100% !importan
+t;
         max-height: 10.45in !important;
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
@@ -218,7 +219,8 @@
         <div class="flex flex-wrap items-center gap-1.5">
           <!-- Universal Export & Import Games Buttons for ANY user -->
           <button
-            type="button"
+     
+       type="button"
             onclick="exportMasterGamesUniversal()"
             class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-2.5 py-1.5 rounded shadow-sm flex items-center gap-1 transition"
             title="Download Master Games List (.json) to share or backup"
@@ -313,7 +315,8 @@
               onclick="advanceEndToStartForNewShift()"
               class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm"
               title="Moves all current End Ticket numbers into Start Ticket numbers for the next shift"
-            >
+       
+     >
               ⏭ Roll End → Start (Next Shift)
             </button>
 
@@ -391,7 +394,8 @@
                 🖨 Print 1-Page Final Report
               </button>
             </div>
-          </div>
+     
+     </div>
 
           <!-- Shift Metadata & Cashier Details -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -473,7 +477,8 @@
                   id="rec-scratch-cashed"
                   placeholder="0.00"
                   oninput="recalculateReconciliationTotals()"
-                  class="w-32 text-right font-mono font-bold border border-slate-300 rounded px-2.5 py-1 bg-white"
+              
+    class="w-32 text-right font-mono font-bold border border-slate-300 rounded px-2.5 py-1 bg-white"
                 />
               </div>
 
@@ -550,7 +555,8 @@
                 </div>
 
                 <!-- On-Screen Legal Certification Statement -->
-                <div id="cashier-legal-statement" class="mt-3 p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-slate-800 leading-relaxed font-medium">
+                <div id="cashier-legal-statement" class="mt-3 p-3 bg-am
+ber-50 border border-amber-300 rounded-lg text-xs text-slate-800 leading-relaxed font-medium">
                   <strong>Legal Certification:</strong> By signing above, I certify that I have not altered any of the information on this report and that all ticket counts, game numbers, and shift figures are true and correct to the best of my ability.
                 </div>
               </div>
@@ -624,6 +630,7 @@
                   type="date"
                   id="report-filter-date"
                   onchange="executeReportLookup()"
+
                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold bg-white"
                 />
               </div>
@@ -698,7 +705,8 @@
               <button
                 type="button"
                 onclick="printFilteredReportSummary()"
-                class="text-xs font-bold bg-slate-900 text-white px-2.5 py-1 rounded hover:bg-slate-800"
+                clas
+s="text-xs font-bold bg-slate-900 text-white px-2.5 py-1 rounded hover:bg-slate-800"
               >
                 🖨 Print Historical Summary Sheet
               </button>
@@ -778,7 +786,8 @@
                   Save Store Profile
                 </button>
               </div>
-            </div>
+            </div
+>
 
             <!-- Dynamic Add / Remove Boxes Control Strip -->
             <div class="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
@@ -859,7 +868,8 @@
               <div class="col-span-2 sm:col-span-2">
                 <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Game Name</label>
                 <input
-                  type="text"
+               
+   type="text"
                   id="new-game-name"
                   placeholder="e.g. JUMBO BUCKS"
                   class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold uppercase"
@@ -943,7 +953,8 @@
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
-                    <th class="p-2.5 text-center">Game #</th>
+                    <th cl
+ass="p-2.5 text-center">Game #</th>
                     <th class="p-2.5">Name</th>
                     <th class="p-2.5 text-center">Price</th>
                     <th class="p-2.5 text-center">Tickets / Pack</th>
@@ -1019,7 +1030,8 @@
                 <th class="p-2.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody id="multi-store-list-tbody" class="divide-y divide-slate-200 font-medium">
+            <tbody id="multi-store-
+list-tbody" class="divide-y divide-slate-200 font-medium">
               <!-- Populated by renderMultiStoreModalList() -->
             </tbody>
           </table>
@@ -1099,7 +1111,8 @@
               🔄 Same Game
             </button>
             <button
-              type="button"
+     
+         type="button"
               onclick="handleRolloverGameChoice(false)"
               class="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs sm:text-sm py-2.5 px-3 rounded-lg shadow-sm transition"
             >
@@ -1173,7 +1186,8 @@
       </div>
       <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 text-right space-x-2">
         <button type="button" onclick="closeQuickGameModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded">Cancel</button>
-        <button type="button" onclick="saveQuickRegisteredGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded shadow">Save &amp; Assign</button>
+        <button type="button" onclick="saveQuickRegisteredGame()" class="bg-blue-600 hover:bg-blue-700 text-white fo
+nt-bold text-xs px-3.5 py-1.5 rounded shadow">Save &amp; Assign</button>
       </div>
     </div>
   </div>
@@ -1272,7 +1286,8 @@ function getDefaultRollCountForPrice(price) {
     }
 
     function getStoreProfileStorageKey(locId) {
-      return `project_lotto_profile_${locId}`;
+      return `project
+_lotto_profile_${locId}`;
     }
 
     function getStoreHistoryStorageKey(locId) {
@@ -1316,7 +1331,7 @@ function getDefaultRollCountForPrice(price) {
       populateLocationSwitcherDropdown();
     }
 
-    function loadActiveStoreData() {
+        function loadActiveStoreData() {
       // 1. Load active location profile
       const profKey = getStoreProfileStorageKey(activeLocationId);
       const activeLocObj = locations.find(l => l.id === activeLocationId);
@@ -1351,6 +1366,10 @@ function getDefaultRollCountForPrice(price) {
         boxes = createDefault40Boxes();
       }
 
+      if (!Array.isArray(boxes) || boxes.length === 0) {
+        boxes = createDefault40Boxes();
+      }
+
       // 3. Update Header & Footer Displays
       const subTitle = document.getElementById('header-store-subtitle');
       if (subTitle) subTitle.textContent = `${storeProfile.name} (#${storeProfile.number}) — Shift Audit Matrix`;
@@ -1367,39 +1386,13 @@ function getDefaultRollCountForPrice(price) {
       const bElem = document.getElementById('header-total-boxes');
       if (badgeElem) badgeElem.textContent = String(boxes.length);
       if (bElem) bElem.textContent = String(boxes.length);
-    }
-   
-      // Ensure 40 boxes exist and data fields are valid
-      if (boxes.length < 40) {
-        for (let i = boxes.length + 1; i <= 40; i++) {
-          boxes.push({
-            boxNumber: String(i),
-            gameNum: '',
-            gameName: '',
-            price: 0,
-            rollCount: 60,
-            startTicket: 0,
-            endTicket: '',
-            rollovers: [],
-            needsNewGameEntry: false
-          });
-        }
+
+      if (typeof renderDispenserGrid === 'function') {
+        renderDispenserGrid();
       }
-
-      // 3. Update Header & Footer Displays
-      const subTitle = document.getElementById('header-store-subtitle');
-      if (subTitle) subTitle.textContent = `${storeProfile.name} (#${storeProfile.number}) — Shift Audit Matrix`;
-
-      const footStore = document.getElementById('footer-store-display');
-      if (footStore) footStore.textContent = `Location: ${storeProfile.name} (#${storeProfile.number})`;
-
-      const adminName = document.getElementById('admin-store-name');
-      const adminNum = document.getElementById('admin-store-number');
-      if (adminName) adminName.value = storeProfile.name;
-      if (adminNum) adminNum.value = storeProfile.number;
     }
 
-    function saveBoxesState() {
+        function saveBoxesState() {
       try {
         localStorage.setItem(getStoreBoxesStorageKey(activeLocationId), JSON.stringify(boxes));
       } catch (e) {
@@ -1408,7 +1401,8 @@ function getDefaultRollCountForPrice(price) {
     }
 
     function saveActiveStoreProfile() {
-      const nameInp = document.getElementById('admin-store-name')?.value?.trim();
+      const nameInp = document.getElementById('a
+dmin-store-name')?.value?.trim();
       const numInp = document.getElementById('admin-store-number')?.value?.trim();
       if (!nameInp) {
         alert('Please enter a valid store location name.');
@@ -1514,7 +1508,8 @@ function getDefaultRollCountForPrice(price) {
       try {
         const text = await file.text();
         const incoming = JSON.parse(text);
-        if (!Array.isArray(incoming) || incoming.length === 0) {
+        if (!Array.isArray(incoming) || inc
+oming.length === 0) {
           alert('Invalid games file. Expected a JSON array of games.');
           return;
         }
@@ -1618,7 +1613,8 @@ function getDefaultRollCountForPrice(price) {
         const syncInd = document.getElementById('cloud-sync-indicator');
         if (syncInd) {
           syncInd.textContent = '● Cloud Synced';
-          syncInd.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600/50';
+          syncInd.className = 't
+ext-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600/50';
         }
       } catch (e) {
         console.warn('Live Cloud Sync offline or unreachable. Using local storage.', e);
@@ -1710,7 +1706,8 @@ function getDefaultRollCountForPrice(price) {
     }
  /* ==========================================================================
        11. CORE MATHEMATICAL CALCULATION ENGINE
-       ========================================================================== */
+       =================================================
+========================= */
     function calculateBoxMetrics(box) {
       if (!box || !box.gameNum) {
         return { ticketsSold: 0, dollarSales: 0, status: 'empty', hasRollover: false, activeTicket: '-' };
@@ -1828,7 +1825,8 @@ function getDefaultRollCountForPrice(price) {
       const newEnd = val === '' ? '' : Number(val);
       const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
 
-      // If user typed an end ticket number lower than the start ticket, open the Yes/No dialog
+      // If user typed an end ticket number 
+lower than the start ticket, open the Yes/No dialog
       if (newEnd !== '' && newEnd < start) {
         openRolloverDecisionModal(idx, newEnd);
         return;
@@ -1928,7 +1926,8 @@ function getDefaultRollCountForPrice(price) {
       const box = boxes[idx];
       const pendingEnd = document.getElementById('modal-roll-pending-end').value;
       const price = Number(box.price) || 0;
-      const rollCount = Number(box.rollCount) || getDefaultRollCountForPrice(price);
+      const rollCount = Number(bo
+x.rollCount) || getDefaultRollCountForPrice(price);
       const maxTicket = Math.max(0, rollCount - 1);
       const start = Number(box.startTicket) || 0;
       const oldPackSold = Math.max(0, (maxTicket + 1) - start);
@@ -2034,7 +2033,8 @@ function getDefaultRollCountForPrice(price) {
 
       document.getElementById('modal-rollover-box-idx').value = idx;
       document.getElementById('modal-rollover-title').textContent = `Box ${box.boxNumber}: ${box.gameName || 'Game #' + box.gameNum} Rollover`;
-      document.getElementById('modal-rollover-finished-ticket').value = '000';
+      document.getElementById('modal-rollover-finished-
+ticket').value = '000';
       document.getElementById('modal-rollover-new-end-ticket').value = box.endTicket !== '' ? box.endTicket : '';
 
       renderRolloverHistoryInModal(box);
@@ -2133,7 +2133,8 @@ function getDefaultRollCountForPrice(price) {
           const roCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
           return `
             <tr style="border-bottom: 1px solid #e2e8f0; background: #fff;" class="hover:bg-slate-50 transition">
-              <td style="padding: 6px 8px; text-align: center; font-weight: 900; background: #0f172a; color: #fff;">${box.boxNumber}</td>
+              <td style="padding: 6px 8px; text-align: center; font-weight: 9
+00; background: #0f172a; color: #fff;">${box.boxNumber}</td>
               <td style="padding: 6px 8px; text-align: center; font-family: monospace; font-weight: bold;">
                 <input type="text" value="${box.gameNum || ''}" onchange="updateBoxFieldDirect(${idx}, 'gameNum', this.value)" placeholder="Game#" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 bg-slate-50 font-mono" />
               </td>
@@ -2193,7 +2194,8 @@ function getDefaultRollCountForPrice(price) {
         if (metrics.status === 'complete') statusClass = 'status-complete';
         else if (metrics.status === 'rollover') statusClass = 'status-rollover';
 
-        html += `
+   
+     html += `
           <div
             id="dispenser-card-${idx}"
             class="dispenser-card bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex flex-col justify-between ${statusClass}"
@@ -2272,7 +2274,8 @@ function getDefaultRollCountForPrice(price) {
                 <div>
                   <label class="block text-[10px] font-bold text-blue-700 uppercase mb-0.5">End #</label>
                   <input
-                    type="number"
+            
+        type="number"
                     id="input-endTicket-${idx}"
                     value="${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : ''}"
                     oninput="updateBoxEndTicketLive(${idx}, this.value)"
@@ -2381,7 +2384,8 @@ function getDefaultRollCountForPrice(price) {
       if (!box) return;
 
       document.getElementById('quick-game-box-idx').value = idx;
-      document.getElementById('quick-game-num').value = box.gameNum;
+      document.getElementById('quick-game-num').value =
+ box.gameNum;
       document.getElementById('quick-game-name').value = '';
       document.getElementById('quick-game-price').value = '5';
       document.getElementById('quick-game-count').value = '60';
@@ -2472,7 +2476,8 @@ function getDefaultRollCountForPrice(price) {
               <button
                 type="button"
                 onclick="exportSpecificLocationBackup('${loc.id}')"
-                class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] px-2 py-1 rounded"
+                class="bg-slate-200 hover:bg-slate-300 text-sla
+te-800 font-bold text-[11px] px-2 py-1 rounded"
                 title="Download backup for this store"
               >
                 ⬇ Export
@@ -2577,7 +2582,8 @@ function getDefaultRollCountForPrice(price) {
           const incomingName = String(data.storeProfile.name).trim();
           const incomingNum = String(data.storeProfile.number || '100').trim();
           const existingLoc = locations.find(
-            l => l.name.toLowerCase() === incomingName.toLowerCase() || l.id === data.locationId
+            l => l.
+name.toLowerCase() === incomingName.toLowerCase() || l.id === data.locationId
           );
 
           if (existingLoc) {
@@ -2666,7 +2672,8 @@ function getDefaultRollCountForPrice(price) {
     }
 
     function handleShiftTypeChange(val) {
-      const badge = document.getElementById('header-shift-badge');
+      const badge = document.getElementById('header-shift-badge'
+);
       if (badge) badge.textContent = val;
       saveReconciliationDraft();
     }
@@ -2747,7 +2754,8 @@ function getDefaultRollCountForPrice(price) {
           document.getElementById('rec-pos-actual').value = d.posActual || '';
           document.getElementById('rec-shift-notes').value = d.notes || '';
           const badge = document.getElementById('header-shift-badge');
-          if (badge) badge.textContent = d.shiftType || 'Shift 1 (Morning)';
+          if (badge) badge.text
+Content = d.shiftType || 'Shift 1 (Morning)';
           return;
         }
       } catch (e) {}
@@ -2854,7 +2862,8 @@ function getDefaultRollCountForPrice(price) {
         notes,
         totals,
         signatureDataUrl: currentSignatureDataUrl || null,
-        boxesSnapshot: JSON.parse(JSON.stringify(boxes))
+        boxesSnapshot: JSON
+.parse(JSON.stringify(boxes))
       };
 
       const history = getLocationHistoricalReports(activeLocationId);
@@ -2951,7 +2960,8 @@ function getDefaultRollCountForPrice(price) {
       tbody.innerHTML = filtered.map(r => {
         const t = r.totals || {};
         const v = Number(t.variance) || 0;
-        const vColor = Math.abs(v) < 0.01 ? 'text-emerald-700' : (v < 0 ? 'text-red-600' : 'text-amber-600');
+    
+    const vColor = Math.abs(v) < 0.01 ? 'text-emerald-700' : (v < 0 ? 'text-red-600' : 'text-amber-600');
         return `
           <tr class="hover:bg-slate-50">
             <td class="p-2.5 text-center font-mono">${r.date}</td>
@@ -3023,7 +3033,8 @@ function getDefaultRollCountForPrice(price) {
       }));
 
       const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(allStoresArchive, null, 2));
-      const a = document.createElement('a');
+      const a = document.createElemen
+t('a');
       a.setAttribute('href', dataStr);
       a.setAttribute('download', `MonthlyLottoArchive_AllStores_${targetMonth}.json`);
       document.body.appendChild(a);
@@ -3120,7 +3131,8 @@ function getDefaultRollCountForPrice(price) {
     function deleteMasterGame(gNum) {
       if (!confirm(`Delete Game #${gNum} from the Master Games Catalog?`)) return;
       masterGames = masterGames.filter(g => String(g.gameNum).trim() !== String(gNum).trim());
-      saveGamesState();
+      saveG
+amesState();
       renderAdminGamesTable();
       pushMasterGamesToCloud();
     }
@@ -3161,7 +3173,8 @@ function getDefaultRollCountForPrice(price) {
     }
 
     // Dynamic Box Adding / Removing Functions
-function addBoxSlot() {
+    // Dynamic Box Adding / Removing Functions
+    function addBoxSlot() {
       const nextNum = boxes.length + 1;
       boxes.push({
         boxNumber: String(nextNum),
@@ -3174,24 +3187,11 @@ function addBoxSlot() {
         rollovers: [],
         needsNewGameEntry: false
       });
-      saveBoxesState(); // Saves to activeLocationId key
+      saveBoxesState();
       renderDispenserGrid();
       renderAdminBoxLabelsGrid();
       updateHeaderTotalsUI();
       alert(`Added Box Slot #${nextNum} to ${storeProfile.name}. Total active boxes: ${boxes.length}`);
-    }
-
-   function removeBoxSlot() {
-      if (boxes.length <= 1) {
-        alert('You must keep at least 1 box slot active.');
-        return;
-      }
-      boxes.pop();
-      saveBoxesState(); // Saves specifically to active store's storage key
-      renderDispenserGrid();
-      renderAdminBoxLabelsGrid();
-      updateHeaderTotalsUI();
-      alert(`Removed box slot successfully from ${storeProfile.name}. Total active boxes: ${boxes.length}`);
     }
 
     function removeBoxSlot() {
@@ -3204,12 +3204,9 @@ function addBoxSlot() {
       renderDispenserGrid();
       renderAdminBoxLabelsGrid();
       updateHeaderTotalsUI();
-      alert(`Removed box slot successfully. Total active boxes: ${boxes.length}`);
+      alert(`Removed box slot successfully from ${storeProfile.name}. Total active boxes: ${boxes.length}`);
     }
-    
-    /* ==========================================================================
-       21b. DISPENSER BOX NUMBER & LETTER CONFIGURATION (SETUP / GAMES TAB)
-       ========================================================================== */
+
     function renderAdminBoxLabelsGrid() {
       const container = document.getElementById('admin-box-labels-grid');
       if (!container) return;
@@ -3235,7 +3232,8 @@ function addBoxSlot() {
                 class="w-full text-center font-mono font-black text-xs border border-slate-300 rounded py-1 px-1.5 bg-white lotto-input"
               />
             </div>
-            <div class="text-[10px] text-slate-600 truncate font-medium" title="${gameLabel}">
+            <div class="text-[10px
+] text-slate-600 truncate font-medium" title="${gameLabel}">
               ${gameLabel}
             </div>
           </div>
@@ -3335,7 +3333,8 @@ function addBoxSlot() {
               </span>
             </div>
 
-            <div style="font-size: 7.2px; line-height: 1.1; margin: 1px 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+         
+   <div style="font-size: 7.2px; line-height: 1.1; margin: 1px 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
               <strong>#${box.gameNum || '-'}</strong> ${hasGame ? (box.gameName || '') : '<span style="color:#94a3b8;">Empty</span>'}
             </div>
 
@@ -3418,7 +3417,8 @@ function addBoxSlot() {
             ${boxCardsHtml}
           </div>
 
-          <!-- 3. BOTTOM SECTION: TOTALS, FINANCIALS, CASHIER SIGNATURE & LEGAL CERTIFICATION -->
+          <!-- 3.
+ BOTTOM SECTION: TOTALS, FINANCIALS, CASHIER SIGNATURE & LEGAL CERTIFICATION -->
           <div style="border: 1.5px solid #000; padding: 4px 6px; background: #f8fafc;">
             <!-- Financial Reconciliation Grid -->
             <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; border-bottom: 1px solid #94a3b8; padding-bottom: 3px; margin-bottom: 3px; text-align: center; font-size: 8px;">
@@ -3470,7 +3470,8 @@ function addBoxSlot() {
       const cashierOut = document.getElementById('rec-cashier-out')?.value?.trim() || '____________________';
 
       printContainer.innerHTML = buildMatrixPrintHTML({
-        storeName: storeProfile.name,
+        storeName: store
+Profile.name,
         storeNumber: storeProfile.number,
         date: reportDate,
         shiftType: shiftType,
@@ -3571,7 +3572,8 @@ function addBoxSlot() {
         sumVar += v;
 
         return `
-          <tr style="border-bottom:1px solid #cbd5e1; font-size:9px;">
+       
+   <tr style="border-bottom:1px solid #cbd5e1; font-size:9px;">
             <td style="padding:4px; text-align:center; font-family:monospace;">${r.date}</td>
             <td style="padding:4px; font-weight:700;">${r.shiftType}</td>
             <td style="padding:4px;">${r.cashierOut || '-'}</td>
@@ -3643,7 +3645,8 @@ function addBoxSlot() {
             <div><div style="font-weight:700; color:#475569;">Total Tickets</div><div style="font-family:monospace; font-weight:900; font-size:12px;">${sumTickets}</div></div>
             <div><div style="font-weight:700; color:#475569;">Scratch Sales</div><div style="font-family:monospace; font-weight:900; font-size:12px;">$${sumScratch.toFixed(2)}</div></div>
             <div><div style="font-weight:700; color:#475569;">Expected Net</div><div style="font-family:monospace; font-weight:900; font-size:12px;">$${sumExpected.toFixed(2)}</div></div>
-            <div><div style="font-weight:700; color:#475569;">POS Actual</div><div style="font-family:monospace; font-weight:900; font-size:12px;">$${sumPos.toFixed(2)}</div></div>
+            <div><div style="font-weight:700; color:#475569;">POS Actual</div><div style="font-family:monospace; font-weight:900; font-size:12px;">$${sumPos.toFixed(
+2)}</div></div>
             <div><div style="font-weight:700; color:#475569;">Net Variance</div><div style="font-family:monospace; font-weight:900; font-size:12px;">${sumVar > 0 ? '+' : ''}$${sumVar.toFixed(2)}</div></div>
           </div>
 
