@@ -1931,7 +1931,7 @@ function updateBoxFieldDirect(idx, field, val) {
       finalizeRolloverAction(idx, newGameNum);
     }
 
-    // Finalizes calculations, logs old pack sold, and loads new roll
+// Finalizes calculations, logs old pack sold, and loads new roll
     function finalizeRolloverAction(idx, finalGameNum) {
       const box = boxes[idx];
       const pendingEnd = document.getElementById('modal-roll-pending-end').value;
@@ -1945,6 +1945,7 @@ function updateBoxFieldDirect(idx, field, val) {
       if (!Array.isArray(box.rollovers)) box.rollovers = [];
       box.rollovers.push({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toISOString().slice(0, 10),
         gameNum: box.gameNum,
         gameName: box.gameName,
         price: price,
