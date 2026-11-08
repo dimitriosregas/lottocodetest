@@ -1691,6 +1691,8 @@ function getDefaultRollCountForPrice(price) {
       recalculateReconciliationTotals();
     }
 
+    
+
     // Called on keystroke: updates data & totals in memory without redrawing inputs or triggering alerts
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
@@ -1700,58 +1702,17 @@ function getDefaultRollCountForPrice(price) {
       const price = Number(box.price) || 0;
       const rollCount = Number(box.rollCount) || getDefaultRollCountForPrice(price);
 
-      // Trigger automatic rollover if they type a number lower than the start number
+// Live End Ticket handler without confusing browser popups
+    function updateBoxEndTicketLive(idx, val) {
+      if (!boxes[idx]) return;
+      const box = boxes[idx];
+      const newEnd = val === '' ? '' : Number(val);
+      const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
+
+      // If user typed an end ticket number lower than the start ticket, open the Yes/No dialog
       if (newEnd !== '' && newEnd < start) {
-        const confirmRollover = confirm(
-          `Rollover detected on Box ${box.boxNumber}!\nEnd ticket (${newEnd}) is lower than start ticket (${start}).\n\nDid you start a new pack on this box?`
-        );
-
-        if (confirmRollover) {
-          const maxTicket = Math.max(0, rollCount - 1);
-          const oldPackSold = Math.max(0, (maxTicket + 1) - start);
-          const oldPackSales = oldPackSold * price;
-
-          if (!Array.isArray(box.rollovers)) box.rollovers = [];
-          box.rollovers.push({
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            gameNum: box.gameNum,
-            gameName: box.gameName,
-            price: price,
-            startTicket: start,
-            endTicket: maxTicket,
-            ticketsSold: oldPackSold,
-            salesAmount: oldPackSales
-          });
-
-          const isSameGame = confirm(`Is this new roll the EXACT SAME GAME (#${box.gameNum} - ${box.gameName})?\n\nClick OK for YES (Same Game)\nClick Cancel for NO (New Game)`);
-          
-          if (!isSameGame) {
-            const newGameNum = prompt("Enter the NEW Game Number:", "");
-            if (newGameNum !== null && newGameNum.trim() !== "") {
-              box.gameNum = newGameNum.trim();
-              const matched = masterGames.find(g => String(g.gameNum).trim() === box.gameNum);
-              if (matched) {
-                box.gameName = matched.name;
-                box.price = Number(matched.price);
-                box.rollCount = Number(matched.count);
-                box.needsNewGameEntry = false;
-              } else {
-                box.gameName = "";
-                box.price = 0;
-                box.needsNewGameEntry = true;
-              }
-            }
-          }
-
-          box.startTicket = 0;
-          box.endTicket = newEnd;
-          box.rollsReplaced = (Number(box.rollsReplaced) || 0) + 1;
-
-          saveBoxesState();
-          renderDispenserGrid();
-          recalculateReconciliationTotals();
-          return;
-        }
+        openRolloverDecisionModal(idx, newEnd);
+        return;
       }
 
       box.endTicket = newEnd;
@@ -1759,6 +1720,181 @@ function getDefaultRollCountForPrice(price) {
       updateBoxMetricsDisplay(idx);
       updateHeaderTotalsUI();
       recalculateReconciliationTotals();
+    }
+       12. NON-BLOCKING LIVE INPUT HANDLERS (SOLVES ISSUE #1)
+       ========================================================================== */
+    function updateBoxFieldDirect(idx, field, val) {
+      if (!boxes[idx]) return;
+      boxes[idx][field] = val === '' ? '' : val;
+      saveBoxesState();
+
+      if (field === 'gameNum') {
+        const found = masterGames.find(g => String(g.gameNum).trim() === String(val).trim());
+        if (found) {
+          boxes[idx].gameName = found.name;
+          boxes[idx].price = Number(found.price);
+          boxes[idx].rollCount = Number(found.count);
+          boxes[idx].needsNewGameEntry = false;
+        } else if (val.trim() !== '') {
+          boxes[idx].needsNewGameEntry = true;
+        } else {
+          boxes[idx].gameName = '';
+          boxes[idx].price = 0;
+          boxes[idx].needsNewGameEntry = false;
+        }
+        saveBoxesState();
+        renderDispenserGrid();
+        recalculateReconciliationTotals();
+        return;
+      }
+
+      if (field === 'startTicket') {
+        boxes[idx].startTicket = val === '' ? 0 : Number(val);
+        saveBoxesState();
+        updateBoxMetricsDisplay(idx);
+        updateHeaderTotalsUI();
+        recalculateReconciliationTotals();
+        return;
+      }
+
+      updateBoxMetricsDisplay(idx);
+      updateHeaderTotalsUI();
+      recalculateReconciliationTotals();
+    }
+    // Manual 'Roll' button on the card
+    function rollNewPackInBox(idx) {
+      const box = boxes[idx];
+      if (!box || !box.gameNum) {
+        alert('Please assign a game number to this box before recording a rollover.');
+        return;
+      }
+      openRolloverDecisionModal(idx, '');
+    }
+
+    // Opens the new Yes/No Rollover Modal
+    function openRolloverDecisionModal(idx, typedEndValue) {
+      const box = boxes[idx];
+      if (!box) return;
+
+      document.getElementById('modal-roll-box-idx').value = idx;
+      document.getElementById('modal-roll-pending-end').value = typedEndValue !== undefined ? typedEndValue : '';
+
+      document.getElementById('modal-rollover-title').textContent = `Box ${box.boxNumber}: ${box.gameName || 'Game #' + box.gameNum}`;
+      
+      const msgElem = document.getElementById('modal-roll-step1-msg');
+      if (typedEndValue !== '') {
+        msgElem.innerHTML = `You typed ticket <strong>#${typedEndValue}</strong>, which is lower than the start ticket (<strong>#${box.startTicket}</strong>).<br><br>Did you finish the previous pack and start a new roll?`;
+      } else {
+        msgElem.innerHTML = `Do you want to finish the current pack in <strong>Box ${box.boxNumber}</strong> and load a new roll starting at #0?`;
+      }
+
+      document.getElementById('modal-roll-step-1').classList.remove('hidden');
+      document.getElementById('modal-roll-step-2').classList.add('hidden');
+      document.getElementById('modal-roll-newgame-section').classList.add('hidden');
+
+      document.getElementById('modal-box-rollover').classList.remove('hidden');
+    }
+
+    // Step 1: User answered Yes or No
+    function handleRolloverStep1Answer(isYes) {
+      const idx = Number(document.getElementById('modal-roll-box-idx').value);
+      if (isNaN(idx) || !boxes[idx]) {
+        cancelRolloverModal();
+        return;
+      }
+
+      if (!isYes) {
+        // User clicked "No, Typo": do not rollover, keep what was there
+        cancelRolloverModal();
+        renderDispenserGrid();
+        return;
+      }
+
+      // User clicked "Yes, Started New Roll": advance to Step 2 (Same Game vs New Game)
+      document.getElementById('modal-roll-step-1').classList.add('hidden');
+      document.getElementById('modal-roll-step-2').classList.remove('hidden');
+    }
+
+    // Step 2: User chose Same Game vs Different Game
+    function handleRolloverGameChoice(isSameGame) {
+      const idx = Number(document.getElementById('modal-roll-box-idx').value);
+      if (isNaN(idx) || !boxes[idx]) return;
+
+      if (isSameGame) {
+        finalizeRolloverAction(idx, boxes[idx].gameNum);
+      } else {
+        // Show input to enter/search the new game number
+        const sec = document.getElementById('modal-roll-newgame-section');
+        sec.classList.remove('hidden');
+        const inp = document.getElementById('modal-roll-newgame-input');
+        inp.value = '';
+        inp.focus();
+      }
+    }
+
+    // User entered a new game # and clicked Apply
+    function applyRolloverWithNewGame() {
+      const idx = Number(document.getElementById('modal-roll-box-idx').value);
+      const newGameNum = document.getElementById('modal-roll-newgame-input').value.trim();
+      if (!newGameNum) {
+        alert('Please enter a Game Number.');
+        return;
+      }
+      finalizeRolloverAction(idx, newGameNum);
+    }
+
+    // Finalizes calculations, logs old pack sold, and loads new roll
+    function finalizeRolloverAction(idx, finalGameNum) {
+      const box = boxes[idx];
+      const pendingEnd = document.getElementById('modal-roll-pending-end').value;
+      const price = Number(box.price) || 0;
+      const rollCount = Number(box.rollCount) || getDefaultRollCountForPrice(price);
+      const maxTicket = Math.max(0, rollCount - 1);
+      const start = Number(box.startTicket) || 0;
+      const oldPackSold = Math.max(0, (maxTicket + 1) - start);
+      const oldPackSales = oldPackSold * price;
+
+      if (!Array.isArray(box.rollovers)) box.rollovers = [];
+      box.rollovers.push({
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        gameNum: box.gameNum,
+        gameName: box.gameName,
+        price: price,
+        startTicket: start,
+        endTicket: maxTicket,
+        ticketsSold: oldPackSold,
+        salesAmount: oldPackSales
+      });
+
+      // Update game assignment if changed
+      if (finalGameNum !== box.gameNum) {
+        box.gameNum = finalGameNum;
+        const matched = masterGames.find(g => String(g.gameNum).trim() === finalGameNum);
+        if (matched) {
+          box.gameName = matched.name;
+          box.price = Number(matched.price);
+          box.rollCount = Number(matched.count);
+          box.needsNewGameEntry = false;
+        } else {
+          box.gameName = '';
+          box.price = 0;
+          box.needsNewGameEntry = true;
+        }
+      }
+
+      box.startTicket = 0;
+      box.endTicket = pendingEnd !== '' ? Number(pendingEnd) : '';
+      box.rollsReplaced = (Number(box.rollsReplaced) || 0) + 1;
+
+      saveBoxesState();
+      cancelRolloverModal();
+      renderDispenserGrid();
+      recalculateReconciliationTotals();
+    }
+
+    // Closes and resets the modal
+    function cancelRolloverModal() {
+      document.getElementById('modal-box-rollover').classList.add('hidden');
     }
     // Called when tabbing or tapping away from the End Ticket input
     function handleEndTicketBlur(idx) {
