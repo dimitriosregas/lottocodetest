@@ -1316,7 +1316,6 @@ function getDefaultRollCountForPrice(price) {
       populateLocationSwitcherDropdown();
     }
 
-    // PASTE THIS UPDATED FUNCTION:
     function loadActiveStoreData() {
       // 1. Load active location profile
       const profKey = getStoreProfileStorageKey(activeLocationId);
@@ -1369,7 +1368,7 @@ function getDefaultRollCountForPrice(price) {
       if (badgeElem) badgeElem.textContent = String(boxes.length);
       if (bElem) bElem.textContent = String(boxes.length);
     }
-
+   
       // Ensure 40 boxes exist and data fields are valid
       if (boxes.length < 40) {
         for (let i = boxes.length + 1; i <= 40; i++) {
@@ -3182,13 +3181,13 @@ function addBoxSlot() {
       alert(`Added Box Slot #${nextNum} to ${storeProfile.name}. Total active boxes: ${boxes.length}`);
     }
 
-    function removeBoxSlot() {
+   function removeBoxSlot() {
       if (boxes.length <= 1) {
         alert('You must keep at least 1 box slot active.');
         return;
       }
       boxes.pop();
-      saveBoxesState(); // Saves to activeLocationId key
+      saveBoxesState(); // Saves specifically to active store's storage key
       renderDispenserGrid();
       renderAdminBoxLabelsGrid();
       updateHeaderTotalsUI();
