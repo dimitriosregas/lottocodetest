@@ -1412,66 +1412,26 @@ function saveActiveStoreProfile() {
       if (adminEmail) adminEmail.value = storeProfile.email || '';
       if (adminPass) adminPass.value = storeProfile.password || '';
 
-   // ============================================================================
-// LOCATION ISOLATION & STORAGE LOGIC
-// ============================================================================
-
-// 1. Generate store-specific storage key
-function getStoreBoxesStorageKey(locId) {
-    return `project_lotto_boxes_${locId}`;
-}
-
-// 2. Load boxes specifically for the active location
-function loadActiveStoreBoxes() {
-    const key = getStoreBoxesStorageKey(activeLocationId);
-    try {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                boxes = parsed;
-                return;
-            }
+      // 2. Load active location boxes INDEPENDENTLY per store ID
+      const boxKey = getStoreBoxesStorageKey(activeLocationId);
+      try {
+        const bRaw = localStorage.getItem(boxKey);
+        if (bRaw) {
+          const parsedBoxes = JSON.parse(bRaw);
+          if (Array.isArray(parsedBoxes) && parsedBoxes.length > 0) {
+            boxes = parsedBoxes;
+          } else {
+            boxes = createDefault40Boxes();
+          }
+        } else {
+          boxes = createDefault40Boxes();
         }
-    } catch (e) {
-        console.warn('Error loading boxes for location:', activeLocationId, e);
-    }
-    // Fallback to fresh 40-box matrix if none saved for this store yet
-    boxes = createDefault40Boxes();
-}
-
-// 3. Save boxes specifically under the active location key
-function saveActiveStoreBoxes() {
-    const key = getStoreBoxesStorageKey(activeLocationId);
-    try {
-        localStorage.setItem(key, JSON.stringify(boxes));
-    } catch (e) {
-        console.warn('Error saving boxes for location:', activeLocationId, e);
-    }
-}
-
-// 4. Handle switching locations safely without bleeding data
-function handleLocationSwitch(newLocId) {
-    if (!newLocId || newLocId === activeLocationId) return;
-    
-    // Save current location's boxes before switching away
-    saveActiveStoreBoxes();
-    
-    // Update active location state
-    activeLocationId = newLocId;
-    localStorage.setItem(STORAGE_KEY_ACTIVE_LOC, activeLocationId);
-    
-    // Load the new location's unique boxes and update UI
-    loadActiveStoreBoxes();
-    renderDispenserGrid();
-    
-    if (typeof recalculateReconciliationTotals === 'function') {
-        recalculateReconciliationTotals();
-    }
-}
-
-// 5. INITIALIZE: Load the active location's boxes right now
-loadActiveStoreBoxes();
+      } catch (e) {
+        boxes = createDefault40Boxes();
+      }
+      if (!Array.isArray(boxes) || boxes.length === 0) {
+        boxes = createDefault40Boxes();
+      }
 
       // 3. Update Header & Footer Displays
       const subTitle = document.getElementById('header-store-subtitle');
@@ -1866,15 +1826,18 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       };
     }
 
-/* ==========================================================================
-      12. NON-BLOCKING LIVE INPUT HANDLERS (SOLVES ISSUE #1)
-      ========================================================================== */
+    /* ==========================================================================
+       12. NON-BLOCKING LIVE INPUT HANDLERS (SOLVES ISSUE #1)
+       ========================================================================== */
     function updateBoxFieldDirect(idx, field, val) {
       if (!boxes[idx]) return;
       boxes[idx][field] = val === '' ? '' : val;
-      
-      // CALL THE NEW ISOLATED SAVE FUNCTION HERE:
-      saveActiveStoreBoxes();
+      saveBoxesState();
+
+function updateBoxFieldDirect(idx, field, val) {
+      if (!boxes[idx]) return;
+      boxes[idx][field] = val === '' ? '' : val;
+      saveBoxesState();
 
       if (field === 'gameNum') {
         const found = masterGames.find(g => String(g.gameNum).trim() === String(val).trim());
@@ -1890,10 +1853,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
           boxes[idx].price = 0;
           boxes[idx].needsNewGameEntry = false;
         }
-        
-        // AND CALL IT HERE:
-        saveActiveStoreBoxes();
-        
+        saveBoxesState();
         renderDispenserGrid();
         recalculateReconciliationTotals();
         return;
