@@ -1778,6 +1778,11 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       boxes[idx][field] = val === '' ? '' : val;
       saveBoxesState();
 
+function updateBoxFieldDirect(idx, field, val) {
+      if (!boxes[idx]) return;
+      boxes[idx][field] = val === '' ? '' : val;
+      saveBoxesState();
+
       if (field === 'gameNum') {
         const found = masterGames.find(g => String(g.gameNum).trim() === String(val).trim());
         if (found) {
@@ -1785,7 +1790,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
           boxes[idx].price = Number(found.price);
           boxes[idx].rollCount = Number(found.count);
           boxes[idx].needsNewGameEntry = false;
-        } else if (val.trim() !== '') {
+        } else if (String(val).trim() !== '') {
           boxes[idx].needsNewGameEntry = true;
         } else {
           boxes[idx].gameName = '';
@@ -1798,6 +1803,18 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         return;
       }
 
+      if (field === 'startTicket') {
+        boxes[idx].startTicket = val === '' ? 0 : Number(val);
+        saveBoxesState();
+        updateBoxMetricsDisplay(idx);
+        updateHeaderTotalsUI();
+        recalculateReconciliationTotals();
+        return;
+      }
+      updateBoxMetricsDisplay(idx);
+      updateHeaderTotalsUI();
+      recalculateReconciliationTotals();
+    }    
       if (field === 'startTicket') {
         boxes[idx].startTicket = val === '' ? 0 : Number(val);
         saveBoxesState();
