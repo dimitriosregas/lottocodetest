@@ -3469,8 +3469,7 @@ function addBoxSlot() {
       const cashierOut = document.getElementById('rec-cashier-out')?.value?.trim() || '____________________';
 
       printContainer.innerHTML = buildMatrixPrintHTML({
-        storeName: store
-Profile.name,
+        storeName: storeProfile.name,
         storeNumber: storeProfile.number,
         date: reportDate,
         shiftType: shiftType,
