@@ -747,10 +747,10 @@
             </p>
           </div>
 
-          <!-- Active Store Profile Configuration -->
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <h3 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider">Active Store Information</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<!-- Active Store Profile Configuration & Box Count Manager -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Active Store Profile &amp; Box Inventory Sizing</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
               <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Store / Location Name</label>
                 <input
@@ -769,7 +769,7 @@
                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold bg-white"
                 />
               </div>
-              <div class="flex items-end">
+              <div>
                 <button
                   type="button"
                   onclick="saveActiveStoreProfile()"
@@ -779,7 +779,34 @@
                 </button>
               </div>
             </div>
-          </div>
+
+            <!-- Dynamic Add / Remove Boxes Control Strip -->
+            <div class="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-extrabold text-slate-800">Dispenser Box Quantity Control</div>
+                <div class="text-[11px] text-slate-500">Add or remove dispenser slots dynamically for this store location.</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-700">Active Boxes: <strong id="admin-box-count-badge" class="font-mono text-blue-700 text-sm">40</strong></span>
+                <button
+                  type="button"
+                  onclick="removeBoxSlot()"
+                  class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-1.5 rounded transition"
+                  title="Remove last box slot"
+                >
+                  − Remove Box
+                </button>
+                <button
+                  type="button"
+                  onclick="addBoxSlot()"
+                  class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded transition shadow-sm"
+                  title="Add a new box slot"
+                >
+                  + Add Box Slot
+                </button>
+              </div>
+            </div>
+          </div> 
 
           <!-- Photo OCR Game Scanner & Quick Game Add Toolbar -->
           <div id="owner-game-sync-bar" class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -3115,6 +3142,39 @@ function getDefaultRollCountForPrice(price) {
       `).join('');
     }
 
+    // Dynamic Box Adding / Removing Functions
+    function addBoxSlot() {
+      const nextNum = boxes.length + 1;
+      boxes.push({
+        boxNumber: String(nextNum),
+        gameNum: '',
+        gameName: '',
+        price: 0,
+        rollCount: 60,
+        startTicket: 0,
+        endTicket: '',
+        rollovers: [],
+        needsNewGameEntry: false
+      });
+      saveBoxesState();
+      renderDispenserGrid();
+      renderAdminBoxLabelsGrid();
+      updateHeaderTotalsUI();
+      alert(`Added Box Slot #${nextNum}. Total active boxes: ${boxes.length}`);
+    }
+
+    function removeBoxSlot() {
+      if (boxes.length <= 1) {
+        alert('You must keep at least 1 box slot active.');
+        return;
+      }
+      boxes.pop();
+      saveBoxesState();
+      renderDispenserGrid();
+      renderAdminBoxLabelsGrid();
+      updateHeaderTotalsUI();
+      alert(`Removed box slot successfully. Total active boxes: ${boxes.length}`);
+    }
     
     /* ==========================================================================
        21b. DISPENSER BOX NUMBER & LETTER CONFIGURATION (SETUP / GAMES TAB)
