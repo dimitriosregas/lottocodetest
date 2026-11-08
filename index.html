@@ -2435,7 +2435,36 @@ const syncInd = document.getElementById('cloud-sync-indicator');
     function closeMultiStoreManagerModal() {
       document.getElementById('modal-multi-store').classList.add('hidden');
     }
-
+function exportSpecificLocationBackup(locId) {
+      const locObj = locations.find(l => l.id === locId) || { id: locId, name: storeProfile.name, number: storeProfile.number };
+      let locBoxes = [];
+      let locHistory = [];
+      try {
+        locBoxes = JSON.parse(localStorage.getItem(getStoreBoxesStorageKey(locId)) || '[]');
+      } catch (e) {}
+      try {
+        locHistory = JSON.parse(localStorage.getItem(getStoreHistoryStorageKey(locId)) || '[]');
+      } catch (e) {}
+      
+      const payload = {
+        backupVersion: '2.0',
+        exportedAt: new Date().toISOString(),
+        locationId: locId,
+        storeProfile: { name: locObj.name, number: locObj.number },
+        boxes: locBoxes.length > 0 ? locBoxes : boxes,
+        masterGames: sanitizeMasterGamesList(masterGames),
+        historicalReports: locHistory
+      };
+      
+      const safeName = (locObj.name || 'store').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute('href', dataStr);
+      a.setAttribute('download', `LottoBackup_${safeName}_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
     function renderMultiStoreModalList() {
       const tbody = document.getElementById('multi-store-list-tbody');
       if (!tbody) return;
