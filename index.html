@@ -1330,8 +1330,7 @@ _lotto_profile_${locId}`;
       loadActiveStoreData();
       populateLocationSwitcherDropdown();
     }
-
-        function loadActiveStoreData() {
+function loadActiveStoreData() {
       // 1. Load active location profile
       const profKey = getStoreProfileStorageKey(activeLocationId);
       const activeLocObj = locations.find(l => l.id === activeLocationId);
@@ -1392,17 +1391,15 @@ _lotto_profile_${locId}`;
       }
     }
 
-        function saveBoxesState() {
+    function saveBoxesState() {
       try {
         localStorage.setItem(getStoreBoxesStorageKey(activeLocationId), JSON.stringify(boxes));
       } catch (e) {
         console.error('Error saving boxes state:', e);
       }
     }
-
-    function saveActiveStoreProfile() {
-      const nameInp = document.getElementById('a
-dmin-store-name')?.value?.trim();
+function saveActiveStoreProfile() {
+      const nameInp = document.getElementById('admin-store-name')?.value?.trim();
       const numInp = document.getElementById('admin-store-number')?.value?.trim();
       if (!nameInp) {
         alert('Please enter a valid store location name.');
@@ -3172,9 +3169,7 @@ amesState();
       `).join('');
     }
 
-    // Dynamic Box Adding / Removing Functions
-    // Dynamic Box Adding / Removing Functions
-    function addBoxSlot() {
+function addBoxSlot() {
       const nextNum = boxes.length + 1;
       boxes.push({
         boxNumber: String(nextNum),
@@ -3187,10 +3182,15 @@ amesState();
         rollovers: [],
         needsNewGameEntry: false
       });
+      
       saveBoxesState();
       renderDispenserGrid();
       renderAdminBoxLabelsGrid();
       updateHeaderTotalsUI();
+      
+      const badgeElem = document.getElementById('admin-box-count-badge');
+      if (badgeElem) badgeElem.textContent = String(boxes.length);
+      
       alert(`Added Box Slot #${nextNum} to ${storeProfile.name}. Total active boxes: ${boxes.length}`);
     }
 
@@ -3200,10 +3200,15 @@ amesState();
         return;
       }
       boxes.pop();
+      
       saveBoxesState();
       renderDispenserGrid();
       renderAdminBoxLabelsGrid();
       updateHeaderTotalsUI();
+      
+      const badgeElem = document.getElementById('admin-box-count-badge');
+      if (badgeElem) badgeElem.textContent = String(boxes.length);
+      
       alert(`Removed box slot successfully from ${storeProfile.name}. Total active boxes: ${boxes.length}`);
     }
 
