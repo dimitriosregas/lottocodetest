@@ -1819,8 +1819,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       const newEnd = val === '' ? '' : Number(val);
       const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
 
-      // If user typed an end ticket number 
-lower than the start ticket, open the Yes/No dialog
+// If user typed an end ticket number lower than the start ticket, open the Yes/No dialog
       if (newEnd !== '' && newEnd < start) {
         openRolloverDecisionModal(idx, newEnd);
         return;
