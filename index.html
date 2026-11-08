@@ -1606,11 +1606,10 @@ function saveActiveStoreProfile() {
           renderDispenserGrid();
         }
 
-        const syncInd = document.getElementById('cloud-sync-indicator');
+const syncInd = document.getElementById('cloud-sync-indicator');
         if (syncInd) {
           syncInd.textContent = '● Cloud Synced';
-          syncInd.className = 't
-ext-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600/50';
+          syncInd.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600/50';
         }
       } catch (e) {
         console.warn('Live Cloud Sync offline or unreachable. Using local storage.', e);
