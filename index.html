@@ -860,7 +860,45 @@
             </div>
           </div>
 
-          <!-- Master Games List Table -->
+          
+          <!-- 40-Dispenser Box Slot & Label Configuration (Option 2) -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3 mb-4">
+              <div>
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                  40-Box Dispenser Slot &amp; Label Configuration
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                  Customize box numbers or letters (e.g. 1–40, A–Z, or custom bin names) for each dispenser slot.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  onclick="setBoxLabelsSequential('numbers')"
+                  class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-2.5 py-1.5 rounded transition"
+                  title="Reset all 40 slots to Numbers 1 - 40"
+                >
+                  🔢 Set 1–40
+                </button>
+                <button
+                  type="button"
+                  onclick="setBoxLabelsSequential('letters')"
+                  class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-2.5 py-1.5 rounded transition"
+                  title="Set slots to letters (A, B, C...)"
+                >
+                  🔤 Set A–Z
+                </button>
+              </div>
+            </div>
+
+            <!-- Responsive 40-Slot Label Grid -->
+            <div id="admin-box-labels-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-2.5 max-h-96 overflow-y-auto p-1">
+              <!-- Rendered dynamically by renderAdminBoxLabelsGrid() -->
+            </div>
+          </div>
+
+<!-- Master Games List Table -->
           <div class="border border-slate-200 rounded-xl overflow-hidden">
             <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
               <h3 class="text-xs font-extrabold uppercase text-slate-800 tracking-wider">
@@ -3077,7 +3115,76 @@ function getDefaultRollCountForPrice(price) {
       `).join('');
     }
 
+    
     /* ==========================================================================
+       21b. DISPENSER BOX NUMBER & LETTER CONFIGURATION (SETUP / GAMES TAB)
+       ========================================================================== */
+    function renderAdminBoxLabelsGrid() {
+      const container = document.getElementById('admin-box-labels-grid');
+      if (!container) return;
+
+      let html = '';
+      boxes.forEach((box, idx) => {
+        const hasGame = Boolean(box.gameNum);
+        const gameLabel = hasGame ? (box.gameName || 'Game #' + box.gameNum) : 'Empty Slot';
+        html += `
+          <div class="border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col justify-between text-xs">
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-bold mb-1">
+              <span>Slot #${idx + 1}</span>
+              <span class="text-emerald-700 font-mono">${hasGame && box.price ? '$' + box.price : ''}</span>
+            </div>
+            <div class="mb-1.5">
+              <label class="block text-[9px] uppercase font-bold text-slate-600 mb-0.5">Box Label</label>
+              <input
+                type="text"
+                id="admin-box-label-${idx}"
+                value="${box.boxNumber !== undefined && box.boxNumber !== null ? box.boxNumber : (idx + 1)}"
+                placeholder="${idx + 1}"
+                oninput="updateBoxLabelDirect(${idx}, this.value)"
+                class="w-full text-center font-mono font-black text-xs border border-slate-300 rounded py-1 px-1.5 bg-white lotto-input"
+              />
+            </div>
+            <div class="text-[10px] text-slate-600 truncate font-medium" title="${gameLabel}">
+              ${gameLabel}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function updateBoxLabelDirect(idx, val) {
+      if (!boxes[idx]) return;
+      boxes[idx].boxNumber = val === '' ? String(idx + 1) : String(val).trim();
+      saveBoxesState();
+      renderDispenserGrid();
+    }
+
+    function setBoxLabelsSequential(mode) {
+      if (!confirm(`Are you sure you want to reset all 40 box labels to ${mode === 'letters' ? 'Letters (A, B, C...)' : 'Numbers (1 to 40)'}?`)) {
+        return;
+      }
+
+      boxes.forEach((box, idx) => {
+        if (mode === 'numbers') {
+          box.boxNumber = String(idx + 1);
+        } else if (mode === 'letters') {
+          if (idx < 26) {
+            box.boxNumber = String.fromCharCode(65 + idx); // A through Z
+          } else {
+            const second = idx - 26;
+            box.boxNumber = 'A' + String.fromCharCode(65 + second); // AA, AB, AC...
+          }
+        }
+      });
+
+      saveBoxesState();
+      renderAdminBoxLabelsGrid();
+      renderDispenserGrid();
+    }
+
+/* ==========================================================================
        22. MAIN VIEW NAVIGATION SWITCHER
        ========================================================================== */
     function switchMainView(viewName) {
@@ -3104,6 +3211,7 @@ function getDefaultRollCountForPrice(price) {
         executeReportLookup();
       } else if (viewName === 'admin') {
         renderAdminGamesTable();
+        renderAdminBoxLabelsGrid();
       }
     }
 /* ==========================================================================
@@ -3491,6 +3599,7 @@ function getDefaultRollCountForPrice(price) {
       // 3. Render Main 40-Box Grid, Admin Table & Reconciliation Draft
       renderDispenserGrid();
       renderAdminGamesTable();
+      renderAdminBoxLabelsGrid();
       loadReconciliationDraft();
       recalculateReconciliationTotals();
       initSignaturePad();
