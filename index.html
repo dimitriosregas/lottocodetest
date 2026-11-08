@@ -1628,7 +1628,6 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         console.warn('Could not push games to cloud worker:', e);
       }
     }
-
     async function scanGameInfoFromPhoto(event) {
       const file = event?.target?.files?.[0];
       if (!file) return;
