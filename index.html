@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     /* ==========================================================================
+    
        1. CORE APPLICATION STYLING & CUSTOM SCROLLBARS
        ========================================================================== */
     :root {
@@ -1501,11 +1502,10 @@ function saveActiveStoreProfile() {
       const file = event?.target?.files?.[0];
       if (!file) return;
 
-      try {
+  try {
         const text = await file.text();
         const incoming = JSON.parse(text);
-        if (!Array.isArray(incoming) || inc
-oming.length === 0) {
+        if (!Array.isArray(incoming) || incoming.length === 0) {
           alert('Invalid games file. Expected a JSON array of games.');
           return;
         }
