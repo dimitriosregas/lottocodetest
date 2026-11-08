@@ -3225,6 +3225,7 @@ t('a');
       window.location.href = `mailto:${ADMIN_NOTIFY_EMAIL}?subject=${subject}&body=${body}`;
     }
     /* ==========================================================================
+    /* ==========================================================================
        21. ADMIN MASTER GAMES TABLE & CRUD HANDLERS
        ========================================================================== */
     function autoSetNewGameRollCount(priceVal) {
@@ -3283,8 +3284,7 @@ t('a');
     function deleteMasterGame(gNum) {
       if (!confirm(`Delete Game #${gNum} from the Master Games Catalog?`)) return;
       masterGames = masterGames.filter(g => String(g.gameNum).trim() !== String(gNum).trim());
-      saveG
-amesState();
+      saveGamesState();
       renderAdminGamesTable();
       pushMasterGamesToCloud();
     }
@@ -3324,7 +3324,7 @@ amesState();
       `).join('');
     }
 
-function addBoxSlot() {
+    function addBoxSlot() {
       const nextNum = boxes.length + 1;
       boxes.push({
         boxNumber: String(nextNum),
@@ -3392,8 +3392,7 @@ function addBoxSlot() {
                 class="w-full text-center font-mono font-black text-xs border border-slate-300 rounded py-1 px-1.5 bg-white lotto-input"
               />
             </div>
-            <div class="text-[10px
-] text-slate-600 truncate font-medium" title="${gameLabel}">
+            <div class="text-[10px] text-slate-600 truncate font-medium" title="${gameLabel}">
               ${gameLabel}
             </div>
           </div>
@@ -3432,7 +3431,6 @@ function addBoxSlot() {
       renderAdminBoxLabelsGrid();
       renderDispenserGrid();
     }
-
 /* ==========================================================================
        22. MAIN VIEW NAVIGATION SWITCHER
        ========================================================================== */
