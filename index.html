@@ -1738,18 +1738,7 @@ function getDefaultRollCountForPrice(price) {
       recalculateReconciliationTotals();
     }
 
-    
-
-    // Called on keystroke: updates data & totals in memory without redrawing inputs or triggering alerts
-    function updateBoxEndTicketLive(idx, val) {
-      if (!boxes[idx]) return;
-      const box = boxes[idx];
-      const newEnd = val === '' ? '' : Number(val);
-      const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
-      const price = Number(box.price) || 0;
-      const rollCount = Number(box.rollCount) || getDefaultRollCountForPrice(price);
-
-// Live End Ticket handler without confusing browser popups
+    // Live End Ticket handler without confusing browser popups
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
       const box = boxes[idx];
@@ -1768,46 +1757,7 @@ function getDefaultRollCountForPrice(price) {
       updateHeaderTotalsUI();
       recalculateReconciliationTotals();
     }
-       12. NON-BLOCKING LIVE INPUT HANDLERS (SOLVES ISSUE #1)
-       ========================================================================== */
-    function updateBoxFieldDirect(idx, field, val) {
-      if (!boxes[idx]) return;
-      boxes[idx][field] = val === '' ? '' : val;
-      saveBoxesState();
 
-      if (field === 'gameNum') {
-        const found = masterGames.find(g => String(g.gameNum).trim() === String(val).trim());
-        if (found) {
-          boxes[idx].gameName = found.name;
-          boxes[idx].price = Number(found.price);
-          boxes[idx].rollCount = Number(found.count);
-          boxes[idx].needsNewGameEntry = false;
-        } else if (val.trim() !== '') {
-          boxes[idx].needsNewGameEntry = true;
-        } else {
-          boxes[idx].gameName = '';
-          boxes[idx].price = 0;
-          boxes[idx].needsNewGameEntry = false;
-        }
-        saveBoxesState();
-        renderDispenserGrid();
-        recalculateReconciliationTotals();
-        return;
-      }
-
-      if (field === 'startTicket') {
-        boxes[idx].startTicket = val === '' ? 0 : Number(val);
-        saveBoxesState();
-        updateBoxMetricsDisplay(idx);
-        updateHeaderTotalsUI();
-        recalculateReconciliationTotals();
-        return;
-      }
-
-      updateBoxMetricsDisplay(idx);
-      updateHeaderTotalsUI();
-      recalculateReconciliationTotals();
-    }
     // Manual 'Roll' button on the card
     function rollNewPackInBox(idx) {
       const box = boxes[idx];
@@ -1943,7 +1893,7 @@ function getDefaultRollCountForPrice(price) {
     function cancelRolloverModal() {
       document.getElementById('modal-box-rollover').classList.add('hidden');
     }
-    // Called when tabbing or tapping away from the End Ticket input
+
     function handleEndTicketBlur(idx) {
       if (!boxes[idx]) return;
       saveBoxesState();
