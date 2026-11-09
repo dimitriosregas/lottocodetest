@@ -1888,12 +1888,6 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       recalculateReconciliationTotals();
     }
 
-      box.endTicket = newEnd;
-      saveBoxesState();
-      updateBoxMetricsDisplay(idx);
-      updateHeaderTotalsUI();
-      recalculateReconciliationTotals();
-    }    
     // Manual 'Roll' button on the card
     function rollNewPackInBox(idx) {
       const box = boxes[idx];
