@@ -2171,7 +2171,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         event.preventDefault();
         const nextIdx = currentIdx + 1;
         if (nextIdx < boxes.length) {
-          const nextInp = document.getElementById(`input-${currentField}-${nextIdx}`);
+          const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
           if (nextInp) {
             nextInp.focus();
             nextInp.select();
@@ -2179,7 +2179,6 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         }
       }
     }
-
     function renderDispenserGrid() {
       const container = document.getElementById('dispenser-grid-container');
       if (!container) return;
