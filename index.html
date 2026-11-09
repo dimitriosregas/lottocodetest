@@ -1867,14 +1867,14 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       }
     }
 
-    // Live End Ticket handler without confusing browser popups
+// Live End Ticket handler: allows equal start/end (0 sold) without false rollovers
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
       const box = boxes[idx];
       const newEnd = val === '' ? '' : Number(val);
       const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
 
-      // If user typed an end ticket number lower than the start ticket, open the Yes/No dialog
+      // Only trigger rollover if typed end is strictly less than start
       if (newEnd !== '' && newEnd < start) {
         openRolloverDecisionModal(idx, newEnd);
         return;
@@ -1885,8 +1885,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       updateBoxMetricsDisplay(idx);
       updateHeaderTotalsUI();
       recalculateReconciliationTotals();
-    }
-
+    }    
     // Manual 'Roll' button on the card
     function rollNewPackInBox(idx) {
       const box = boxes[idx];
@@ -2032,13 +2031,13 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       recalculateReconciliationTotals();
     }
 
-    // Enter key navigation on the grid for rapid data entry
+   // Enter key navigation on the grid for rapid data entry
     function handleGridEnter(event, currentIdx, currentField) {
       if (event.key === 'Enter') {
         event.preventDefault();
         const nextIdx = currentIdx + 1;
-        if (nextIdx < 40) {
-          const nextInp = document.getElementById(`input-${currentField}-${nextIdx}`);
+        if (nextIdx < boxes.length) {
+          const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
           if (nextInp) {
             nextInp.focus();
             nextInp.select();
@@ -2046,7 +2045,6 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         }
       }
     }
-
     // Updates only the text badges inside a card without touching the input elements
     function updateBoxMetricsDisplay(idx) {
       const box = boxes[idx];
@@ -2167,7 +2165,20 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       }
       renderDispenserGrid();
     }
-
+// Fast Input: Jump to next box End # on Enter key
+    function handleGridEnter(event, currentIdx, currentField) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const nextIdx = currentIdx + 1;
+        if (nextIdx < boxes.length) {
+          const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
+          if (nextInp) {
+            nextInp.focus();
+            nextInp.select();
+          }
+        }
+      }
+    }
     function renderDispenserGrid() {
       const container = document.getElementById('dispenser-grid-container');
       if (!container) return;
@@ -2180,8 +2191,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
           const roCount = Array.isArray(box.rollovers) ? box.rollovers.length : 0;
           return `
             <tr style="border-bottom: 1px solid #e2e8f0; background: #fff;" class="hover:bg-slate-50 transition">
-              <td style="padding: 6px 8px; text-align: center; font-weight: 9
-00; background: #0f172a; color: #fff;">${box.boxNumber}</td>
+              <td style="padding: 6px 8px; text-align: center; font-weight: 900; background: #0f172a; color: #fff;">${box.boxNumber}</td>
               <td style="padding: 6px 8px; text-align: center; font-family: monospace; font-weight: bold;">
                 <input type="text" value="${box.gameNum || ''}" onchange="updateBoxFieldDirect(${idx}, 'gameNum', this.value)" placeholder="Game#" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 bg-slate-50 font-mono" />
               </td>
@@ -2193,7 +2203,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
                 <input type="number" value="${box.startTicket !== '' ? box.startTicket : ''}" onchange="updateBoxFieldDirect(${idx}, 'startTicket', this.value)" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 font-mono" />
               </td>
               <td style="padding: 6px 8px; text-align: center; font-family: monospace;">
-                <input type="number" value="${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : ''}" oninput="updateBoxEndTicketLive(${idx}, this.value)" placeholder="End#" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 font-mono font-bold bg-amber-50" />
+                <input type="number" id="input-endTicket-${idx}" value="${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : ''}" oninput="updateBoxEndTicketLive(${idx}, this.value)" onkeydown="handleGridEnter(event, ${idx}, 'endTicket')" placeholder="End#" class="w-16 text-center text-xs border border-slate-300 rounded px-1 py-0.5 font-mono font-bold bg-amber-50" />
               </td>
               <td style="padding: 6px 8px; text-align: center; font-weight: bold;">${m.ticketsSold}${roCount > 0 ? ' *' : ''}</td>
               <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; color: #047857;">$${m.dollarSales.toFixed(2)}</td>
@@ -2228,7 +2238,6 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         `;
         return;
       }
-
       // 2. OTHERWISE, RENDER STANDARD 40-BOX MATRIX GRID VIEW
       let html = '';
 
