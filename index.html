@@ -1868,17 +1868,25 @@ const syncInd = document.getElementById('cloud-sync-indicator');
     }
 
 // Live End Ticket handler: allows equal start/end (0 sold) without false rollovers
+// Live End Ticket handler: allows equal start/end (0 sold) without false rollovers
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
       const box = boxes[idx];
       const newEnd = val === '' ? '' : Number(val);
       const start = box.startTicket !== '' && box.startTicket !== null ? Number(box.startTicket) : 0;
 
-      // Only trigger rollover if typed end is strictly less than start
+      // Only trigger rollover modal if end is strictly LESS than start
       if (newEnd !== '' && newEnd < start) {
         openRolloverDecisionModal(idx, newEnd);
         return;
       }
+
+      box.endTicket = newEnd;
+      saveBoxesState();
+      updateBoxMetricsDisplay(idx);
+      updateHeaderTotalsUI();
+      recalculateReconciliationTotals();
+    }
 
       box.endTicket = newEnd;
       saveBoxesState();
