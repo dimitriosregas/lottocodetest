@@ -2031,12 +2031,13 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       recalculateReconciliationTotals();
     }
 
-   // Enter key navigation on the grid for rapid data entry
+   // Fast Input: Jump strictly to the next box's End # field on Enter key
     function handleGridEnter(event, currentIdx, currentField) {
       if (event.key === 'Enter') {
         event.preventDefault();
         const nextIdx = currentIdx + 1;
         if (nextIdx < boxes.length) {
+          // Explicitly target the End # input element by its ID
           const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
           if (nextInp) {
             nextInp.focus();
@@ -2179,7 +2180,34 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         }
       }
     }
- function renderDispenserGrid() {
+/* ==========================================================================
+       14. 40-BOX DISPENSER MATRIX & LIST VIEW RENDERER
+       ========================================================================== */
+    function toggleDispenserView() {
+      currentDispenserView = currentDispenserView === 'grid' ? 'list' : 'grid';
+      const btn = document.getElementById('dispenser-view-toggle-btn');
+      if (btn) {
+        btn.textContent = currentDispenserView === 'grid' ? '📋 List View' : '🔲 Grid View';
+      }
+      renderDispenserGrid();
+    }
+
+    // Fast Input: Jump to next box End # on Enter key
+    function handleGridEnter(event, currentIdx, currentField) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const nextIdx = currentIdx + 1;
+        if (nextIdx < boxes.length) {
+          const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
+          if (nextInp) {
+            nextInp.focus();
+            nextInp.select();
+          }
+        }
+      }
+    }
+
+    function renderDispenserGrid() {
       const container = document.getElementById('dispenser-grid-container');
       if (!container) return;
 
@@ -2238,6 +2266,126 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         `;
         return;
       }
+
+      // 2. OTHERWISE, RENDER STANDARD 40-BOX MATRIX GRID VIEW
+      let html = '';
+
+      boxes.forEach((box, idx) => {
+        const metrics = calculateBoxMetrics(box);
+        const hasGame = Boolean(box.gameNum);
+        const rollovers = Array.isArray(box.rollovers) ? box.rollovers : [];
+
+        let statusClass = 'status-pending';
+        if (metrics.status === 'complete') statusClass = 'status-complete';
+        else if (metrics.status === 'rollover') statusClass = 'status-rollover';
+
+        html += `
+          <div
+            id="dispenser-card-${idx}"
+            class="dispenser-card bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex flex-col justify-between ${statusClass}"
+          >
+            <!-- Card Header: Box Number & Quick Rollover Indicator -->
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-lg bg-slate-900 text-white font-black text-xs flex items-center justify-center font-mono">
+                  ${box.boxNumber}
+                </span>
+                <div class="leading-tight">
+                  <div class="font-bold text-xs text-slate-800 truncate max-w-[150px]">
+                    ${hasGame ? (box.gameName || 'Game #' + box.gameNum) : '<span class="text-slate-400 italic">Empty Slot</span>'}
+                  </div>
+                  <div class="text-[10px] text-slate-500 font-medium">
+                    ${hasGame ? `$${box.price} • ${box.rollCount} tix/pk` : 'Assign game below'}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Rollover Trigger Button -->
+              <button
+                type="button"
+                onclick="rollNewPackInBox(${idx})"
+                class="text-[11px] font-bold px-2 py-1 rounded transition border ${
+                  rollovers.length > 0
+                    ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
+                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                }"
+                title="Finish pack & rollover to new roll"
+              >
+                ${rollovers.length > 0 ? `★ ${rollovers.length} Rollover` : 'Roll'}
+              </button>
+            </div>
+
+            <!-- Card Middle: Game Number Input & Quick Register Warning -->
+            <div class="space-y-2 mb-2">
+              <div class="flex items-center gap-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase w-12">Game #:</label>
+                <input
+                  type="text"
+                  id="input-gameNum-${idx}"
+                  value="${box.gameNum || ''}"
+                  placeholder="e.g. 1005"
+                  onchange="updateBoxFieldDirect(${idx}, 'gameNum', this.value)"
+                  class="flex-1 text-xs font-mono font-bold border border-slate-300 rounded px-2 py-1 lotto-input bg-slate-50"
+                />
+              </div>
+
+              ${box.needsNewGameEntry ? `
+                <div class="p-1.5 bg-red-50 border border-red-200 rounded text-[10px] text-red-700 flex items-center justify-between">
+                  <span>Unknown Game #</span>
+                  <button
+                    type="button"
+                    onclick="openQuickGameModal(${idx})"
+                    class="font-extrabold underline text-blue-700 hover:text-blue-900"
+                  >
+                    + Register
+                  </button>
+                </div>
+              ` : ''}
+
+              <!-- Start Ticket & End Ticket Inputs -->
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Start #</label>
+                  <input
+                    type="number"
+                    id="input-startTicket-${idx}"
+                    value="${box.startTicket !== undefined ? box.startTicket : 0}"
+                    onchange="updateBoxFieldDirect(${idx}, 'startTicket', this.value)"
+                    placeholder="000"
+                    class="w-full text-center font-mono font-bold text-xs border border-slate-300 rounded p-1.5 lotto-input bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-blue-700 uppercase mb-0.5">End #</label>
+                  <input
+                    type="number"
+                    id="input-endTicket-${idx}"
+                    value="${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : ''}"
+                    oninput="updateBoxEndTicketLive(${idx}, this.value)"
+                    onkeydown="handleGridEnter(event, ${idx}, 'endTicket')"
+                    placeholder="000"
+                    class="w-full text-center font-mono font-bold text-xs border-2 border-blue-400 rounded p-1.5 lotto-input bg-blue-50/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Footer: Calculated Sold Count & Dollar Total -->
+            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200 flex items-center justify-between text-xs mt-1">
+              <span id="box-sold-badge-${idx}" class="font-mono font-bold text-slate-700">
+                ${metrics.ticketsSold} Sold ${rollovers.length > 0 ? '<span class="text-amber-600">*</span>' : ''}
+              </span>
+              <span id="box-sales-badge-${idx}" class="font-mono font-black text-emerald-700">
+                $${metrics.dollarSales.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      updateHeaderTotalsUI();
+    }
 
       // 2. OTHERWISE, RENDER STANDARD 40-BOX MATRIX GRID VIEW
       let html = '';
