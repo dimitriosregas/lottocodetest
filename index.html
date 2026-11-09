@@ -2179,7 +2179,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         }
       }
     }
-    function renderDispenserGrid() {
+ function renderDispenserGrid() {
       const container = document.getElementById('dispenser-grid-container');
       if (!container) return;
 
@@ -2238,6 +2238,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         `;
         return;
       }
+
       // 2. OTHERWISE, RENDER STANDARD 40-BOX MATRIX GRID VIEW
       let html = '';
 
@@ -2250,8 +2251,7 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         if (metrics.status === 'complete') statusClass = 'status-complete';
         else if (metrics.status === 'rollover') statusClass = 'status-rollover';
 
-   
-     html += `
+        html += `
           <div
             id="dispenser-card-${idx}"
             class="dispenser-card bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex flex-col justify-between ${statusClass}"
@@ -2314,6 +2314,50 @@ const syncInd = document.getElementById('cloud-sync-indicator');
                 </div>
               ` : ''}
 
+              <!-- Start Ticket & End Ticket Inputs -->
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Start #</label>
+                  <input
+                    type="number"
+                    id="input-startTicket-${idx}"
+                    value="${box.startTicket !== undefined ? box.startTicket : 0}"
+                    onchange="updateBoxFieldDirect(${idx}, 'startTicket', this.value)"
+                    placeholder="000"
+                    class="w-full text-center font-mono font-bold text-xs border border-slate-300 rounded p-1.5 lotto-input bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-blue-700 uppercase mb-0.5">End #</label>
+                  <input
+                    type="number"
+                    id="input-endTicket-${idx}"
+                    value="${box.endTicket !== '' && box.endTicket !== undefined ? box.endTicket : ''}"
+                    oninput="updateBoxEndTicketLive(${idx}, this.value)"
+                    onkeydown="handleGridEnter(event, ${idx}, 'endTicket')"
+                    placeholder="000"
+                    class="w-full text-center font-mono font-bold text-xs border-2 border-blue-400 rounded p-1.5 lotto-input bg-blue-50/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Footer: Calculated Sold Count & Dollar Total -->
+            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200 flex items-center justify-between text-xs mt-1">
+              <span id="box-sold-badge-${idx}" class="font-mono font-bold text-slate-700">
+                ${metrics.ticketsSold} Sold ${rollovers.length > 0 ? '<span class="text-amber-600">*</span>' : ''}
+              </span>
+              <span id="box-sales-badge-${idx}" class="font-mono font-black text-emerald-700">
+                $${metrics.dollarSales.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      updateHeaderTotalsUI();
+    }
               <!-- Start Ticket & End Ticket Inputs -->
               <div class="grid grid-cols-2 gap-2 pt-1">
                 <div>
