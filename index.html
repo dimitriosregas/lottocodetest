@@ -2642,41 +2642,32 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         endTicket: endVal
       });
 
-      // Check if switching to a new game
-      const found = allMasterGames.find(g => String(g.gameNum).trim() === String(targetGameNum).trim());
-      if (found) {
-        box.gameNum = found.gameNum;
-        box.gameName = found.gameName;
-        box.price = found.price;
-        box.rollCount = found.rollCount;
-        box.needsNewGameEntry = false;
-      } else {
-        box.gameNum = targetGameNum;
-        box.gameName = 'Game #' + targetGameNum;
-        box.needsNewGameEntry = true;
-      }
+cancelRolloverModal();
+    saveBoxesState();
+    renderDispenserGrid();
+    recalculateReconciliationTotals();
+  }
 
-      box.startTicket = 0;
-      box.endTicket = '';
+  /* ==========================================================================
+     18. SHIFT FINANCIAL RECONCILIATION & TOTALS ENGINE
+     ========================================================================== */
+  function recalculateReconciliationTotals() {
+    let totalTicketsSold = 0;
+    let totalDollarSales = 0;
 
-      cancelRolloverModal();
-      saveBoxesState();
-      renderDispenserGrid();
-      recalculateReconciliationTotals();
-    }
-    /* ==========================================================================
-       18. SHIFT FINANCIAL RECONCILIATION & TOTALS ENGINE
-       ========================================================================== */
-    function recalculateReconciliationTotals() {
-      let totalTicketsSold = 0;
-      let totalDollarSales = 0;
+    boxes.forEach(box => {
+      const metrics = calculateBoxMetrics(box);
+      totalTicketsSold += metrics.ticketsSold;
+      totalDollarSales += metrics.dollarSales;
+    });
 
-      boxes.forEach(box => {
-        const metrics = calculateBoxMetrics(box);
-        totalTicketsSold += metrics.ticketsSold;
-        totalDollarSales += metrics.dollarSales;
-      });
+    const soldElem = document.getElementById('recon-total-tickets');
+    const salesElem = document.getElementById('recon-total-sales');
+    if (soldElem) soldElem.textContent = totalTicketsSold.toLocaleString();
+    if (salesElem) salesElem.textContent = `$${totalDollarSales.toFixed(2)}`;
 
+    updateHeaderTotalsUI();
+  }
       // Update UI Display Badges for Shift Totals
       const soldElem = document.getElementById('recon-total-tickets');
       const salesElem = document.getElementById('recon-total-sales');
