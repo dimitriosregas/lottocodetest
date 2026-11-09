@@ -1867,7 +1867,20 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       }
     }
 
-// Live End Ticket handler: allows equal start/end (0 sold) without false rollovers
+// Fast Input: Jump strictly to the next box's End # field on Enter key
+    function handleGridEnter(event, currentIdx, currentField) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const nextIdx = currentIdx + 1;
+        if (nextIdx < boxes.length) {
+          const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
+          if (nextInp) {
+            nextInp.focus();
+            nextInp.select();
+          }
+        }
+      }
+    }
 // Live End Ticket handler: allows equal start/end (0 sold) without false rollovers
     function updateBoxEndTicketLive(idx, val) {
       if (!boxes[idx]) return;
