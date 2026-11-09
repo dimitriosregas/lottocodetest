@@ -2647,28 +2647,63 @@ cancelRolloverModal();
     renderDispenserGrid();
     recalculateReconciliationTotals();
   }
+function finalizeRolloverAction(idx, targetGameNum) {
+      const box = boxes[idx];
+      if (!box) return;
 
-  /* ==========================================================================
-     18. SHIFT FINANCIAL RECONCILIATION & TOTALS ENGINE
-     ========================================================================== */
-  function recalculateReconciliationTotals() {
-    let totalTicketsSold = 0;
-    let totalDollarSales = 0;
+      const pendingEndVal = document.getElementById('modal-roll-pending-end')?.value;
+      const endVal = pendingEndVal !== '' && pendingEndVal !== undefined ? Number(pendingEndVal) : Number(box.rollCount || 150);
+      const startVal = box.startTicket !== '' && box.startTicket !== undefined ? Number(box.startTicket) : 0;
 
-    boxes.forEach(box => {
-      const metrics = calculateBoxMetrics(box);
-      totalTicketsSold += metrics.ticketsSold;
-      totalDollarSales += metrics.dollarSales;
-    });
+      if (!Array.isArray(box.rollovers)) {
+        box.rollovers = [];
+      }
 
-    const soldElem = document.getElementById('recon-total-tickets');
-    const salesElem = document.getElementById('recon-total-sales');
-    if (soldElem) soldElem.textContent = totalTicketsSold.toLocaleString();
-    if (salesElem) salesElem.textContent = `$${totalDollarSales.toFixed(2)}`;
+      // Push current pack record into rollovers history
+      box.rollovers.push({
+        gameNum: box.gameNum,
+        gameName: box.gameName,
+        price: box.price,
+        startTicket: startVal,
+        endTicket: endVal
+      });
 
-    updateHeaderTotalsUI();
-  }
-      // Update UI Display Badges for Shift Totals
+      // Check if switching to a new game
+      const found = allMasterGames.find(g => String(g.gameNum).trim() === String(targetGameNum).trim());
+      if (found) {
+        box.gameNum = found.gameNum;
+        box.gameName = found.gameName;
+        box.price = found.price;
+        box.rollCount = found.rollCount;
+        box.needsNewGameEntry = false;
+      } else {
+        box.gameNum = targetGameNum;
+        box.gameName = 'Game #' + targetGameNum;
+        box.needsNewGameEntry = true;
+      }
+
+      box.startTicket = 0;
+      box.endTicket = '';
+
+      cancelRolloverModal();
+      saveBoxesState();
+      renderDispenserGrid();
+      recalculateReconciliationTotals();
+    }
+
+    /* ==========================================================================
+       18. SHIFT FINANCIAL RECONCILIATION & TOTALS ENGINE
+       ========================================================================== */
+    function recalculateReconciliationTotals() {
+      let totalTicketsSold = 0;
+      let totalDollarSales = 0;
+
+      boxes.forEach(box => {
+        const metrics = calculateBoxMetrics(box);
+        totalTicketsSold += metrics.ticketsSold;
+        totalDollarSales += metrics.dollarSales;
+      });
+
       const soldElem = document.getElementById('recon-total-tickets');
       const salesElem = document.getElementById('recon-total-sales');
       if (soldElem) soldElem.textContent = totalTicketsSold.toLocaleString();
@@ -2676,6 +2711,7 @@ cancelRolloverModal();
 
       updateHeaderTotalsUI();
     }
+
     /* ==========================================================================
        19. STATE STORAGE & APP INITIALIZATION
        ========================================================================== */
