@@ -2032,13 +2032,13 @@ const syncInd = document.getElementById('cloud-sync-indicator');
       recalculateReconciliationTotals();
     }
 
-    // Enter key navigation on the grid for rapid data entry
+   // Enter key navigation on the grid for rapid data entry
     function handleGridEnter(event, currentIdx, currentField) {
       if (event.key === 'Enter') {
         event.preventDefault();
         const nextIdx = currentIdx + 1;
-        if (nextIdx < 40) {
-          const nextInp = document.getElementById(`input-${currentField}-${nextIdx}`);
+        if (nextIdx < boxes.length) {
+          const nextInp = document.getElementById(`input-endTicket-${nextIdx}`);
           if (nextInp) {
             nextInp.focus();
             nextInp.select();
@@ -2046,7 +2046,6 @@ const syncInd = document.getElementById('cloud-sync-indicator');
         }
       }
     }
-
     // Updates only the text badges inside a card without touching the input elements
     function updateBoxMetricsDisplay(idx) {
       const box = boxes[idx];
